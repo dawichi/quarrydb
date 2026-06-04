@@ -1,0 +1,81 @@
+import { Injectable } from '@angular/core'
+import { open } from '@tauri-apps/plugin-dialog'
+import Database from '@tauri-apps/plugin-sql'
+import type { DatabaseSchema, TableSchema } from '@quarrydb/shared'
+
+interface PragmaColumnRow {
+    cid: number
+    name: string
+    type: string
+    notnull: number
+    dflt_value: string | null
+    pk: number
+}
+
+interface PragmaFKRow {
+    id: number
+    seq: number
+    table: string
+    from: string
+    to: string
+}
+
+interface PragmaIndexRow {
+    seq: number
+    name: string
+    unique: number
+}
+
+@Injectable({ providedIn: 'root' })
+export class DatabaseService {
+    // ─── Public Methods ───────────────────────────────────────────────────────
+    async pickFile(): Promise<string | null> {
+        const result = await open({
+            multiple: false,
+            filters: [{ name: 'SQLite Database', extensions: ['db', 'sqlite', 'sqlite3', 'db3'] }],
+        })
+        return result as string | null
+    }
+
+    async loadSchema(path: string, alias: string): Promise<DatabaseSchema> {
+        const db = await Database.load(`sqlite://${path}`)
+
+        const tableRows = await db.select<{ name: string }[]>(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+        )
+
+        const tables: TableSchema[] = []
+
+        for (const row of tableRows) {
+            const [columns, fkRows, idxRows] = await Promise.all([
+                db.select<PragmaColumnRow[]>(`PRAGMA table_info("${row.name}")`),
+                db.select<PragmaFKRow[]>(`PRAGMA foreign_key_list("${row.name}")`),
+                db.select<PragmaIndexRow[]>(`PRAGMA index_list("${row.name}")`),
+            ])
+
+            tables.push({
+                name: row.name,
+                columns: columns.map((c) => ({
+                    name: c.name,
+                    type: c.type || 'TEXT',
+                    nullable: c.notnull === 0,
+                    primaryKey: c.pk > 0,
+                    defaultValue: c.dflt_value ?? undefined,
+                })),
+                foreignKeys: fkRows.map((fk) => ({
+                    column: fk.from,
+                    referencesTable: fk.table,
+                    referencesColumn: fk.to,
+                })),
+                indexes: idxRows.map((idx) => ({
+                    name: idx.name,
+                    columns: [],
+                    unique: idx.unique === 1,
+                })),
+            })
+        }
+
+        await db.close()
+        return { path, alias, tables }
+    }
+}

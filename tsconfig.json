@@ -4,6 +4,9 @@
   "compileOnSave": false,
   "compilerOptions": {
     "strict": true,
+    "paths": {
+      "@quarrydb/shared": ["./packages/shared/src/index.ts"]
+    },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,

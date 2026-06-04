@@ -1,0 +1,54 @@
+<div class="flex h-full">
+
+    <!-- Left panel: quick start -->
+    <div class="w-64 flex-shrink-0 border-r border-zinc-800 p-6 flex flex-col gap-6">
+        <div>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Get started</h2>
+            <div class="flex flex-col gap-1">
+                <button
+                    class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-left transition-colors w-full"
+                    disabled
+                >
+                    <!-- Book icon -->
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <span>Interactive tutorial</span>
+                    <span class="ml-auto text-xs text-zinc-600">soon</span>
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Recent</h2>
+            <p class="text-xs text-zinc-600 italic">No recent files</p>
+        </div>
+    </div>
+
+    <!-- Right: main CTA -->
+    <div class="flex-1 flex flex-col items-center justify-center gap-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold tracking-tight text-zinc-100">Quarry</h1>
+            <p class="mt-2 text-sm text-zinc-500">Visual SQLite query builder</p>
+        </div>
+
+        <button
+            class="flex items-center gap-2.5 px-6 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-zinc-950 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            [disabled]="workspaceStore.isLoading()"
+            (click)="workspaceStore.openDatabase()"
+        >
+            <!-- Folder open icon -->
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
+            </svg>
+            @if (workspaceStore.isLoading()) {
+                Opening...
+            } @else {
+                Open database file
+            }
+        </button>
+
+        <p class="text-xs text-zinc-600">Supports .db · .sqlite · .sqlite3 · .db3</p>
+    </div>
+
+</div>
