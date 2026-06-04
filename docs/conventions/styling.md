@@ -1,5 +1,7 @@
 # Styling Conventions
 
+> **Tailwind version: v3.** Angular's esbuild-based application builder auto-detects `tailwind.config.js` and handles v3 natively — no PostCSS config needed. Tailwind v4 has compatibility issues with Angular's dev server pipeline.
+
 ## Tailwind First
 
 All styling uses Tailwind CSS utility classes. Do not write CSS or SCSS for anything
