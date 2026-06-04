@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core'
 import type { DatabaseSchema, Workspace } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
+import { SampleDatabaseService } from '../services/sample-database.service'
 
 interface SelectedTable {
     schemaAlias: string
@@ -11,6 +12,7 @@ interface SelectedTable {
 export class WorkspaceStore {
     // ─── Injected Services ────────────────────────────────────────────────────
     private readonly db = inject(DatabaseService)
+    private readonly sampleDb = inject(SampleDatabaseService)
 
     // ─── Private ──────────────────────────────────────────────────────────────
     private readonly PAGE_SIZE = 100
@@ -86,27 +88,41 @@ export class WorkspaceStore {
     async openDatabase(): Promise<void> {
         this.isLoading.set(true)
         this.error.set(null)
-
         try {
             const path = await this.db.pickFile()
             if (!path) return
-
-            const alias = 'main'
-            const schema = await this.db.loadSchema(path, alias)
-            const fileName = path.split('/').pop() ?? path
-
-            this.workspace.set({
-                id: crypto.randomUUID(),
-                name: fileName,
-                databases: [{ path, alias }],
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-            })
-            this.schemas.set([schema])
+            await this.loadFilePath(path)
         } catch (err) {
             this.error.set(err instanceof Error ? err.message : 'Failed to open database')
         } finally {
             this.isLoading.set(false)
         }
+    }
+
+    async openSampleDatabase(): Promise<void> {
+        this.isLoading.set(true)
+        this.error.set(null)
+        try {
+            const path = await this.sampleDb.generate()
+            await this.loadFilePath(path)
+        } catch (err) {
+            this.error.set(err instanceof Error ? err.message : 'Failed to load sample database')
+        } finally {
+            this.isLoading.set(false)
+        }
+    }
+
+    private async loadFilePath(path: string): Promise<void> {
+        const alias = 'main'
+        const schema = await this.db.loadSchema(path, alias)
+        const fileName = path.split('/').pop() ?? path
+        this.workspace.set({
+            id: crypto.randomUUID(),
+            name: fileName,
+            databases: [{ path, alias }],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        })
+        this.schemas.set([schema])
     }
 }

@@ -7,6 +7,7 @@
     "core:default",
     "opener:default",
     "dialog:allow-open",
+    "path:allow-app-data-dir",
     "sql:allow-load",
     "sql:allow-execute",
     "sql:allow-select",
