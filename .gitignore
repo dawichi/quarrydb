@@ -2,6 +2,9 @@
 
 # Compiled output
 /dist
+
+# Generated — produced by `bun run tw:build` or `bun run start`
+/src/styles.css
 /tmp
 /out-tsc
 /bazel-out
