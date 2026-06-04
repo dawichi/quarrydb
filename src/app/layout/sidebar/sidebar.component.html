@@ -44,8 +44,11 @@
                 <div>
                     <!-- Table row -->
                     <button
-                        class="w-full flex items-center gap-2 px-3 py-1 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 text-left transition-colors"
-                        (click)="toggleTable(table.name)"
+                        class="w-full flex items-center gap-2 px-3 py-1 text-sm text-left transition-colors"
+                        [class]="isSelectedTable(schema.alias, table.name)
+                            ? 'bg-zinc-800 text-zinc-100'
+                            : 'text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60'"
+                        (click)="onTableClick(schema.alias, table.name)"
                     >
                         <!-- Chevron -->
                         <svg

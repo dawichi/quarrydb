@@ -2,10 +2,19 @@ import { Injectable, computed, inject, signal } from '@angular/core'
 import type { DatabaseSchema, Workspace } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 
+interface SelectedTable {
+    schemaAlias: string
+    tableName: string
+}
+
 @Injectable({ providedIn: 'root' })
 export class WorkspaceStore {
     // ─── Injected Services ────────────────────────────────────────────────────
     private readonly db = inject(DatabaseService)
+
+    // ─── Private ──────────────────────────────────────────────────────────────
+    private readonly PAGE_SIZE = 100
+    private loadOffset = 0
 
     // ─── State ────────────────────────────────────────────────────────────────
     readonly workspace = signal<Workspace | null>(null)
@@ -13,10 +22,67 @@ export class WorkspaceStore {
     readonly isLoading = signal(false)
     readonly error = signal<string | null>(null)
 
+    readonly selectedTable = signal<SelectedTable | null>(null)
+    readonly tableRows = signal<Record<string, unknown>[]>([])
+    readonly tableColumns = signal<string[]>([])
+    readonly tableRowTotal = signal<number>(0)
+    readonly isLoadingTable = signal(false)
+
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly hasWorkspace = computed(() => this.workspace() !== null)
+    readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
 
     // ─── Public Methods ───────────────────────────────────────────────────────
+    async selectTable(alias: string, tableName: string): Promise<void> {
+        this.selectedTable.set({ schemaAlias: alias, tableName })
+        this.tableRows.set([])
+        this.tableColumns.set([])
+        this.tableRowTotal.set(0)
+        this.loadOffset = 0
+
+        const path = this.schemas().find((s) => s.alias === alias)?.path
+        if (!path) return
+
+        this.isLoadingTable.set(true)
+        try {
+            const { rows, total } = await this.db.queryRows(path, tableName, this.PAGE_SIZE, 0)
+
+            const schemaColumns =
+                this.schemas()
+                    .find((s) => s.alias === alias)
+                    ?.tables.find((t) => t.name === tableName)
+                    ?.columns.map((c) => c.name) ?? (rows.length > 0 ? Object.keys(rows[0]) : [])
+
+            this.tableColumns.set(schemaColumns)
+            this.tableRows.set(rows)
+            this.tableRowTotal.set(total)
+            this.loadOffset = rows.length
+        } catch (err) {
+            this.error.set(err instanceof Error ? err.message : 'Failed to load table')
+        } finally {
+            this.isLoadingTable.set(false)
+        }
+    }
+
+    async loadMoreRows(): Promise<void> {
+        const sel = this.selectedTable()
+        if (!sel || this.isLoadingTable()) return
+
+        const path = this.schemas().find((s) => s.alias === sel.schemaAlias)?.path
+        if (!path) return
+
+        this.isLoadingTable.set(true)
+        try {
+            const { rows } = await this.db.queryRows(path, sel.tableName, this.PAGE_SIZE, this.loadOffset)
+            this.tableRows.update((prev) => [...prev, ...rows])
+            this.loadOffset += rows.length
+        } catch (err) {
+            this.error.set(err instanceof Error ? err.message : 'Failed to load more rows')
+        } finally {
+            this.isLoadingTable.set(false)
+        }
+    }
+
     async openDatabase(): Promise<void> {
         this.isLoading.set(true)
         this.error.set(null)

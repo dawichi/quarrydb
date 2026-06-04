@@ -3,7 +3,7 @@
 > **Tailwind version: v4.** Angular's esbuild dev server doesn't invoke PostCSS on global styles, so `@import "tailwindcss"` reaches the browser unprocessed. The fix: Tailwind CLI runs as a separate process writing `src/styles.css`, which Angular includes as a plain static file. No PostCSS integration needed.
 >
 > - `src/tailwind-input.css` — Tailwind source (the `@import "tailwindcss"` entry point)
-> - `src/styles.css` — generated output, included by Angular, committed to git
+> - `src/styles.css` — generated output, included by Angular, **gitignored** (auto-produced by `bun run start` / `bun run build`)
 > - Dev: `bun run start` runs both Tailwind watcher + Angular dev server via `concurrently`
 > - Build: `bun run build` generates minified CSS first, then runs `ng build`
 
@@ -32,8 +32,8 @@ For everything else: use Tailwind. If you think you need a CSS class, check Tail
 
 ## Component Style Files
 
-Each component has a `.component.scss` file even if it's empty — keeps the structure consistent and
-makes it obvious when custom styles are added.
+Only create a `.component.scss` file when the component actually needs custom styles (keyframes,
+pseudo-elements, third-party overrides). Do not create empty placeholder files.
 
 ## Global Styles (`src/styles.scss`)
 

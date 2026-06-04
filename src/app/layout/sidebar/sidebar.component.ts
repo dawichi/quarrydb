@@ -4,7 +4,6 @@ import { WorkspaceStore } from '../../core/store/workspace.store'
 @Component({
     selector: 'app-sidebar',
     templateUrl: './sidebar.component.html',
-    styleUrl: './sidebar.component.scss',
 })
 export class SidebarComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
@@ -16,6 +15,16 @@ export class SidebarComponent {
     // ─── Public Methods ───────────────────────────────────────────────────────
     protected isExpanded(tableName: string): boolean {
         return this.expandedTables().has(tableName)
+    }
+
+    protected onTableClick(alias: string, tableName: string): void {
+        this.toggleTable(tableName)
+        void this.workspaceStore.selectTable(alias, tableName)
+    }
+
+    protected isSelectedTable(alias: string, tableName: string): boolean {
+        const sel = this.workspaceStore.selectedTable()
+        return sel?.schemaAlias === alias && sel?.tableName === tableName
     }
 
     protected toggleTable(tableName: string): void {

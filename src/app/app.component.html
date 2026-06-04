@@ -8,10 +8,7 @@
     <!-- Main content area -->
     <main class="flex-1 overflow-hidden">
         @if (workspaceStore.hasWorkspace()) {
-            <!-- Placeholder until the table viewer is built (step 3) -->
-            <div class="flex items-center justify-center h-full">
-                <p class="text-sm text-zinc-600">Select a table from the sidebar to get started</p>
-            </div>
+            <app-table-viewer />
         } @else {
             <app-welcome />
         }
