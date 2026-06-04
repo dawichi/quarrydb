@@ -1,6 +1,6 @@
 # Styling Conventions
 
-> **Tailwind version: v3.** Angular's esbuild-based application builder auto-detects `tailwind.config.js` and handles v3 natively — no PostCSS config needed. Tailwind v4 has compatibility issues with Angular's dev server pipeline.
+> **Tailwind version: v4.** PostCSS config must use CommonJS format (`postcss.config.cjs`) — Angular's build pipeline uses `postcss-load-config` which has trouble with ESM (`.mjs`) modules in dev mode.
 
 ## Tailwind First
 
