@@ -1,6 +1,11 @@
 # Styling Conventions
 
-> **Tailwind version: v4.** PostCSS config must use CommonJS format (`postcss.config.cjs`) — Angular's build pipeline uses `postcss-load-config` which has trouble with ESM (`.mjs`) modules in dev mode.
+> **Tailwind version: v4.** Angular's esbuild dev server doesn't invoke PostCSS on global styles, so `@import "tailwindcss"` reaches the browser unprocessed. The fix: Tailwind CLI runs as a separate process writing `src/styles.css`, which Angular includes as a plain static file. No PostCSS integration needed.
+>
+> - `src/tailwind-input.css` — Tailwind source (the `@import "tailwindcss"` entry point)
+> - `src/styles.css` — generated output, included by Angular, committed to git
+> - Dev: `bun run start` runs both Tailwind watcher + Angular dev server via `concurrently`
+> - Build: `bun run build` generates minified CSS first, then runs `ng build`
 
 ## Tailwind First
 
