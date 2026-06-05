@@ -20,6 +20,9 @@ export class StepCardComponent implements OnInit {
     protected readonly expression = signal('')
     protected readonly sortColumns = signal<SortColumn[]>([])
     protected readonly limit = signal<number | null>(null)
+    protected readonly rawSql = signal('')
+    protected readonly rawSqlPlaceholder = 'SELECT * FROM {src} WHERE ...'
+    protected readonly rawSqlHint = '{src}'
 
     private debounceTimer: ReturnType<typeof setTimeout> | null = null
     private limitDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -32,6 +35,7 @@ export class StepCardComponent implements OnInit {
             this.sortColumns.set(s.columns)
             this.limit.set(s.limit)
         }
+        if (s.type === 'RAW_SQL') this.rawSql.set(s.sql)
     }
 
     // ─── WHERE methods ────────────────────────────────────────────────────────
@@ -55,6 +59,16 @@ export class StepCardComponent implements OnInit {
             textarea.focus()
         }, 0)
         this.pipelineStore.updateStepExpression(this.stepIndex(), next)
+    }
+
+    // ─── RAW SQL methods ──────────────────────────────────────────────────────
+    protected onRawSqlInput(event: Event): void {
+        const value = (event.target as HTMLTextAreaElement).value
+        this.rawSql.set(value)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+            this.pipelineStore.updateRawSqlStep(this.stepIndex(), value)
+        }, 400)
     }
 
     // ─── ORDER BY methods ─────────────────────────────────────────────────────
@@ -98,6 +112,7 @@ export class StepCardComponent implements OnInit {
         const s = this.step()
         if (s.type === 'WHERE') return !this.expression().trim()
         if (s.type === 'ORDER_BY') return this.sortColumns().length === 0 && this.limit() === null
+        if (s.type === 'RAW_SQL') return !this.rawSql().trim()
         return false
     }
 

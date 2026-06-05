@@ -43,6 +43,20 @@
         </div>
     }
 
+    <!-- Config: RAW SQL -->
+    @if (step().type === 'RAW_SQL') {
+        <div class="p-3 flex flex-col gap-2">
+            <textarea
+                class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+                rows="4"
+                [placeholder]="rawSqlPlaceholder"
+                [value]="rawSql()"
+                (input)="onRawSqlInput($event)"
+            ></textarea>
+            <p class="text-xs text-zinc-600">Use <code class="text-zinc-500 font-mono">{{ rawSqlHint }}</code> to reference the previous step's output</p>
+        </div>
+    }
+
     <!-- Config: ORDER BY -->
     @if (step().type === 'ORDER_BY') {
         <div class="p-3 flex flex-col gap-3">

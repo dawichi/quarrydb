@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { OrderByStep, PipelineStep, SortColumn } from '@quarrydb/shared'
+import type { OrderByStep, PipelineStep, RawSqlStep, SortColumn } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 
 export interface StepResultState {
@@ -34,6 +34,10 @@ function buildStepCte(prev: string, step: PipelineStep): string {
             }
             if (step.limit !== null) sql += ` LIMIT ${step.limit}`
             return sql
+        }
+        case 'RAW_SQL': {
+            const sql = step.sql.trim()
+            return sql ? sql.replaceAll('{src}', prev) : `SELECT * FROM ${prev}`
         }
         default:
             return `SELECT * FROM ${prev}`
@@ -99,6 +103,17 @@ export class PipelineStore {
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
+    addRawSqlStep(): void {
+        const step: RawSqlStep = { id: crypto.randomUUID(), type: 'RAW_SQL', sql: '' }
+        this.steps.update((prev) => [...prev, step])
+        this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+    }
+
+    updateRawSqlStep(index: number, sql: string): void {
+        this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, sql } as PipelineStep) : s)))
+        void this.executeFrom(index)
+    }
+
     updateOrderByStep(index: number, columns: SortColumn[], limit: number | null): void {
         this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, columns, limit } as PipelineStep) : s)))
         void this.executeFrom(index)
@@ -132,6 +147,10 @@ export class PipelineStore {
                 continue
             }
             if (step.type === 'ORDER_BY' && step.columns.length === 0 && step.limit === null) {
+                this.setResult(i, { ...EMPTY_RESULT })
+                continue
+            }
+            if (step.type === 'RAW_SQL' && !step.sql.trim()) {
                 this.setResult(i, { ...EMPTY_RESULT })
                 continue
             }
