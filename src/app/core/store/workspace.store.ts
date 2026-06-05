@@ -30,11 +30,17 @@ export class WorkspaceStore {
     readonly tableRowTotal = signal<number>(0)
     readonly isLoadingTable = signal(false)
 
+    readonly activeTab = signal<'browse' | 'query'>('browse')
+
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly hasWorkspace = computed(() => this.workspace() !== null)
     readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
 
     // ─── Public Methods ───────────────────────────────────────────────────────
+    setActiveTab(tab: 'browse' | 'query'): void {
+        this.activeTab.set(tab)
+    }
+
     async selectTable(alias: string, tableName: string): Promise<void> {
         this.selectedTable.set({ schemaAlias: alias, tableName })
         this.tableRows.set([])

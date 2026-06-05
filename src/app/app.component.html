@@ -6,12 +6,35 @@
     </aside>
 
     <!-- Main content area -->
-    <main class="flex-1 overflow-hidden">
+    <main class="flex-1 overflow-hidden flex flex-col">
+
         @if (workspaceStore.hasWorkspace()) {
-            <app-table-viewer />
+
+            @if (workspaceStore.selectedTable()) {
+                <!-- Tab bar -->
+                <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
+                    @for (tab of tabs; track tab) {
+                        <button
+                            class="px-3 py-2.5 text-xs font-medium transition-colors capitalize border-b-2 -mb-px"
+                            [class]="workspaceStore.activeTab() === tab
+                                ? 'text-zinc-100 border-amber-500'
+                                : 'text-zinc-500 border-transparent hover:text-zinc-300'"
+                            (click)="workspaceStore.setActiveTab(tab)"
+                        >{{ tab }}</button>
+                    }
+                </div>
+            }
+
+            @if (workspaceStore.activeTab() === 'browse') {
+                <app-table-viewer />
+            } @else {
+                <app-pipeline-builder />
+            }
+
         } @else {
             <app-welcome />
         }
+
     </main>
 
 </div>

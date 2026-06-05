@@ -37,6 +37,24 @@ export class DatabaseService {
         return result as string | null
     }
 
+    async executeQuery(
+        path: string,
+        sql: string,
+        previewLimit: number,
+    ): Promise<{ rows: Record<string, unknown>[]; columns: string[]; total: number }> {
+        const db = await Database.load(`sqlite://${path}`)
+        try {
+            const [countResult, rows] = await Promise.all([
+                db.select<[{ count: number }]>(`SELECT COUNT(*) as count FROM (${sql})`),
+                db.select<Record<string, unknown>[]>(`${sql} LIMIT ?`, [previewLimit]),
+            ])
+            const columns = rows.length > 0 ? Object.keys(rows[0]) : []
+            return { rows, columns, total: countResult[0]?.count ?? 0 }
+        } finally {
+            await db.close()
+        }
+    }
+
     async queryRows(
         path: string,
         tableName: string,

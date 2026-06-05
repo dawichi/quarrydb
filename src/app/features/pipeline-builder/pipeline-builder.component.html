@@ -1,0 +1,121 @@
+<div class="flex flex-col h-full overflow-hidden">
+
+    @if (!pipelineStore.source()) {
+
+        <!-- No table selected -->
+        <div class="flex items-center justify-center h-full">
+            <p class="text-sm text-zinc-600">Select a table from the sidebar to start</p>
+        </div>
+
+    } @else {
+
+        <!-- Pipeline canvas -->
+        <div class="flex-1 overflow-y-auto p-6 min-h-0">
+            <div class="max-w-2xl mx-auto flex flex-col items-stretch gap-0">
+
+                <!-- Source node -->
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <!-- Table icon -->
+                        <svg class="w-4 h-4 text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-1.5-3.75h-6" />
+                        </svg>
+                        <span class="text-sm font-medium text-zinc-100">{{ pipelineStore.source()!.tableName }}</span>
+                    </div>
+                    @if (pipelineStore.source()!.rowCount > 0) {
+                        <span class="text-xs text-zinc-500">{{ pipelineStore.source()!.rowCount.toLocaleString() }} rows</span>
+                    }
+                </div>
+
+                <!-- Steps -->
+                @for (step of pipelineStore.steps(); track step.id; let i = $index) {
+
+                    <!-- Connector -->
+                    <div class="flex justify-center py-1">
+                        <div class="w-px h-5 bg-zinc-700"></div>
+                    </div>
+
+                    <app-step-card
+                        [step]="step"
+                        [stepIndex]="i"
+                        [result]="pipelineStore.stepResults()[i]"
+                    />
+                }
+
+                <!-- Connector before add button -->
+                <div class="flex justify-center py-1">
+                    <div class="w-px h-5 bg-zinc-700"></div>
+                </div>
+
+                <!-- Add step -->
+                <div class="relative flex justify-center">
+                    <button
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-dashed text-xs transition-colors"
+                        [class]="showPicker() ? 'border-amber-500/50 text-amber-500' : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'"
+                        (click)="showPicker.set(!showPicker())"
+                    >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Add step
+                    </button>
+
+                    @if (showPicker()) {
+                        <div class="absolute top-full mt-1 z-20 w-48 rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl overflow-hidden">
+                            <!-- WHERE: enabled -->
+                            <button
+                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
+                                (click)="addWhereStep()"
+                            >
+                                <span class="text-xs font-mono font-bold text-amber-500 w-16">WHERE</span>
+                                Filter rows
+                            </button>
+                            <!-- Future step types -->
+                            @for (label of ['SELECT · coming soon', 'ORDER BY · coming soon', 'GROUP BY · coming soon', 'JOIN · coming soon', 'Raw SQL · coming soon']; track label) {
+                                <button class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed text-left" disabled>
+                                    {{ label }}
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SQL panel -->
+        <div class="flex-shrink-0 border-t border-zinc-800 bg-zinc-900">
+
+            <!-- Panel header -->
+            <div class="flex items-center justify-between px-4 py-2">
+                <button
+                    class="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                    (click)="sqlPanelOpen.set(!sqlPanelOpen())"
+                >
+                    <svg
+                        class="w-3 h-3 transition-transform"
+                        [class.rotate-180]="sqlPanelOpen()"
+                        fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+                    </svg>
+                    Generated SQL
+                </button>
+                <button
+                    class="text-xs transition-colors px-2 py-0.5 rounded"
+                    [class]="copied() ? 'text-green-400' : 'text-zinc-500 hover:text-zinc-300'"
+                    (click)="copySql()"
+                >
+                    {{ copied() ? 'Copied!' : 'Copy' }}
+                </button>
+            </div>
+
+            <!-- SQL content -->
+            @if (sqlPanelOpen()) {
+                <pre class="px-4 pb-3 text-xs text-zinc-400 font-mono overflow-x-auto max-h-36 leading-relaxed">{{ pipelineStore.generatedSql() }}</pre>
+            }
+        </div>
+
+    }
+
+</div>
