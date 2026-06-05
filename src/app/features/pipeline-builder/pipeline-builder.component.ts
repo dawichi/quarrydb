@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core'
+import { Component, effect, HostListener, inject, signal } from '@angular/core'
 import { PipelineStore } from '../../core/store/pipeline.store'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 import { StepCardComponent } from './step-card/step-card.component'
@@ -18,6 +18,8 @@ export class PipelineBuilderComponent {
     protected readonly showPicker = signal(false)
     protected readonly sqlPanelOpen = signal(true)
     protected readonly copied = signal(false)
+    protected readonly stepDragIndex = signal<number | null>(null)
+    protected readonly stepDropTarget = signal<number | null>(null)
 
     constructor() {
         // Initialize pipeline whenever the selected table changes
@@ -65,6 +67,39 @@ export class PipelineBuilderComponent {
     protected addJoinStep(): void {
         this.pipelineStore.addJoinStep()
         this.showPicker.set(false)
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    protected onKeydown(event: KeyboardEvent): void {
+        if (!(event.ctrlKey || event.metaKey) || event.key !== 'z') return
+        event.preventDefault()
+        if (event.shiftKey) this.pipelineStore.redo()
+        else this.pipelineStore.undo()
+    }
+
+    protected onStepGripMouseDown(event: MouseEvent, i: number): void {
+        event.preventDefault()
+        this.stepDragIndex.set(i)
+        this.stepDropTarget.set(i)
+        document.body.style.cursor = 'grabbing'
+        document.body.style.userSelect = 'none'
+        const cleanup = () => {
+            const from = this.stepDragIndex()
+            const to = this.stepDropTarget()
+            this.stepDragIndex.set(null)
+            this.stepDropTarget.set(null)
+            document.body.style.cursor = ''
+            document.body.style.userSelect = ''
+            if (from !== null && to !== null && from !== to) {
+                this.pipelineStore.reorderSteps(from, to)
+            }
+            document.removeEventListener('mouseup', cleanup)
+        }
+        document.addEventListener('mouseup', cleanup)
+    }
+
+    protected onStepRowMouseEnter(i: number): void {
+        if (this.stepDragIndex() !== null) this.stepDropTarget.set(i)
     }
 
     protected async copySql(): Promise<void> {

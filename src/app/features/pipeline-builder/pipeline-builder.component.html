@@ -35,11 +35,34 @@
                         <div class="w-px h-5 bg-zinc-700"></div>
                     </div>
 
-                    <app-step-card
-                        [step]="step"
-                        [stepIndex]="i"
-                        [result]="pipelineStore.stepResults()[i]"
-                    />
+                    <!-- Step row: grip + card -->
+                    <div
+                        class="flex items-start gap-2"
+                        (mouseenter)="onStepRowMouseEnter(i)"
+                        [class.opacity-40]="stepDragIndex() === i"
+                        [class.ring-1]="stepDropTarget() === i && stepDragIndex() !== i"
+                        [class.ring-amber-500]="stepDropTarget() === i && stepDragIndex() !== i"
+                        [class.rounded-lg]="stepDropTarget() === i && stepDragIndex() !== i"
+                    >
+                        <!-- Pipeline drag handle -->
+                        <span
+                            class="mt-2.5 flex-shrink-0 cursor-grab text-zinc-700 hover:text-zinc-400 transition-colors leading-none"
+                            (mousedown)="onStepGripMouseDown($event, i)"
+                            title="Drag to reorder"
+                        >
+                            <svg aria-hidden="true" class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                                <circle cx="5" cy="4" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="5" cy="12" r="1.3"/>
+                                <circle cx="11" cy="4" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="11" cy="12" r="1.3"/>
+                            </svg>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <app-step-card
+                                [step]="step"
+                                [stepIndex]="i"
+                                [result]="pipelineStore.stepResults()[i]"
+                            />
+                        </div>
+                    </div>
                 }
 
             </div>

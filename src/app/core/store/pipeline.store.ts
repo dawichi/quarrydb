@@ -109,12 +109,16 @@ export class PipelineStore {
     readonly source = signal<PipelineSource | null>(null)
     readonly steps = signal<PipelineStep[]>([])
     readonly stepResults = signal<StepResultState[]>([])
+    private readonly _history = signal<PipelineStep[][]>([[]])
+    private readonly _historyIndex = signal(0)
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly generatedSql = computed(() => {
         const src = this.source()
         return src ? buildPipelineSql(src.tableName, this.steps()) : ''
     })
+    readonly canUndo = computed(() => this._historyIndex() > 0)
+    readonly canRedo = computed(() => this._historyIndex() < this._history().length - 1)
 
     // ─── Public Methods ───────────────────────────────────────────────────────
     async openForTable(path: string, alias: string, tableName: string, columns: string[]): Promise<void> {
@@ -124,6 +128,8 @@ export class PipelineStore {
         this.source.set({ path, alias, tableName, columns, rowCount: 0 })
         this.steps.set([])
         this.stepResults.set([])
+        this._history.set([[]])
+        this._historyIndex.set(0)
 
         try {
             const { total } = await this.db.executeQuery(path, `SELECT * FROM "${tableName}"`, 0)
@@ -134,35 +140,41 @@ export class PipelineStore {
     }
 
     addStep(): void {
+        this.pushToHistory()
         const step: PipelineStep = { id: crypto.randomUUID(), type: 'WHERE', expression: '' }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
     addOrderByStep(): void {
+        this.pushToHistory()
         const step: OrderByStep = { id: crypto.randomUUID(), type: 'ORDER_BY', columns: [], limit: null }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
     addSelectStep(): void {
+        this.pushToHistory()
         const step: SelectStep = { id: crypto.randomUUID(), type: 'SELECT', columns: [] }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
     updateSelectStep(index: number, columns: SelectColumn[]): void {
+        this.pushToHistory()
         this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, columns } as PipelineStep) : s)))
         void this.executeFrom(index)
     }
 
     addRawSqlStep(): void {
+        this.pushToHistory()
         const step: RawSqlStep = { id: crypto.randomUUID(), type: 'RAW_SQL', sql: '' }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
     addJoinStep(): void {
+        this.pushToHistory()
         const step: JoinStep = {
             id: crypto.randomUUID(),
             type: 'JOIN',
@@ -176,6 +188,7 @@ export class PipelineStore {
     }
 
     updateJoinStep(index: number, joinType: JoinType, table: string, alias: string | undefined, on: string): void {
+        this.pushToHistory()
         this.steps.update((prev) =>
             prev.map((s, i) => (i === index ? ({ ...s, joinType, table, alias, on } as PipelineStep) : s)),
         )
@@ -183,12 +196,14 @@ export class PipelineStore {
     }
 
     addGroupByStep(): void {
+        this.pushToHistory()
         const step: GroupByStep = { id: crypto.randomUUID(), type: 'GROUP_BY', groupBy: [], aggregations: [] }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
     updateGroupByStep(index: number, groupBy: string[], aggregations: Aggregation[]): void {
+        this.pushToHistory()
         this.steps.update((prev) =>
             prev.map((s, i) => (i === index ? ({ ...s, groupBy, aggregations } as PipelineStep) : s)),
         )
@@ -196,16 +211,19 @@ export class PipelineStore {
     }
 
     updateRawSqlStep(index: number, sql: string): void {
+        this.pushToHistory()
         this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, sql } as PipelineStep) : s)))
         void this.executeFrom(index)
     }
 
     updateOrderByStep(index: number, columns: SortColumn[], limit: number | null): void {
+        this.pushToHistory()
         this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, columns, limit } as PipelineStep) : s)))
         void this.executeFrom(index)
     }
 
     removeStep(index: number): void {
+        this.pushToHistory()
         this.steps.update((prev) => prev.filter((_, i) => i !== index))
         this.stepResults.update((prev) => prev.filter((_, i) => i !== index))
         if (index < this.steps().length) {
@@ -214,11 +232,56 @@ export class PipelineStore {
     }
 
     updateStepExpression(index: number, expression: string): void {
+        this.pushToHistory()
         this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, expression } as PipelineStep) : s)))
         void this.executeFrom(index)
     }
 
+    reorderSteps(from: number, to: number): void {
+        this.pushToHistory()
+        const steps = [...this.steps()]
+        const results = [...this.stepResults()]
+        const [movedStep] = steps.splice(from, 1)
+        const [movedResult] = results.splice(from, 1)
+        steps.splice(to, 0, movedStep)
+        results.splice(to, 0, movedResult)
+        this.steps.set(steps)
+        this.stepResults.set(results)
+        void this.executeFrom(Math.min(from, to))
+    }
+
+    undo(): void {
+        const idx = this._historyIndex()
+        if (idx <= 0) return
+        const newIdx = idx - 1
+        this._historyIndex.set(newIdx)
+        const steps = this._history()[newIdx].map((s) => ({ ...s }))
+        this.steps.set(steps)
+        this.stepResults.set(steps.map(() => ({ ...EMPTY_RESULT })))
+        if (steps.length > 0) void this.executeFrom(0)
+    }
+
+    redo(): void {
+        const idx = this._historyIndex()
+        if (idx >= this._history().length - 1) return
+        const newIdx = idx + 1
+        this._historyIndex.set(newIdx)
+        const steps = this._history()[newIdx].map((s) => ({ ...s }))
+        this.steps.set(steps)
+        this.stepResults.set(steps.map(() => ({ ...EMPTY_RESULT })))
+        if (steps.length > 0) void this.executeFrom(0)
+    }
+
     // ─── Private ──────────────────────────────────────────────────────────────
+    private pushToHistory(): void {
+        const current = this._historyIndex()
+        const trimmed = this._history().slice(0, current + 1)
+        trimmed.push(this.steps().map((s) => ({ ...s })))
+        const capped = trimmed.slice(-50)
+        this._history.set(capped)
+        this._historyIndex.set(capped.length - 1)
+    }
+
     private async executeFrom(fromIndex: number): Promise<void> {
         const src = this.source()
         if (!src) return
