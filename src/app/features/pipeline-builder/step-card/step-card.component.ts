@@ -1,5 +1,5 @@
 import { Component, inject, input, OnInit, signal } from '@angular/core'
-import type { PipelineStep, SortColumn } from '@quarrydb/shared'
+import type { PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 
 @Component({
@@ -23,6 +23,9 @@ export class StepCardComponent implements OnInit {
     protected readonly rawSql = signal('')
     protected readonly rawSqlPlaceholder = 'SELECT * FROM {src} WHERE ...'
     protected readonly rawSqlHint = '{src}'
+    protected readonly selectColumns = signal<SelectColumn[]>([])
+    protected readonly draggedIndex = signal<number | null>(null)
+    protected readonly dropTargetIndex = signal<number | null>(null)
 
     private debounceTimer: ReturnType<typeof setTimeout> | null = null
     private limitDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -36,6 +39,7 @@ export class StepCardComponent implements OnInit {
             this.limit.set(s.limit)
         }
         if (s.type === 'RAW_SQL') this.rawSql.set(s.sql)
+        if (s.type === 'SELECT') this.selectColumns.set(s.columns)
     }
 
     // ─── WHERE methods ────────────────────────────────────────────────────────
@@ -69,6 +73,87 @@ export class StepCardComponent implements OnInit {
         this.debounceTimer = setTimeout(() => {
             this.pipelineStore.updateRawSqlStep(this.stepIndex(), value)
         }, 400)
+    }
+
+    // ─── SELECT methods ───────────────────────────────────────────────────────
+    protected isSelectedColumn(name: string): boolean {
+        return this.selectColumns().some((c) => c.expr === name)
+    }
+
+    protected addSelectColumn(name: string): void {
+        if (this.isSelectedColumn(name)) return
+        const updated = [...this.selectColumns(), { expr: name }]
+        this.selectColumns.set(updated)
+        this.pipelineStore.updateSelectStep(this.stepIndex(), updated)
+    }
+
+    protected removeSelectColumn(i: number): void {
+        const updated = this.selectColumns().filter((_, idx) => idx !== i)
+        this.selectColumns.set(updated)
+        this.pipelineStore.updateSelectStep(this.stepIndex(), updated)
+    }
+
+    protected toggleSelectColumn(name: string): void {
+        const i = this.selectColumns().findIndex((c) => c.expr === name)
+        if (i >= 0) this.removeSelectColumn(i)
+        else this.addSelectColumn(name)
+    }
+
+    protected addCustomExpr(): void {
+        const updated = [...this.selectColumns(), { expr: '' }]
+        this.selectColumns.set(updated)
+        this.pipelineStore.updateSelectStep(this.stepIndex(), updated)
+    }
+
+    protected onSelectExprInput(event: Event, i: number): void {
+        const value = (event.target as HTMLInputElement).value
+        const updated = this.selectColumns().map((c, idx) => (idx === i ? { ...c, expr: value } : c))
+        this.selectColumns.set(updated)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+            this.pipelineStore.updateSelectStep(this.stepIndex(), updated)
+        }, 400)
+    }
+
+    protected onSelectAliasInput(event: Event, i: number): void {
+        const value = (event.target as HTMLInputElement).value
+        const updated = this.selectColumns().map((c, idx) => (idx === i ? { ...c, alias: value || undefined } : c))
+        this.selectColumns.set(updated)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+            this.pipelineStore.updateSelectStep(this.stepIndex(), updated)
+        }, 400)
+    }
+
+    protected onGripMouseDown(event: MouseEvent, i: number): void {
+        event.preventDefault()
+        this.draggedIndex.set(i)
+        this.dropTargetIndex.set(i)
+        document.body.style.cursor = 'grabbing'
+        document.body.style.userSelect = 'none'
+        const cleanup = () => {
+            const from = this.draggedIndex()
+            const to = this.dropTargetIndex()
+            this.draggedIndex.set(null)
+            this.dropTargetIndex.set(null)
+            document.body.style.cursor = ''
+            document.body.style.userSelect = ''
+            if (from !== null && to !== null && from !== to) {
+                const cols = [...this.selectColumns()]
+                const [moved] = cols.splice(from, 1)
+                cols.splice(to, 0, moved)
+                this.selectColumns.set(cols)
+                this.pipelineStore.updateSelectStep(this.stepIndex(), cols)
+            }
+            document.removeEventListener('mouseup', cleanup)
+        }
+        document.addEventListener('mouseup', cleanup)
+    }
+
+    protected onRowMouseEnter(i: number): void {
+        if (this.draggedIndex() !== null) {
+            this.dropTargetIndex.set(i)
+        }
     }
 
     // ─── ORDER BY methods ─────────────────────────────────────────────────────
@@ -113,6 +198,7 @@ export class StepCardComponent implements OnInit {
         if (s.type === 'WHERE') return !this.expression().trim()
         if (s.type === 'ORDER_BY') return this.sortColumns().length === 0 && this.limit() === null
         if (s.type === 'RAW_SQL') return !this.rawSql().trim()
+        if (s.type === 'SELECT') return this.selectColumns().length === 0
         return false
     }
 

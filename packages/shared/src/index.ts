@@ -12,9 +12,14 @@ export interface WhereStep extends BaseStep {
     expression: string
 }
 
+export interface SelectColumn {
+    expr: string
+    alias?: string
+}
+
 export interface SelectStep extends BaseStep {
     type: 'SELECT'
-    expression: string
+    columns: SelectColumn[]
 }
 
 export interface SortColumn {

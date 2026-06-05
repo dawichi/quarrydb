@@ -47,6 +47,11 @@ export class PipelineBuilderComponent {
         this.showPicker.set(false)
     }
 
+    protected addSelectStep(): void {
+        this.pipelineStore.addSelectStep()
+        this.showPicker.set(false)
+    }
+
     protected addRawSqlStep(): void {
         this.pipelineStore.addRawSqlStep()
         this.showPicker.set(false)

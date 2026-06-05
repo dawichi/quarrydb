@@ -57,6 +57,97 @@
         </div>
     }
 
+    <!-- Config: SELECT -->
+    @if (step().type === 'SELECT') {
+        <div class="p-3 flex flex-col gap-3">
+
+            <!-- Active columns -->
+            @if (selectColumns().length > 0) {
+                <div class="flex flex-col gap-1">
+                    @for (col of selectColumns(); track $index; let i = $index) {
+                        <div
+                            class="flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors select-none"
+                            [class.bg-zinc-800]="dropTargetIndex() !== i || draggedIndex() === i"
+                            [class.bg-zinc-700]="dropTargetIndex() === i && draggedIndex() !== i"
+                            [class.opacity-40]="draggedIndex() === i"
+                            (mouseenter)="onRowMouseEnter(i)"
+                        >
+                            <!-- Drag handle — mouse events used instead of HTML5 DnD (WKWebView does not support DnD) -->
+                            <span
+                                class="flex-shrink-0 cursor-grab leading-none"
+                                (mousedown)="onGripMouseDown($event, i)"
+                            >
+                                <svg
+                                    aria-hidden="true"
+                                    class="w-3 h-3 text-zinc-600 pointer-events-none"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                >
+                                    <circle cx="5" cy="4" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="5" cy="12" r="1.3"/>
+                                    <circle cx="11" cy="4" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="11" cy="12" r="1.3"/>
+                                </svg>
+                            </span>
+                            <input
+                                type="text"
+                                class="flex-1 bg-transparent text-zinc-200 font-mono focus:outline-none placeholder-zinc-600 min-w-0"
+                                placeholder="expression"
+                                [value]="col.expr"
+                                (input)="onSelectExprInput($event, i)"
+                            />
+                            <span class="text-zinc-600 flex-shrink-0">AS</span>
+                            <input
+                                type="text"
+                                class="w-24 bg-transparent text-zinc-400 font-mono focus:outline-none placeholder-zinc-700 border-b border-zinc-700 focus:border-amber-500/50 transition-colors"
+                                placeholder="alias"
+                                [value]="col.alias ?? ''"
+                                (input)="onSelectAliasInput($event, i)"
+                            />
+                            <button
+                                type="button"
+                                class="text-zinc-600 hover:text-zinc-300 transition-colors px-0.5 flex-shrink-0"
+                                (click)="removeSelectColumn(i)"
+                                title="Remove"
+                            >×</button>
+                        </div>
+                    }
+                </div>
+            } @else {
+                <p class="text-xs text-zinc-600 italic">Click columns to select, or add a custom expression</p>
+            }
+
+            <!-- Source column chips -->
+            @if (pipelineStore.source()?.columns?.length) {
+                <div class="flex flex-wrap gap-1">
+                    <span class="text-xs text-zinc-600 self-center">Columns:</span>
+                    @for (col of pipelineStore.source()!.columns; track col) {
+                        <button
+                            type="button"
+                            class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
+                            [class]="isSelectedColumn(col)
+                                ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30 hover:bg-amber-500/10'
+                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
+                            (click)="toggleSelectColumn(col)"
+                        >{{ col }}</button>
+                    }
+                </div>
+            }
+
+            <!-- Add custom expression -->
+            <button
+                type="button"
+                class="self-start flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                (click)="addCustomExpr()"
+                title="Add a computed column — e.g. type 'amount * 1.21' as expression and 'with_vat' as alias"
+            >
+                <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add expression
+            </button>
+
+        </div>
+    }
+
     <!-- Config: ORDER BY -->
     @if (step().type === 'ORDER_BY') {
         <div class="p-3 flex flex-col gap-3">

@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { OrderByStep, PipelineStep, RawSqlStep, SortColumn } from '@quarrydb/shared'
+import type { OrderByStep, PipelineStep, RawSqlStep, SelectColumn, SelectStep, SortColumn } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 
 export interface StepResultState {
@@ -25,6 +25,14 @@ const PREVIEW_LIMIT = 50
 
 function buildStepCte(prev: string, step: PipelineStep): string {
     switch (step.type) {
+        case 'SELECT': {
+            if (step.columns.length === 0) return `SELECT * FROM ${prev}`
+            const cols = step.columns
+                .filter((c) => c.expr.trim())
+                .map((c) => (c.alias ? `${c.expr} AS "${c.alias}"` : c.expr))
+                .join(', ')
+            return cols ? `SELECT ${cols} FROM ${prev}` : `SELECT * FROM ${prev}`
+        }
         case 'WHERE':
             return `SELECT * FROM ${prev} WHERE ${step.expression}`
         case 'ORDER_BY': {
@@ -103,6 +111,17 @@ export class PipelineStore {
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
+    addSelectStep(): void {
+        const step: SelectStep = { id: crypto.randomUUID(), type: 'SELECT', columns: [] }
+        this.steps.update((prev) => [...prev, step])
+        this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+    }
+
+    updateSelectStep(index: number, columns: SelectColumn[]): void {
+        this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, columns } as PipelineStep) : s)))
+        void this.executeFrom(index)
+    }
+
     addRawSqlStep(): void {
         const step: RawSqlStep = { id: crypto.randomUUID(), type: 'RAW_SQL', sql: '' }
         this.steps.update((prev) => [...prev, step])
@@ -142,6 +161,10 @@ export class PipelineStore {
         for (let i = fromIndex; i < steps.length; i++) {
             const step = steps[i]
 
+            if (step.type === 'SELECT' && step.columns.length === 0) {
+                this.setResult(i, { ...EMPTY_RESULT })
+                continue
+            }
             if (step.type === 'WHERE' && !step.expression.trim()) {
                 this.setResult(i, { ...EMPTY_RESULT })
                 continue

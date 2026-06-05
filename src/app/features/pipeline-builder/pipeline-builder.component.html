@@ -92,8 +92,17 @@
                             <span class="text-xs font-mono font-bold text-amber-500 w-16">RAW SQL</span>
                             Custom query
                         </button>
+                        <!-- SELECT: enabled -->
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
+                            (click)="addSelectStep()"
+                        >
+                            <span class="text-xs font-mono font-bold text-amber-500 w-16">SELECT</span>
+                            Pick columns
+                        </button>
                         <!-- Future step types -->
-                        @for (label of ['SELECT · coming soon', 'GROUP BY · coming soon', 'JOIN · coming soon']; track label) {
+                        @for (label of ['GROUP BY · coming soon', 'JOIN · coming soon']; track label) {
                             <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed text-left" disabled>
                                 {{ label }}
                             </button>
