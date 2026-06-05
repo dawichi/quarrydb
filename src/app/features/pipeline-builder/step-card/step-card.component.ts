@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, input, signal } from '@angular/core'
+import { Component, inject, input, OnInit, signal } from '@angular/core'
 import type { PipelineStep } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 

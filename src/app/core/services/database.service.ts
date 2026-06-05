@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
+import type { DatabaseSchema, TableSchema } from '@quarrydb/shared'
 import { open } from '@tauri-apps/plugin-dialog'
 import Database from '@tauri-apps/plugin-sql'
-import type { DatabaseSchema, TableSchema } from '@quarrydb/shared'
 
 interface PragmaColumnRow {
     cid: number

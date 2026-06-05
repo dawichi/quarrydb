@@ -4,7 +4,6 @@ import Database from '@tauri-apps/plugin-sql'
 
 @Injectable({ providedIn: 'root' })
 export class SampleDatabaseService {
-
     async generate(): Promise<string> {
         const dbPath = await join(await appDataDir(), 'quarry-sample.db')
         const db = await Database.load(`sqlite://${dbPath}`)
@@ -51,9 +50,7 @@ export class SampleDatabaseService {
     }
 
     private async seedIfEmpty(db: Database): Promise<void> {
-        const [{ count }] = await db.select<[{ count: number }]>(
-            'SELECT COUNT(*) as count FROM products',
-        )
+        const [{ count }] = await db.select<[{ count: number }]>('SELECT COUNT(*) as count FROM products')
         if (count > 0) return
 
         await db.execute(`INSERT INTO products (name, category, price, stock) VALUES

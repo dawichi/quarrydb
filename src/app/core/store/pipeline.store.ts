@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core'
+import { computed, Injectable, inject, signal } from '@angular/core'
 import type { PipelineStep } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 
@@ -94,9 +94,7 @@ export class PipelineStore {
     }
 
     updateStepExpression(index: number, expression: string): void {
-        this.steps.update((prev) =>
-            prev.map((s, i) => (i === index ? ({ ...s, expression } as PipelineStep) : s)),
-        )
+        this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, expression } as PipelineStep) : s)))
         void this.executeFrom(index)
     }
 
