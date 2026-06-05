@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { PipelineStep } from '@quarrydb/shared'
+import type { OrderByStep, PipelineStep, SortColumn } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 
 export interface StepResultState {
@@ -27,6 +27,14 @@ function buildStepCte(prev: string, step: PipelineStep): string {
     switch (step.type) {
         case 'WHERE':
             return `SELECT * FROM ${prev} WHERE ${step.expression}`
+        case 'ORDER_BY': {
+            let sql = `SELECT * FROM ${prev}`
+            if (step.columns.length > 0) {
+                sql += ` ORDER BY ${step.columns.map((c) => `"${c.name}" ${c.direction}`).join(', ')}`
+            }
+            if (step.limit !== null) sql += ` LIMIT ${step.limit}`
+            return sql
+        }
         default:
             return `SELECT * FROM ${prev}`
     }
@@ -85,6 +93,17 @@ export class PipelineStore {
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
+    addOrderByStep(): void {
+        const step: OrderByStep = { id: crypto.randomUUID(), type: 'ORDER_BY', columns: [], limit: null }
+        this.steps.update((prev) => [...prev, step])
+        this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+    }
+
+    updateOrderByStep(index: number, columns: SortColumn[], limit: number | null): void {
+        this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, columns, limit } as PipelineStep) : s)))
+        void this.executeFrom(index)
+    }
+
     removeStep(index: number): void {
         this.steps.update((prev) => prev.filter((_, i) => i !== index))
         this.stepResults.update((prev) => prev.filter((_, i) => i !== index))
@@ -109,6 +128,10 @@ export class PipelineStore {
             const step = steps[i]
 
             if (step.type === 'WHERE' && !step.expression.trim()) {
+                this.setResult(i, { ...EMPTY_RESULT })
+                continue
+            }
+            if (step.type === 'ORDER_BY' && step.columns.length === 0 && step.limit === null) {
                 this.setResult(i, { ...EMPTY_RESULT })
                 continue
             }

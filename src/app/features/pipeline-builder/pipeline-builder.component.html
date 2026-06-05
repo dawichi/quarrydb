@@ -72,8 +72,16 @@
                             <span class="text-xs font-mono font-bold text-amber-500 w-16">WHERE</span>
                             Filter rows
                         </button>
+                        <!-- ORDER BY: enabled -->
+                        <button
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
+                            (click)="addOrderByStep()"
+                        >
+                            <span class="text-xs font-mono font-bold text-amber-500 w-20">ORDER BY</span>
+                            Sort + limit
+                        </button>
                         <!-- Future step types -->
-                        @for (label of ['SELECT · coming soon', 'ORDER BY · coming soon', 'GROUP BY · coming soon', 'JOIN · coming soon', 'Raw SQL · coming soon']; track label) {
+                        @for (label of ['SELECT · coming soon', 'GROUP BY · coming soon', 'JOIN · coming soon', 'Raw SQL · coming soon']; track label) {
                             <button class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed text-left" disabled>
                                 {{ label }}
                             </button>

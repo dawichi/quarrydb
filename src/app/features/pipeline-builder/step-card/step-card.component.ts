@@ -1,5 +1,5 @@
 import { Component, inject, input, OnInit, signal } from '@angular/core'
-import type { PipelineStep } from '@quarrydb/shared'
+import type { PipelineStep, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 
 @Component({
@@ -18,16 +18,23 @@ export class StepCardComponent implements OnInit {
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly expression = signal('')
+    protected readonly sortColumns = signal<SortColumn[]>([])
+    protected readonly limit = signal<number | null>(null)
 
     private debounceTimer: ReturnType<typeof setTimeout> | null = null
+    private limitDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
     ngOnInit(): void {
         const s = this.step()
         if (s.type === 'WHERE') this.expression.set(s.expression)
+        if (s.type === 'ORDER_BY') {
+            this.sortColumns.set(s.columns)
+            this.limit.set(s.limit)
+        }
     }
 
-    // ─── Public Methods ───────────────────────────────────────────────────────
+    // ─── WHERE methods ────────────────────────────────────────────────────────
     protected onInput(event: Event): void {
         const value = (event.target as HTMLTextAreaElement).value
         this.expression.set(value)
@@ -48,6 +55,50 @@ export class StepCardComponent implements OnInit {
             textarea.focus()
         }, 0)
         this.pipelineStore.updateStepExpression(this.stepIndex(), next)
+    }
+
+    // ─── ORDER BY methods ─────────────────────────────────────────────────────
+    protected isSortColumn(col: string): boolean {
+        return this.sortColumns().some((c) => c.name === col)
+    }
+
+    protected addSortColumn(col: string): void {
+        if (this.isSortColumn(col)) return
+        const updated = [...this.sortColumns(), { name: col, direction: 'ASC' as const }]
+        this.sortColumns.set(updated)
+        this.pipelineStore.updateOrderByStep(this.stepIndex(), updated, this.limit())
+    }
+
+    protected toggleDirection(index: number): void {
+        const updated = this.sortColumns().map((c, i) =>
+            i === index ? { ...c, direction: (c.direction === 'ASC' ? 'DESC' : 'ASC') as SortColumn['direction'] } : c,
+        )
+        this.sortColumns.set(updated)
+        this.pipelineStore.updateOrderByStep(this.stepIndex(), updated, this.limit())
+    }
+
+    protected removeSortColumn(index: number): void {
+        const updated = this.sortColumns().filter((_, i) => i !== index)
+        this.sortColumns.set(updated)
+        this.pipelineStore.updateOrderByStep(this.stepIndex(), updated, this.limit())
+    }
+
+    protected onLimitChange(event: Event): void {
+        const raw = (event.target as HTMLInputElement).value
+        const val = raw === '' ? null : Number(raw)
+        this.limit.set(val)
+        if (this.limitDebounceTimer) clearTimeout(this.limitDebounceTimer)
+        this.limitDebounceTimer = setTimeout(() => {
+            this.pipelineStore.updateOrderByStep(this.stepIndex(), this.sortColumns(), val)
+        }, 400)
+    }
+
+    // ─── Shared ───────────────────────────────────────────────────────────────
+    protected isStepEmpty(): boolean {
+        const s = this.step()
+        if (s.type === 'WHERE') return !this.expression().trim()
+        if (s.type === 'ORDER_BY') return this.sortColumns().length === 0 && this.limit() === null
+        return false
     }
 
     protected removeStep(): void {

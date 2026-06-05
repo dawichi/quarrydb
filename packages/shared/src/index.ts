@@ -17,10 +17,15 @@ export interface SelectStep extends BaseStep {
     expression: string
 }
 
+export interface SortColumn {
+    name: string
+    direction: 'ASC' | 'DESC'
+}
+
 export interface OrderByStep extends BaseStep {
     type: 'ORDER_BY'
-    expression: string
-    limit?: number
+    columns: SortColumn[]
+    limit: number | null
 }
 
 export interface GroupByStep extends BaseStep {

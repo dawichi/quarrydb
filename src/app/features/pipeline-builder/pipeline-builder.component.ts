@@ -42,6 +42,11 @@ export class PipelineBuilderComponent {
         this.showPicker.set(false)
     }
 
+    protected addOrderByStep(): void {
+        this.pipelineStore.addOrderByStep()
+        this.showPicker.set(false)
+    }
+
     protected async copySql(): Promise<void> {
         await navigator.clipboard.writeText(this.pipelineStore.generatedSql())
         this.copied.set(true)
