@@ -4,6 +4,7 @@ import { WorkspaceStore } from '../../core/store/workspace.store'
 @Component({
     selector: 'app-table-viewer',
     imports: [],
+    host: { class: 'flex-1 min-h-0' },
     templateUrl: './table-viewer.component.html',
 })
 export class TableViewerComponent {

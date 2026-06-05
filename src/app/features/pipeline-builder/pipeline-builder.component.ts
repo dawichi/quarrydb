@@ -6,6 +6,7 @@ import { StepCardComponent } from './step-card/step-card.component'
 @Component({
     selector: 'app-pipeline-builder',
     imports: [StepCardComponent],
+    host: { class: 'flex-1 min-h-0' },
     templateUrl: './pipeline-builder.component.html',
 })
 export class PipelineBuilderComponent {
