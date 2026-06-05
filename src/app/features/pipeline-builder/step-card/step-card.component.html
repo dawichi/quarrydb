@@ -57,6 +57,85 @@
         </div>
     }
 
+    <!-- Config: JOIN -->
+    @if (step().type === 'JOIN') {
+        <div class="p-3 flex flex-col gap-3">
+
+            <!-- Row 1: join type + table + alias -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <button
+                    type="button"
+                    class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0"
+                    (click)="cycleJoinType()"
+                    title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                >{{ joinType() }}</button>
+                <span class="text-xs text-zinc-600 flex-shrink-0">JOIN</span>
+                <select
+                    class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-amber-500/50 transition-colors"
+                    (change)="onJoinTableChange($event)"
+                >
+                    <option value="" [selected]="!joinTable()">Pick a table…</option>
+                    @for (t of availableTables(); track t.value) {
+                        <option [value]="t.value" [selected]="joinTable() === t.value">{{ t.label }}</option>
+                    }
+                </select>
+                <span class="text-xs text-zinc-600 flex-shrink-0">AS</span>
+                <input
+                    type="text"
+                    class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 transition-colors font-mono"
+                    placeholder="alias"
+                    [value]="joinAlias()"
+                    (input)="onJoinAliasInput($event)"
+                />
+            </div>
+
+            <!-- ON condition -->
+            <div class="flex flex-col gap-2">
+                <textarea
+                    #onTextarea
+                    class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+                    rows="2"
+                    placeholder="e.g. orders.user_id = users.id"
+                    [value]="joinOn()"
+                    (input)="onJoinOnInput($event)"
+                ></textarea>
+
+                <!-- Left column chips (source table) -->
+                @if (pipelineStore.source()?.columns?.length) {
+                    <div class="flex flex-wrap gap-1">
+                        <span class="text-xs text-zinc-600 self-center">Left:</span>
+                        @for (col of pipelineStore.source()!.columns; track col) {
+                            <button
+                                type="button"
+                                class="px-1.5 py-0.5 rounded text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors font-mono"
+                                (click)="insertJoinColumn(onTextarea, col, false)"
+                            >{{ col }}</button>
+                        }
+                    </div>
+                }
+
+                <!-- Right column chips (joined table) -->
+                @if (joinTableColumns().length > 0) {
+                    <div class="flex flex-wrap gap-1">
+                        <span class="text-xs text-zinc-600 self-center">Right:</span>
+                        @for (col of joinTableColumns(); track col) {
+                            <button
+                                type="button"
+                                class="px-1.5 py-0.5 rounded text-xs bg-zinc-800 text-blue-400 hover:bg-zinc-700 hover:text-blue-200 transition-colors font-mono"
+                                (click)="insertJoinColumn(onTextarea, col, true)"
+                            >{{ col }}</button>
+                        }
+                    </div>
+                } @else if (joinTable()) {
+                    <p class="text-xs text-zinc-600 italic">No columns found for selected table</p>
+                } @else {
+                    <p class="text-xs text-zinc-600 italic">Pick a table above to see its columns</p>
+                }
+            </div>
+
+        </div>
+    }
+
     <!-- Config: SELECT -->
     @if (step().type === 'SELECT') {
         <div class="p-3 flex flex-col gap-3">

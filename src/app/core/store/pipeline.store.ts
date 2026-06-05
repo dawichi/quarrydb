@@ -2,6 +2,8 @@ import { computed, Injectable, inject, signal } from '@angular/core'
 import type {
     Aggregation,
     GroupByStep,
+    JoinStep,
+    JoinType,
     OrderByStep,
     PipelineStep,
     RawSqlStep,
@@ -63,6 +65,17 @@ function buildStepCte(prev: string, step: PipelineStep): string {
                 }
             }
             return `SELECT ${selectParts.join(', ')} FROM ${prev} GROUP BY ${groupCols}`
+        }
+        case 'JOIN': {
+            if (!step.table || !step.on.trim()) return `SELECT * FROM ${prev}`
+            const tableRef = step.table.includes('.')
+                ? step.table
+                      .split('.')
+                      .map((p) => `"${p}"`)
+                      .join('.')
+                : `"${step.table}"`
+            const alias = step.alias ? ` AS "${step.alias}"` : ''
+            return `SELECT * FROM ${prev} ${step.joinType} JOIN ${tableRef}${alias} ON ${step.on}`
         }
         case 'RAW_SQL': {
             const sql = step.sql.trim()
@@ -149,6 +162,26 @@ export class PipelineStore {
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
+    addJoinStep(): void {
+        const step: JoinStep = {
+            id: crypto.randomUUID(),
+            type: 'JOIN',
+            mode: 'inline',
+            joinType: 'INNER',
+            table: '',
+            on: '',
+        }
+        this.steps.update((prev) => [...prev, step])
+        this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+    }
+
+    updateJoinStep(index: number, joinType: JoinType, table: string, alias: string | undefined, on: string): void {
+        this.steps.update((prev) =>
+            prev.map((s, i) => (i === index ? ({ ...s, joinType, table, alias, on } as PipelineStep) : s)),
+        )
+        void this.executeFrom(index)
+    }
+
     addGroupByStep(): void {
         const step: GroupByStep = { id: crypto.randomUUID(), type: 'GROUP_BY', groupBy: [], aggregations: [] }
         this.steps.update((prev) => [...prev, step])
@@ -204,6 +237,10 @@ export class PipelineStore {
                 continue
             }
             if (step.type === 'ORDER_BY' && step.columns.length === 0 && step.limit === null) {
+                this.setResult(i, { ...EMPTY_RESULT })
+                continue
+            }
+            if (step.type === 'JOIN' && (!step.table || !step.on.trim())) {
                 this.setResult(i, { ...EMPTY_RESULT })
                 continue
             }

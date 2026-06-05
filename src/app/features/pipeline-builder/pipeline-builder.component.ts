@@ -62,6 +62,11 @@ export class PipelineBuilderComponent {
         this.showPicker.set(false)
     }
 
+    protected addJoinStep(): void {
+        this.pipelineStore.addJoinStep()
+        this.showPicker.set(false)
+    }
+
     protected async copySql(): Promise<void> {
         await navigator.clipboard.writeText(this.pipelineStore.generatedSql())
         this.copied.set(true)

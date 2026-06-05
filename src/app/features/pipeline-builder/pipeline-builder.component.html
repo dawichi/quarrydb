@@ -110,12 +110,15 @@
                             <span class="text-xs font-mono font-bold text-amber-500 w-20">GROUP BY</span>
                             Aggregate
                         </button>
-                        <!-- Future step types -->
-                        @for (label of ['JOIN · coming soon']; track label) {
-                            <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed text-left" disabled>
-                                {{ label }}
-                            </button>
-                        }
+                        <!-- JOIN: enabled -->
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
+                            (click)="addJoinStep()"
+                        >
+                            <span class="text-xs font-mono font-bold text-amber-500 w-16">JOIN</span>
+                            Combine tables
+                        </button>
                     </div>
                 }
             </div>

@@ -1,6 +1,7 @@
-import { Component, inject, input, OnInit, signal } from '@angular/core'
-import type { AggFn, Aggregation, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
+import { Component, computed, inject, input, OnInit, signal } from '@angular/core'
+import type { AggFn, Aggregation, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
+import { WorkspaceStore } from '../../../core/store/workspace.store'
 
 @Component({
     selector: 'app-step-card',
@@ -15,6 +16,7 @@ export class StepCardComponent implements OnInit {
 
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly pipelineStore = inject(PipelineStore)
+    protected readonly workspaceStore = inject(WorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly expression = signal('')
@@ -29,6 +31,28 @@ export class StepCardComponent implements OnInit {
     protected readonly groupByColumns = signal<string[]>([])
     protected readonly aggregations = signal<Aggregation[]>([])
     protected readonly AGG_FNS: AggFn[] = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
+    protected readonly joinType = signal<JoinType>('INNER')
+    protected readonly joinTable = signal('')
+    protected readonly joinAlias = signal('')
+    protected readonly joinOn = signal('')
+    protected readonly JOIN_TYPES: JoinType[] = ['INNER', 'LEFT', 'RIGHT', 'FULL']
+    protected readonly availableTables = computed(() => {
+        const srcAlias = this.pipelineStore.source()?.alias ?? ''
+        return this.workspaceStore.schemas().flatMap((schema) =>
+            schema.tables.map((table) => ({
+                value: schema.alias === srcAlias ? table.name : `${schema.alias}.${table.name}`,
+                label: schema.alias === srcAlias ? table.name : `${schema.alias} · ${table.name}`,
+            })),
+        )
+    })
+    protected readonly joinTableColumns = computed(() => {
+        const table = this.joinTable()
+        if (!table) return []
+        const srcAlias = this.pipelineStore.source()?.alias ?? ''
+        const [schemaAlias, tableName] = table.includes('.') ? table.split('.') : [srcAlias, table]
+        const schema = this.workspaceStore.schemas().find((s) => s.alias === schemaAlias)
+        return schema?.tables.find((t) => t.name === tableName)?.columns.map((c) => c.name) ?? []
+    })
 
     private debounceTimer: ReturnType<typeof setTimeout> | null = null
     private limitDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -46,6 +70,12 @@ export class StepCardComponent implements OnInit {
         if (s.type === 'GROUP_BY') {
             this.groupByColumns.set(s.groupBy)
             this.aggregations.set(s.aggregations)
+        }
+        if (s.type === 'JOIN') {
+            this.joinType.set(s.joinType)
+            this.joinTable.set(s.table)
+            this.joinAlias.set(s.alias ?? '')
+            this.joinOn.set(s.on)
         }
     }
 
@@ -215,6 +245,81 @@ export class StepCardComponent implements OnInit {
         }, 400)
     }
 
+    // ─── JOIN methods ─────────────────────────────────────────────────────────
+    protected cycleJoinType(): void {
+        const next = this.JOIN_TYPES[(this.JOIN_TYPES.indexOf(this.joinType()) + 1) % this.JOIN_TYPES.length]
+        this.joinType.set(next)
+        this.pipelineStore.updateJoinStep(
+            this.stepIndex(),
+            next,
+            this.joinTable(),
+            this.joinAlias() || undefined,
+            this.joinOn(),
+        )
+    }
+
+    protected onJoinTableChange(event: Event): void {
+        const value = (event.target as HTMLSelectElement).value
+        this.joinTable.set(value)
+        this.pipelineStore.updateJoinStep(
+            this.stepIndex(),
+            this.joinType(),
+            value,
+            this.joinAlias() || undefined,
+            this.joinOn(),
+        )
+    }
+
+    protected onJoinAliasInput(event: Event): void {
+        const value = (event.target as HTMLInputElement).value
+        this.joinAlias.set(value)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+            this.pipelineStore.updateJoinStep(
+                this.stepIndex(),
+                this.joinType(),
+                this.joinTable(),
+                value || undefined,
+                this.joinOn(),
+            )
+        }, 400)
+    }
+
+    protected onJoinOnInput(event: Event): void {
+        const value = (event.target as HTMLTextAreaElement).value
+        this.joinOn.set(value)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+            this.pipelineStore.updateJoinStep(
+                this.stepIndex(),
+                this.joinType(),
+                this.joinTable(),
+                this.joinAlias() || undefined,
+                value,
+            )
+        }, 400)
+    }
+
+    protected insertJoinColumn(textarea: HTMLTextAreaElement, col: string, qualify: boolean): void {
+        const qualifier = qualify ? `${this.joinAlias() || this.joinTable()}.` : ''
+        const text = qualifier + col
+        const start = textarea.selectionStart ?? textarea.value.length
+        const end = textarea.selectionEnd ?? textarea.value.length
+        const next = textarea.value.substring(0, start) + text + textarea.value.substring(end)
+        this.joinOn.set(next)
+        setTimeout(() => {
+            textarea.setSelectionRange(start + text.length, start + text.length)
+            textarea.focus()
+        }, 0)
+        this.pipelineStore.updateJoinStep(
+            this.stepIndex(),
+            this.joinType(),
+            this.joinTable(),
+            this.joinAlias() || undefined,
+            next,
+        )
+    }
+
     // ─── ORDER BY methods ─────────────────────────────────────────────────────
     protected isSortColumn(col: string): boolean {
         return this.sortColumns().some((c) => c.name === col)
@@ -259,6 +364,7 @@ export class StepCardComponent implements OnInit {
         if (s.type === 'RAW_SQL') return !this.rawSql().trim()
         if (s.type === 'SELECT') return this.selectColumns().length === 0
         if (s.type === 'GROUP_BY') return this.groupByColumns().length === 0
+        if (s.type === 'JOIN') return !this.joinTable() || !this.joinOn().trim()
         return false
     }
 
