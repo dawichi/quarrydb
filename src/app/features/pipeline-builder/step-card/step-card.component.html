@@ -2,7 +2,7 @@
 
     <!-- Header -->
     <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-700/60">
-        <span class="text-xs font-semibold uppercase tracking-wider text-amber-500">{{ step().type.replace('_', ' ') }}</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-amber-500">{{ step().type.replaceAll('_', ' ') }}</span>
         <button
             type="button"
             class="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5 rounded"
@@ -143,6 +143,96 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
                 Add expression
+            </button>
+
+        </div>
+    }
+
+    <!-- Config: GROUP BY -->
+    @if (step().type === 'GROUP_BY') {
+        <div class="p-3 flex flex-col gap-3">
+
+            <!-- Group-by column chips -->
+            @if (pipelineStore.source()?.columns?.length) {
+                <div class="flex flex-wrap gap-1">
+                    <span class="text-xs text-zinc-600 self-center">Group by:</span>
+                    @for (col of pipelineStore.source()!.columns; track col) {
+                        <button
+                            type="button"
+                            class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
+                            [class]="isGroupByColumn(col)
+                                ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30 hover:bg-amber-500/10'
+                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
+                            (click)="toggleGroupByColumn(col)"
+                        >{{ col }}</button>
+                    }
+                </div>
+            }
+
+            <!-- Active group-by columns -->
+            @if (groupByColumns().length === 0) {
+                <p class="text-xs text-zinc-600 italic">Click columns above to group by them</p>
+            } @else {
+                <div class="flex flex-wrap gap-1">
+                    <span class="text-xs text-zinc-500 self-center">Grouping by:</span>
+                    @for (col of groupByColumns(); track col) {
+                        <span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-mono bg-amber-500/15 text-amber-400">
+                            {{ col }}
+                            <button type="button" class="ml-0.5 text-amber-500/60 hover:text-amber-300" (click)="toggleGroupByColumn(col)">×</button>
+                        </span>
+                    }
+                </div>
+            }
+
+            <!-- Aggregations -->
+            @if (aggregations().length > 0) {
+                <div class="flex flex-col gap-1">
+                    @for (agg of aggregations(); track $index; let i = $index) {
+                        <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800 text-xs">
+                            <button
+                                type="button"
+                                class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0 w-14 text-center"
+                                (click)="cycleAggFn(i)"
+                                title="Click to cycle: COUNT → SUM → AVG → MIN → MAX"
+                            >{{ agg.fn }}</button>
+                            <span class="text-zinc-600 flex-shrink-0">(</span>
+                            <input
+                                type="text"
+                                class="flex-1 bg-transparent text-zinc-200 font-mono focus:outline-none placeholder-zinc-600 min-w-0"
+                                placeholder="*"
+                                [value]="agg.expr"
+                                (input)="onAggExprInput($event, i)"
+                            />
+                            <span class="text-zinc-600 flex-shrink-0">) AS</span>
+                            <input
+                                type="text"
+                                class="w-24 bg-transparent text-zinc-400 font-mono focus:outline-none placeholder-zinc-700 border-b border-zinc-700 focus:border-amber-500/50 transition-colors"
+                                placeholder="alias"
+                                [value]="agg.alias"
+                                (input)="onAggAliasInput($event, i)"
+                            />
+                            <button
+                                type="button"
+                                class="text-zinc-600 hover:text-zinc-300 transition-colors px-0.5 flex-shrink-0"
+                                (click)="removeAggregation(i)"
+                                title="Remove"
+                            >×</button>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Add aggregation -->
+            <button
+                type="button"
+                class="self-start flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                (click)="addAggregation()"
+                title="Add an aggregation — e.g. SUM(amount) AS total or COUNT(*) AS count"
+            >
+                <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add aggregation
             </button>
 
         </div>

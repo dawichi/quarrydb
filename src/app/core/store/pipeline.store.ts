@@ -1,5 +1,14 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { OrderByStep, PipelineStep, RawSqlStep, SelectColumn, SelectStep, SortColumn } from '@quarrydb/shared'
+import type {
+    Aggregation,
+    GroupByStep,
+    OrderByStep,
+    PipelineStep,
+    RawSqlStep,
+    SelectColumn,
+    SelectStep,
+    SortColumn,
+} from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 
 export interface StepResultState {
@@ -42,6 +51,18 @@ function buildStepCte(prev: string, step: PipelineStep): string {
             }
             if (step.limit !== null) sql += ` LIMIT ${step.limit}`
             return sql
+        }
+        case 'GROUP_BY': {
+            if (step.groupBy.length === 0) return `SELECT * FROM ${prev}`
+            const groupCols = step.groupBy.map((c) => `"${c}"`).join(', ')
+            const selectParts: string[] = step.groupBy.map((c) => `"${c}"`)
+            for (const agg of step.aggregations) {
+                if (agg.expr.trim()) {
+                    const alias = agg.alias.trim() || agg.fn.toLowerCase()
+                    selectParts.push(`${agg.fn}(${agg.expr}) AS "${alias}"`)
+                }
+            }
+            return `SELECT ${selectParts.join(', ')} FROM ${prev} GROUP BY ${groupCols}`
         }
         case 'RAW_SQL': {
             const sql = step.sql.trim()
@@ -128,6 +149,19 @@ export class PipelineStore {
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
     }
 
+    addGroupByStep(): void {
+        const step: GroupByStep = { id: crypto.randomUUID(), type: 'GROUP_BY', groupBy: [], aggregations: [] }
+        this.steps.update((prev) => [...prev, step])
+        this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+    }
+
+    updateGroupByStep(index: number, groupBy: string[], aggregations: Aggregation[]): void {
+        this.steps.update((prev) =>
+            prev.map((s, i) => (i === index ? ({ ...s, groupBy, aggregations } as PipelineStep) : s)),
+        )
+        void this.executeFrom(index)
+    }
+
     updateRawSqlStep(index: number, sql: string): void {
         this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, sql } as PipelineStep) : s)))
         void this.executeFrom(index)
@@ -170,6 +204,10 @@ export class PipelineStore {
                 continue
             }
             if (step.type === 'ORDER_BY' && step.columns.length === 0 && step.limit === null) {
+                this.setResult(i, { ...EMPTY_RESULT })
+                continue
+            }
+            if (step.type === 'GROUP_BY' && step.groupBy.length === 0) {
                 this.setResult(i, { ...EMPTY_RESULT })
                 continue
             }

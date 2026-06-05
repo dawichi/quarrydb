@@ -33,10 +33,18 @@ export interface OrderByStep extends BaseStep {
     limit: number | null
 }
 
+export type AggFn = 'COUNT' | 'SUM' | 'AVG' | 'MIN' | 'MAX'
+
+export interface Aggregation {
+    fn: AggFn
+    expr: string
+    alias: string
+}
+
 export interface GroupByStep extends BaseStep {
     type: 'GROUP_BY'
-    columns: string
-    aggregations: string
+    groupBy: string[]
+    aggregations: Aggregation[]
 }
 
 export type JoinMode = 'inline' | 'branch' | 'subpipeline'

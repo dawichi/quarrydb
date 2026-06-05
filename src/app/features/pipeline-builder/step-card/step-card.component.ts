@@ -1,5 +1,5 @@
 import { Component, inject, input, OnInit, signal } from '@angular/core'
-import type { PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
+import type { AggFn, Aggregation, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 
 @Component({
@@ -26,6 +26,9 @@ export class StepCardComponent implements OnInit {
     protected readonly selectColumns = signal<SelectColumn[]>([])
     protected readonly draggedIndex = signal<number | null>(null)
     protected readonly dropTargetIndex = signal<number | null>(null)
+    protected readonly groupByColumns = signal<string[]>([])
+    protected readonly aggregations = signal<Aggregation[]>([])
+    protected readonly AGG_FNS: AggFn[] = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
 
     private debounceTimer: ReturnType<typeof setTimeout> | null = null
     private limitDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -40,6 +43,10 @@ export class StepCardComponent implements OnInit {
         }
         if (s.type === 'RAW_SQL') this.rawSql.set(s.sql)
         if (s.type === 'SELECT') this.selectColumns.set(s.columns)
+        if (s.type === 'GROUP_BY') {
+            this.groupByColumns.set(s.groupBy)
+            this.aggregations.set(s.aggregations)
+        }
     }
 
     // ─── WHERE methods ────────────────────────────────────────────────────────
@@ -156,6 +163,58 @@ export class StepCardComponent implements OnInit {
         }
     }
 
+    // ─── GROUP BY methods ─────────────────────────────────────────────────────
+    protected isGroupByColumn(col: string): boolean {
+        return this.groupByColumns().includes(col)
+    }
+
+    protected toggleGroupByColumn(col: string): void {
+        const current = this.groupByColumns()
+        const updated = current.includes(col) ? current.filter((c) => c !== col) : [...current, col]
+        this.groupByColumns.set(updated)
+        this.pipelineStore.updateGroupByStep(this.stepIndex(), updated, this.aggregations())
+    }
+
+    protected addAggregation(): void {
+        const updated = [...this.aggregations(), { fn: 'COUNT' as AggFn, expr: '*', alias: 'count' }]
+        this.aggregations.set(updated)
+        this.pipelineStore.updateGroupByStep(this.stepIndex(), this.groupByColumns(), updated)
+    }
+
+    protected removeAggregation(i: number): void {
+        const updated = this.aggregations().filter((_, idx) => idx !== i)
+        this.aggregations.set(updated)
+        this.pipelineStore.updateGroupByStep(this.stepIndex(), this.groupByColumns(), updated)
+    }
+
+    protected cycleAggFn(i: number): void {
+        const current = this.aggregations()[i].fn
+        const next = this.AGG_FNS[(this.AGG_FNS.indexOf(current) + 1) % this.AGG_FNS.length]
+        const updated = this.aggregations().map((a, idx) => (idx === i ? { ...a, fn: next } : a))
+        this.aggregations.set(updated)
+        this.pipelineStore.updateGroupByStep(this.stepIndex(), this.groupByColumns(), updated)
+    }
+
+    protected onAggExprInput(event: Event, i: number): void {
+        const value = (event.target as HTMLInputElement).value
+        const updated = this.aggregations().map((a, idx) => (idx === i ? { ...a, expr: value } : a))
+        this.aggregations.set(updated)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+            this.pipelineStore.updateGroupByStep(this.stepIndex(), this.groupByColumns(), updated)
+        }, 400)
+    }
+
+    protected onAggAliasInput(event: Event, i: number): void {
+        const value = (event.target as HTMLInputElement).value
+        const updated = this.aggregations().map((a, idx) => (idx === i ? { ...a, alias: value } : a))
+        this.aggregations.set(updated)
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+            this.pipelineStore.updateGroupByStep(this.stepIndex(), this.groupByColumns(), updated)
+        }, 400)
+    }
+
     // ─── ORDER BY methods ─────────────────────────────────────────────────────
     protected isSortColumn(col: string): boolean {
         return this.sortColumns().some((c) => c.name === col)
@@ -199,6 +258,7 @@ export class StepCardComponent implements OnInit {
         if (s.type === 'ORDER_BY') return this.sortColumns().length === 0 && this.limit() === null
         if (s.type === 'RAW_SQL') return !this.rawSql().trim()
         if (s.type === 'SELECT') return this.selectColumns().length === 0
+        if (s.type === 'GROUP_BY') return this.groupByColumns().length === 0
         return false
     }
 
