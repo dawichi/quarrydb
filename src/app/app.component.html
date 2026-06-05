@@ -15,6 +15,7 @@
                 <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
                     @for (tab of tabs; track tab) {
                         <button
+                            type="button"
                             class="px-3 py-2.5 text-xs font-medium transition-colors capitalize border-b-2 -mb-px"
                             [class]="workspaceStore.activeTab() === tab
                                 ? 'text-zinc-100 border-amber-500'

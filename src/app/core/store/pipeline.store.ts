@@ -136,7 +136,7 @@ export class PipelineStore {
                 continue
             }
 
-            this.setResult(i, { ...this.stepResults()[i]!, isLoading: true, error: null })
+            this.setResult(i, { ...(this.stepResults()[i] ?? EMPTY_RESULT), isLoading: true, error: null })
 
             try {
                 const sql = buildPipelineSql(src.tableName, steps.slice(0, i + 1))

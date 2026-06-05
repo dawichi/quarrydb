@@ -17,7 +17,7 @@
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <!-- Table icon -->
-                        <svg class="w-4 h-4 text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <svg aria-hidden="true"class="w-4 h-4 text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-1.5-3.75h-6" />
                         </svg>
                         <span class="text-sm font-medium text-zinc-100">{{ pipelineStore.source()!.tableName }}</span>
@@ -52,11 +52,12 @@
 
             <div class="relative">
                 <button
+                    type="button"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-dashed text-xs transition-colors"
                     [class]="showPicker() ? 'border-amber-500/50 text-amber-500' : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'"
                     (click)="showPicker.set(!showPicker())"
                 >
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <svg aria-hidden="true"class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                     Add step
@@ -66,6 +67,7 @@
                     <div class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 w-48 rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl overflow-hidden">
                         <!-- WHERE: enabled -->
                         <button
+                            type="button"
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addWhereStep()"
                         >
@@ -74,6 +76,7 @@
                         </button>
                         <!-- ORDER BY: enabled -->
                         <button
+                            type="button"
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addOrderByStep()"
                         >
@@ -82,7 +85,7 @@
                         </button>
                         <!-- Future step types -->
                         @for (label of ['SELECT · coming soon', 'GROUP BY · coming soon', 'JOIN · coming soon', 'Raw SQL · coming soon']; track label) {
-                            <button class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed text-left" disabled>
+                            <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed text-left" disabled>
                                 {{ label }}
                             </button>
                         }
@@ -97,10 +100,11 @@
             <!-- Panel header -->
             <div class="flex items-center justify-between px-4 py-2">
                 <button
+                    type="button"
                     class="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
                     (click)="sqlPanelOpen.set(!sqlPanelOpen())"
                 >
-                    <svg
+                    <svg aria-hidden="true"
                         class="w-3 h-3 transition-transform"
                         [class.rotate-180]="sqlPanelOpen()"
                         fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"
@@ -110,6 +114,7 @@
                     Generated SQL
                 </button>
                 <button
+                    type="button"
                     class="text-xs transition-colors px-2 py-0.5 rounded"
                     [class]="copied() ? 'text-green-400' : 'text-zinc-500 hover:text-zinc-300'"
                     (click)="copySql()"
