@@ -1,5 +1,6 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
 import type { DatabaseSchema, Workspace } from '@quarrydb/shared'
+import { save } from '@tauri-apps/plugin-dialog'
 import { DatabaseService } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
 import { SampleDatabaseService } from '../services/sample-database.service'
@@ -205,13 +206,19 @@ export class WorkspaceStore {
     }
 
     async openSampleDatabase(): Promise<void> {
+        const filePath = await save({
+            defaultPath: 'quarry-sample.db',
+            filters: [{ name: 'SQLite', extensions: ['db', 'sqlite', 'sqlite3', 'db3'] }],
+        })
+        if (!filePath) return
+
         this.isLoading.set(true)
         this.error.set(null)
         try {
-            const path = await this.sampleDb.generate()
-            await this.loadFilePath(path)
+            await this.sampleDb.generate(filePath)
+            await this.loadFilePath(filePath)
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to load sample database')
+            this.error.set(err instanceof Error ? err.message : 'Failed to create sample database')
         } finally {
             this.isLoading.set(false)
         }

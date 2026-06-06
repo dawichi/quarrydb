@@ -1,19 +1,16 @@
 import { Injectable } from '@angular/core'
-import { appDataDir, join } from '@tauri-apps/api/path'
 import Database from '@tauri-apps/plugin-sql'
 
 @Injectable({ providedIn: 'root' })
 export class SampleDatabaseService {
-    async generate(): Promise<string> {
-        const dbPath = await join(await appDataDir(), 'quarry-sample.db')
-        const db = await Database.load(`sqlite://${dbPath}`)
+    async generate(path: string): Promise<void> {
+        const db = await Database.load(`sqlite://${path}`)
         try {
             await this.createTables(db)
             await this.seedIfEmpty(db)
         } finally {
             await db.close()
         }
-        return dbPath
     }
 
     // ─── Private ──────────────────────────────────────────────────────────────
