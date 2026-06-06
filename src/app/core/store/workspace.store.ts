@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { DatabaseSchema, Workspace } from '@quarrydb/shared'
+import type { DatabaseSchema, ForeignKey, Workspace } from '@quarrydb/shared'
 import { save } from '@tauri-apps/plugin-dialog'
 import { DatabaseService } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
@@ -8,6 +8,18 @@ import { SampleDatabaseService } from '../services/sample-database.service'
 interface SelectedTable {
     schemaAlias: string
     tableName: string
+}
+
+interface BrowseFilter {
+    col: string
+    value: unknown
+}
+
+interface BrowseNavEntry {
+    alias: string
+    tableName: string
+    filter: BrowseFilter | null
+    label: string
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,10 +49,21 @@ export class WorkspaceStore {
     readonly browseSortDir = signal<'ASC' | 'DESC'>('ASC')
 
     readonly activeTab = signal<'browse' | 'query' | 'edit'>('browse')
+    readonly browseFilter = signal<BrowseFilter | null>(null)
+    readonly browseNavStack = signal<BrowseNavEntry[]>([])
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly hasWorkspace = computed(() => this.workspace() !== null)
     readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
+    readonly selectedTableFks = computed<ForeignKey[]>(() => {
+        const sel = this.selectedTable()
+        if (!sel) return []
+        return (
+            this.schemas()
+                .find((s) => s.alias === sel.schemaAlias)
+                ?.tables.find((t) => t.name === sel.tableName)?.foreignKeys ?? []
+        )
+    })
 
     // ─── Public Methods ───────────────────────────────────────────────────────
     setActiveTab(tab: 'browse' | 'query' | 'edit'): void {
@@ -54,6 +77,8 @@ export class WorkspaceStore {
         this.tableRowTotal.set(0)
         this.browseSortCol.set(null)
         this.browseSortDir.set('ASC')
+        this.browseFilter.set(null)
+        this.browseNavStack.set([])
         this.loadOffset = 0
 
         const path = this.schemas().find((s) => s.alias === alias)?.path
@@ -96,6 +121,7 @@ export class WorkspaceStore {
                 this.loadOffset,
                 this.browseSortCol() ?? undefined,
                 this.browseSortDir(),
+                this.browseFilter() ?? undefined,
             )
             this.tableRows.update((prev) => [...prev, ...rows])
             this.loadOffset += rows.length
@@ -135,12 +161,103 @@ export class WorkspaceStore {
                 0,
                 this.browseSortCol() ?? undefined,
                 this.browseSortDir(),
+                this.browseFilter() ?? undefined,
             )
             this.tableRows.set(rows)
             this.tableRowTotal.set(total)
             this.loadOffset = rows.length
         } catch (err) {
             this.error.set(err instanceof Error ? err.message : 'Failed to sort table')
+        } finally {
+            this.isLoadingTable.set(false)
+        }
+    }
+
+    async navigateToReference(referencedTable: string, filterCol: string, filterValue: unknown): Promise<void> {
+        const sel = this.selectedTable()
+        if (!sel) return
+        const path = this.schemas().find((s) => s.alias === sel.schemaAlias)?.path
+        if (!path) return
+
+        const currentFilter = this.browseFilter()
+        const label = currentFilter
+            ? `${sel.tableName} [${currentFilter.col} = ${currentFilter.value}]`
+            : sel.tableName
+
+        this.browseNavStack.update((stack) => [
+            ...stack,
+            { alias: sel.schemaAlias, tableName: sel.tableName, filter: currentFilter, label },
+        ])
+
+        this.selectedTable.set({ schemaAlias: sel.schemaAlias, tableName: referencedTable })
+        this.tableRows.set([])
+        this.tableColumns.set([])
+        this.tableRowTotal.set(0)
+        this.browseSortCol.set(null)
+        this.browseSortDir.set('ASC')
+        this.browseFilter.set({ col: filterCol, value: filterValue })
+        this.loadOffset = 0
+
+        this.isLoadingTable.set(true)
+        try {
+            const filter = { col: filterCol, value: filterValue }
+            const { rows, total } = await this.db.queryRows(path, referencedTable, this.PAGE_SIZE, 0, undefined, undefined, filter)
+            const schemaColumns =
+                this.schemas()
+                    .find((s) => s.alias === sel.schemaAlias)
+                    ?.tables.find((t) => t.name === referencedTable)
+                    ?.columns.map((c) => c.name) ?? (rows.length > 0 ? Object.keys(rows[0]) : [])
+            this.tableColumns.set(schemaColumns)
+            this.tableRows.set(rows)
+            this.tableRowTotal.set(total)
+            this.loadOffset = rows.length
+        } catch (err) {
+            this.error.set(err instanceof Error ? err.message : 'Failed to navigate to reference')
+        } finally {
+            this.isLoadingTable.set(false)
+        }
+    }
+
+    async navigateBack(index: number): Promise<void> {
+        const stack = this.browseNavStack()
+        const target = stack[index]
+        if (!target) return
+
+        const path = this.schemas().find((s) => s.alias === target.alias)?.path
+        if (!path) return
+
+        this.selectedTable.set({ schemaAlias: target.alias, tableName: target.tableName })
+        this.tableRows.set([])
+        this.tableColumns.set([])
+        this.tableRowTotal.set(0)
+        this.browseSortCol.set(null)
+        this.browseSortDir.set('ASC')
+        this.browseFilter.set(target.filter)
+        this.browseNavStack.set(stack.slice(0, index))
+        this.loadOffset = 0
+
+        this.isLoadingTable.set(true)
+        try {
+            const { rows, total } = await this.db.queryRows(
+                path,
+                target.tableName,
+                this.PAGE_SIZE,
+                0,
+                undefined,
+                undefined,
+                target.filter ?? undefined,
+            )
+            const schemaColumns =
+                this.schemas()
+                    .find((s) => s.alias === target.alias)
+                    ?.tables.find((t) => t.name === target.tableName)
+                    ?.columns.map((c) => c.name) ?? (rows.length > 0 ? Object.keys(rows[0]) : [])
+            this.tableColumns.set(schemaColumns)
+            this.tableRows.set(rows)
+            this.tableRowTotal.set(total)
+            this.loadOffset = rows.length
+        } catch (err) {
+            this.error.set(err instanceof Error ? err.message : 'Failed to navigate back')
         } finally {
             this.isLoadingTable.set(false)
         }

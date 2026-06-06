@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
+import type { ForeignKey } from '@quarrydb/shared'
 import type { ExportFormat } from '../../core/services/export.service'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 
@@ -15,6 +16,15 @@ export class TableViewerComponent {
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly copiedKey = signal<string | null>(null)
     protected readonly showExportMenu = signal(false)
+
+    // ─── Computed ─────────────────────────────────────────────────────────────
+    protected readonly fkMap = computed<Map<string, ForeignKey>>(() => {
+        const map = new Map<string, ForeignKey>()
+        for (const fk of this.store.selectedTableFks()) {
+            map.set(fk.column, fk)
+        }
+        return map
+    })
 
     // ─── Public Methods ───────────────────────────────────────────────────────
     protected isNull(value: unknown): boolean {
@@ -47,6 +57,15 @@ export class TableViewerComponent {
 
     protected toggleSort(col: string): void {
         void this.store.toggleBrowseSort(col)
+    }
+
+    protected navigateToRef(fk: ForeignKey, value: unknown, event: MouseEvent): void {
+        event.stopPropagation()
+        void this.store.navigateToReference(fk.referencesTable, fk.referencesColumn, value)
+    }
+
+    protected navigateBack(index: number): void {
+        void this.store.navigateBack(index)
     }
 
     protected exportAs(format: ExportFormat): void {
