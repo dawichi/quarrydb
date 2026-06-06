@@ -11,14 +11,14 @@
 
         <!-- Variable bar (shown when pipeline has :variable placeholders) -->
         @if (pipelineStore.detectedVariables().length > 0) {
-            <div class="flex-shrink-0 border-b border-amber-500/20 bg-amber-950/20 px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <span class="text-xs text-amber-500/70 font-mono flex-shrink-0">Variables</span>
+            <div class="flex-shrink-0 border-b border-sky-500/20 bg-sky-950/20 px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span class="text-xs text-sky-500/70 font-mono flex-shrink-0">Variables</span>
                 @for (varName of pipelineStore.detectedVariables(); track varName) {
                     <label class="flex items-center gap-1.5">
-                        <span class="text-xs font-mono text-amber-400">:{{ varName }}</span>
+                        <span class="text-xs font-mono text-sky-400">:{{ varName }}</span>
                         <input
                             type="text"
-                            class="h-6 px-2 rounded border border-amber-500/30 bg-zinc-900 text-xs text-zinc-200 font-mono placeholder-zinc-600 focus:outline-none focus:border-amber-500/60"
+                            class="h-6 px-2 rounded border border-sky-500/30 bg-zinc-900 text-xs text-zinc-200 font-mono placeholder-zinc-600 focus:outline-none focus:border-sky-500/60"
                             [placeholder]="varName"
                             [value]="pipelineStore.variableValues()[varName] || ''"
                             (input)="onVariableInput(varName, $any($event.target).value)"
@@ -60,7 +60,7 @@
                         (mouseenter)="onStepRowMouseEnter(i)"
                         [class.opacity-40]="stepDragIndex() === i"
                         [class.ring-1]="stepDropTarget() === i && stepDragIndex() !== i"
-                        [class.ring-amber-500]="stepDropTarget() === i && stepDragIndex() !== i"
+                        [class.ring-sky-500]="stepDropTarget() === i && stepDragIndex() !== i"
                         [class.rounded-lg]="stepDropTarget() === i && stepDragIndex() !== i"
                     >
                         <!-- Pipeline drag handle -->
@@ -96,7 +96,7 @@
                 <button
                     type="button"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-dashed text-xs transition-colors"
-                    [class]="showPicker() ? 'border-amber-500/50 text-amber-500' : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'"
+                    [class]="showPicker() ? 'border-sky-500/50 text-sky-500' : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'"
                     (click)="showPicker.set(!showPicker())"
                 >
                     <svg aria-hidden="true"class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -113,7 +113,7 @@
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addWhereStep()"
                         >
-                            <span class="text-xs font-mono font-bold text-amber-500 w-16">WHERE</span>
+                            <span class="text-xs font-mono font-bold text-sky-500 w-16">WHERE</span>
                             Filter rows
                         </button>
                         <!-- ORDER BY: enabled -->
@@ -122,7 +122,7 @@
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addOrderByStep()"
                         >
-                            <span class="text-xs font-mono font-bold text-amber-500 w-20">ORDER BY</span>
+                            <span class="text-xs font-mono font-bold text-sky-500 w-20">ORDER BY</span>
                             Sort + limit
                         </button>
                         <!-- RAW SQL: enabled -->
@@ -131,7 +131,7 @@
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addRawSqlStep()"
                         >
-                            <span class="text-xs font-mono font-bold text-amber-500 w-16">RAW SQL</span>
+                            <span class="text-xs font-mono font-bold text-sky-500 w-16">RAW SQL</span>
                             Custom query
                         </button>
                         <!-- SELECT: enabled -->
@@ -140,7 +140,7 @@
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addSelectStep()"
                         >
-                            <span class="text-xs font-mono font-bold text-amber-500 w-16">SELECT</span>
+                            <span class="text-xs font-mono font-bold text-sky-500 w-16">SELECT</span>
                             Pick columns
                         </button>
                         <!-- GROUP BY: enabled -->
@@ -149,7 +149,7 @@
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addGroupByStep()"
                         >
-                            <span class="text-xs font-mono font-bold text-amber-500 w-20">GROUP BY</span>
+                            <span class="text-xs font-mono font-bold text-sky-500 w-20">GROUP BY</span>
                             Aggregate
                         </button>
                         <!-- JOIN: enabled -->
@@ -158,7 +158,7 @@
                             class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left"
                             (click)="addJoinStep()"
                         >
-                            <span class="text-xs font-mono font-bold text-amber-500 w-16">JOIN</span>
+                            <span class="text-xs font-mono font-bold text-sky-500 w-16">JOIN</span>
                             Combine tables
                         </button>
                     </div>
@@ -192,7 +192,7 @@
                         <button
                             type="button"
                             class="flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors"
-                            [class]="showQueriesPanel() ? 'text-amber-400' : 'text-zinc-500 hover:text-zinc-300'"
+                            [class]="showQueriesPanel() ? 'text-sky-400' : 'text-zinc-500 hover:text-zinc-300'"
                             (click)="openQueriesPanel()"
                         >
                             <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -235,7 +235,7 @@
                         <button
                             type="button"
                             class="flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors"
-                            [class]="showSaveModal() ? 'text-amber-400' : 'text-zinc-500 hover:text-zinc-300'"
+                            [class]="showSaveModal() ? 'text-sky-400' : 'text-zinc-500 hover:text-zinc-300'"
                             (click)="openSaveModal()"
                         >
                             <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -248,7 +248,7 @@
                             <div class="absolute right-0 bottom-full mb-1 z-30 w-56 rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl p-2 flex gap-1">
                                 <input
                                     type="text"
-                                    class="flex-1 min-w-0 h-7 px-2 rounded border border-zinc-700 bg-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500/60"
+                                    class="flex-1 min-w-0 h-7 px-2 rounded border border-zinc-700 bg-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-sky-500/60"
                                     placeholder="Query name…"
                                     [value]="saveQueryName()"
                                     (input)="saveQueryName.set($any($event.target).value)"
@@ -257,7 +257,7 @@
                                 />
                                 <button
                                     type="button"
-                                    class="flex-shrink-0 px-2 h-7 rounded text-xs bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    class="flex-shrink-0 px-2 h-7 rounded text-xs bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                     [disabled]="!saveQueryName().trim()"
                                     (click)="saveQuery()"
                                 >
@@ -304,16 +304,16 @@
                         @if (showExportMenu()) {
                             <div class="absolute right-0 bottom-full mb-1 z-20 w-48 rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl overflow-hidden">
                                 <button type="button" class="w-full flex items-center justify-between px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left" (click)="exportAs('csv')">
-                                    <span>Spreadsheet</span><span class="text-xs font-mono text-amber-500">.csv</span>
+                                    <span>Spreadsheet</span><span class="text-xs font-mono text-sky-500">.csv</span>
                                 </button>
                                 <button type="button" class="w-full flex items-center justify-between px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left" (click)="exportAs('json')">
-                                    <span>Array of objects</span><span class="text-xs font-mono text-amber-500">.json</span>
+                                    <span>Array of objects</span><span class="text-xs font-mono text-sky-500">.json</span>
                                 </button>
                                 <button type="button" class="w-full flex items-center justify-between px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left" (click)="exportAs('sql')">
-                                    <span>INSERT statements</span><span class="text-xs font-mono text-amber-500">.sql</span>
+                                    <span>INSERT statements</span><span class="text-xs font-mono text-sky-500">.sql</span>
                                 </button>
                                 <button type="button" class="w-full flex items-center justify-between px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left" (click)="exportAs('md')">
-                                    <span>Markdown table</span><span class="text-xs font-mono text-amber-500">.md</span>
+                                    <span>Markdown table</span><span class="text-xs font-mono text-sky-500">.md</span>
                                 </button>
                             </div>
                         }

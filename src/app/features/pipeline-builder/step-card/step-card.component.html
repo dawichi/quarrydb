@@ -10,7 +10,7 @@
         <div class="flex items-center gap-2">
             <span
                 class="text-xs font-semibold uppercase tracking-wider"
-                [class]="result()?.error === 'Blocked by upstream error' ? 'text-zinc-600' : 'text-amber-500'"
+                [class]="result()?.error === 'Blocked by upstream error' ? 'text-zinc-600' : 'text-sky-500'"
             >{{ step().type.replaceAll('_', ' ') }}</span>
             @if (result()?.error === 'Blocked by upstream error') {
                 <span class="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-red-950/60 text-red-400">
@@ -41,7 +41,7 @@
         <div class="p-3 flex flex-col gap-2">
             <textarea
                 #exprInput
-                class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+                class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-sky-500/50 transition-colors"
                 rows="2"
                 placeholder="e.g. price > 100"
                 [value]="expression()"
@@ -68,7 +68,7 @@
     @if (step().type === 'RAW_SQL') {
         <div class="p-3 flex flex-col gap-2">
             <textarea
-                class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+                class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-sky-500/50 transition-colors"
                 rows="4"
                 [placeholder]="rawSqlPlaceholder"
                 [value]="rawSql()"
@@ -92,7 +92,7 @@
                 >{{ joinType() }}</button>
                 <span class="text-xs text-zinc-600 flex-shrink-0">JOIN</span>
                 <select
-                    class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-amber-500/50 transition-colors"
+                    class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 transition-colors"
                     (change)="onJoinTableChange($event)"
                 >
                     <option value="" [selected]="!joinTable()">Pick a table…</option>
@@ -103,7 +103,7 @@
                 <span class="text-xs text-zinc-600 flex-shrink-0">AS</span>
                 <input
                     type="text"
-                    class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 transition-colors font-mono"
+                    class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors font-mono"
                     placeholder="alias"
                     [value]="joinAlias()"
                     (input)="onJoinAliasInput($event)"
@@ -114,7 +114,7 @@
             <div class="flex flex-col gap-2">
                 <textarea
                     #onTextarea
-                    class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-amber-500/50 transition-colors"
+                    class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-sky-500/50 transition-colors"
                     rows="2"
                     placeholder="e.g. orders.user_id = users.id"
                     [value]="joinOn()"
@@ -197,7 +197,7 @@
                             <span class="text-zinc-600 flex-shrink-0">AS</span>
                             <input
                                 type="text"
-                                class="w-24 bg-transparent text-zinc-400 font-mono focus:outline-none placeholder-zinc-700 border-b border-zinc-700 focus:border-amber-500/50 transition-colors"
+                                class="w-24 bg-transparent text-zinc-400 font-mono focus:outline-none placeholder-zinc-700 border-b border-zinc-700 focus:border-sky-500/50 transition-colors"
                                 placeholder="alias"
                                 [value]="col.alias ?? ''"
                                 (input)="onSelectAliasInput($event, i)"
@@ -224,7 +224,7 @@
                             type="button"
                             class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
                             [class]="isSelectedColumn(col)
-                                ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30 hover:bg-amber-500/10'
+                                ? 'bg-sky-500/20 text-sky-400 ring-1 ring-sky-500/30 hover:bg-sky-500/10'
                                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
                             (click)="toggleSelectColumn(col)"
                         >{{ col }}</button>
@@ -261,7 +261,7 @@
                             type="button"
                             class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
                             [class]="isGroupByColumn(col)
-                                ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30 hover:bg-amber-500/10'
+                                ? 'bg-sky-500/20 text-sky-400 ring-1 ring-sky-500/30 hover:bg-sky-500/10'
                                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
                             (click)="toggleGroupByColumn(col)"
                         >{{ col }}</button>
@@ -276,9 +276,9 @@
                 <div class="flex flex-wrap gap-1">
                     <span class="text-xs text-zinc-500 self-center">Grouping by:</span>
                     @for (col of groupByColumns(); track col) {
-                        <span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-mono bg-amber-500/15 text-amber-400">
+                        <span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-mono bg-sky-500/15 text-sky-400">
                             {{ col }}
-                            <button type="button" class="ml-0.5 text-amber-500/60 hover:text-amber-300" (click)="toggleGroupByColumn(col)">×</button>
+                            <button type="button" class="ml-0.5 text-sky-500/60 hover:text-sky-300" (click)="toggleGroupByColumn(col)">×</button>
                         </span>
                     }
                 </div>
@@ -306,7 +306,7 @@
                             <span class="text-zinc-600 flex-shrink-0">) AS</span>
                             <input
                                 type="text"
-                                class="w-24 bg-transparent text-zinc-400 font-mono focus:outline-none placeholder-zinc-700 border-b border-zinc-700 focus:border-amber-500/50 transition-colors"
+                                class="w-24 bg-transparent text-zinc-400 font-mono focus:outline-none placeholder-zinc-700 border-b border-zinc-700 focus:border-sky-500/50 transition-colors"
                                 placeholder="alias"
                                 [value]="agg.alias"
                                 (input)="onAggAliasInput($event, i)"
@@ -352,7 +352,7 @@
                                 type="button"
                                 class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold transition-colors"
                                 [class]="col.direction === 'ASC'
-                                    ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
+                                    ? 'text-sky-400 bg-sky-500/10 hover:bg-sky-500/20'
                                     : 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'"
                                 (click)="toggleDirection(i)"
                                 title="Toggle direction"
@@ -379,7 +379,7 @@
                             type="button"
                             class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
                             [class]="isSortColumn(col)
-                                ? 'bg-amber-500/15 text-amber-400 cursor-default'
+                                ? 'bg-sky-500/15 text-sky-400 cursor-default'
                                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
                             [disabled]="isSortColumn(col)"
                             (click)="addSortColumn(col)"
@@ -394,7 +394,7 @@
                 <input
                     type="number"
                     min="1"
-                    class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 transition-colors"
+                    class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors"
                     placeholder="no limit"
                     [value]="limit() ?? ''"
                     (input)="onLimitChange($event)"
