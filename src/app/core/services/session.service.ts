@@ -12,6 +12,7 @@ interface PersistedSession {
     pipeline: {
         source: { path: string; alias: string; tableName: string; columns: string[] } | null
         steps: PipelineStep[]
+        variableValues: Record<string, string>
     }
 }
 
@@ -39,6 +40,7 @@ export class SessionService {
                     ? { path: src.path, alias: src.alias, tableName: src.tableName, columns: src.columns }
                     : null,
                 steps: this.pipelineStore.steps(),
+                variableValues: this.pipelineStore.variableValues(),
             },
         }
     }
@@ -98,6 +100,9 @@ export class SessionService {
             await this.pipelineStore.openForTable(src.path, src.alias, src.tableName, src.columns)
             if (session.pipeline.steps?.length) {
                 this.pipelineStore.restoreSteps(session.pipeline.steps)
+            }
+            if (session.pipeline.variableValues) {
+                this.pipelineStore.variableValues.set(session.pipeline.variableValues)
             }
         }
     }

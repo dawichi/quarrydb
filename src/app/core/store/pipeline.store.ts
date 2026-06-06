@@ -1,4 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
+import type { SavedQuery } from '../services/saved-queries.service'
 import type {
     Aggregation,
     GroupByStep,
@@ -33,20 +34,39 @@ interface PipelineSource {
 const EMPTY_RESULT: StepResultState = { rows: [], columns: [], total: 0, error: null, isLoading: false }
 const PREVIEW_LIMIT = 50
 
+// ─── Variable Helpers ─────────────────────────────────────────────────────────
+
+function substituteVars(text: string, vars: Record<string, string>): string {
+    return text.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, name: string) => vars[name] ?? `:${name}`)
+}
+
+function getStepTexts(step: PipelineStep): string[] {
+    switch (step.type) {
+        case 'WHERE': return [step.expression]
+        case 'SELECT': return step.columns.flatMap((c) => [c.expr, c.alias ?? ''])
+        case 'ORDER_BY': return []
+        case 'GROUP_BY': return step.aggregations.flatMap((a) => [a.expr, a.alias])
+        case 'JOIN': return [step.on, step.table]
+        case 'RAW_SQL': return [step.sql]
+        default: return []
+    }
+}
+
 // ─── SQL Generation ───────────────────────────────────────────────────────────
 
-function buildStepCte(prev: string, step: PipelineStep): string {
+function buildStepCte(prev: string, step: PipelineStep, vars: Record<string, string>): string {
+    const v = (text: string) => substituteVars(text, vars)
     switch (step.type) {
         case 'SELECT': {
             if (step.columns.length === 0) return `SELECT * FROM ${prev}`
             const cols = step.columns
                 .filter((c) => c.expr.trim())
-                .map((c) => (c.alias ? `${c.expr} AS "${c.alias}"` : c.expr))
+                .map((c) => (c.alias ? `${v(c.expr)} AS "${c.alias}"` : v(c.expr)))
                 .join(', ')
             return cols ? `SELECT ${cols} FROM ${prev}` : `SELECT * FROM ${prev}`
         }
         case 'WHERE':
-            return `SELECT * FROM ${prev} WHERE ${step.expression}`
+            return `SELECT * FROM ${prev} WHERE ${v(step.expression)}`
         case 'ORDER_BY': {
             let sql = `SELECT * FROM ${prev}`
             if (step.columns.length > 0) {
@@ -62,7 +82,7 @@ function buildStepCte(prev: string, step: PipelineStep): string {
             for (const agg of step.aggregations) {
                 if (agg.expr.trim()) {
                     const alias = agg.alias.trim() || agg.fn.toLowerCase()
-                    selectParts.push(`${agg.fn}(${agg.expr}) AS "${alias}"`)
+                    selectParts.push(`${agg.fn}(${v(agg.expr)}) AS "${alias}"`)
                 }
             }
             return `SELECT ${selectParts.join(', ')} FROM ${prev} GROUP BY ${groupCols}`
@@ -76,10 +96,10 @@ function buildStepCte(prev: string, step: PipelineStep): string {
                       .join('.')
                 : `"${step.table}"`
             const alias = step.alias ? ` AS "${step.alias}"` : ''
-            return `SELECT * FROM ${prev} ${step.joinType} JOIN ${tableRef}${alias} ON ${step.on}`
+            return `SELECT * FROM ${prev} ${step.joinType} JOIN ${tableRef}${alias} ON ${v(step.on)}`
         }
         case 'RAW_SQL': {
-            const sql = step.sql.trim()
+            const sql = v(step.sql.trim())
             return sql ? sql.replaceAll('{src}', prev) : `SELECT * FROM ${prev}`
         }
         default:
@@ -87,14 +107,14 @@ function buildStepCte(prev: string, step: PipelineStep): string {
     }
 }
 
-export function buildPipelineSql(tableName: string, steps: PipelineStep[]): string {
+export function buildPipelineSql(tableName: string, steps: PipelineStep[], vars: Record<string, string> = {}): string {
     if (steps.length === 0) return `SELECT * FROM "${tableName}"`
 
     const ctes = [`step_1 AS (SELECT * FROM "${tableName}")`]
     for (let i = 0; i < steps.length; i++) {
         const prev = `step_${i + 1}`
         const curr = `step_${i + 2}`
-        ctes.push(`${curr} AS (${buildStepCte(prev, steps[i])})`)
+        ctes.push(`${curr} AS (${buildStepCte(prev, steps[i], vars)})`)
     }
     return `WITH ${ctes.join(',\n     ')}\nSELECT * FROM step_${steps.length + 1}`
 }
@@ -112,13 +132,27 @@ export class PipelineStore {
     readonly source = signal<PipelineSource | null>(null)
     readonly steps = signal<PipelineStep[]>([])
     readonly stepResults = signal<StepResultState[]>([])
+    readonly variableValues = signal<Record<string, string>>({})
     private readonly _history = signal<PipelineStep[][]>([[]])
     private readonly _historyIndex = signal(0)
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly generatedSql = computed(() => {
         const src = this.source()
-        return src ? buildPipelineSql(src.tableName, this.steps()) : ''
+        return src ? buildPipelineSql(src.tableName, this.steps(), this.variableValues()) : ''
+    })
+
+    readonly detectedVariables = computed<string[]>(() => {
+        const found = new Set<string>()
+        const re = /:([a-zA-Z_][a-zA-Z0-9_]*)/g
+        for (const step of this.steps()) {
+            for (const text of getStepTexts(step)) {
+                re.lastIndex = 0
+                let m: RegExpExecArray | null
+                while ((m = re.exec(text)) !== null) found.add(m[1])
+            }
+        }
+        return [...found]
     })
     readonly canUndo = computed(() => this._historyIndex() > 0)
     readonly canRedo = computed(() => this._historyIndex() < this._history().length - 1)
@@ -131,6 +165,7 @@ export class PipelineStore {
         this.source.set({ path, alias, tableName, columns, rowCount: 0 })
         this.steps.set([])
         this.stepResults.set([])
+        this.variableValues.set({})
         this._history.set([[]])
         this._historyIndex.set(0)
 
@@ -184,6 +219,21 @@ export class PipelineStore {
         this._history.set([steps.map((s) => ({ ...s }))])
         this._historyIndex.set(0)
         void this.executeFrom(0)
+    }
+
+    setVariableValue(name: string, value: string): void {
+        this.variableValues.update((v) => ({ ...v, [name]: value }))
+    }
+
+    reExecute(): void {
+        if (this.steps().length > 0) void this.executeFrom(0)
+    }
+
+    async loadSavedQuery(query: SavedQuery): Promise<void> {
+        const src = query.source
+        await this.openForTable(src.path, src.alias, src.tableName, src.columns)
+        this.variableValues.set({})
+        this.restoreSteps(query.steps)
     }
 
     addStep(): void {
@@ -383,7 +433,7 @@ export class PipelineStore {
             this.setResult(i, { ...(this.stepResults()[i] ?? EMPTY_RESULT), isLoading: true, error: null })
 
             try {
-                const sql = buildPipelineSql(src.tableName, steps.slice(0, i + 1))
+                const sql = buildPipelineSql(src.tableName, steps.slice(0, i + 1), this.variableValues())
                 const result = await this.db.executeQuery(src.path, sql, PREVIEW_LIMIT)
                 this.setResult(i, { ...result, error: null, isLoading: false })
             } catch (err) {
