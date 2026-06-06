@@ -12,6 +12,7 @@ import type {
     SortColumn,
 } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
+import { type ExportFormat, ExportService } from '../services/export.service'
 
 export interface StepResultState {
     rows: Record<string, unknown>[]
@@ -104,8 +105,10 @@ export function buildPipelineSql(tableName: string, steps: PipelineStep[]): stri
 export class PipelineStore {
     // ─── Injected Services ────────────────────────────────────────────────────
     private readonly db = inject(DatabaseService)
+    private readonly exportSvc = inject(ExportService)
 
     // ─── State ────────────────────────────────────────────────────────────────
+    readonly isExporting = signal(false)
     readonly source = signal<PipelineSource | null>(null)
     readonly steps = signal<PipelineStep[]>([])
     readonly stepResults = signal<StepResultState[]>([])
@@ -136,6 +139,41 @@ export class PipelineStore {
             this.source.update((s) => (s ? { ...s, rowCount: total } : s))
         } catch {
             // row count is non-critical — leave at 0
+        }
+    }
+
+    async exportResult(format: ExportFormat): Promise<void> {
+        const src = this.source()
+        if (!src || this.isExporting()) return
+
+        this.isExporting.set(true)
+        try {
+            const sql = this.generatedSql()
+            const rows = await this.db.executeQueryFull(src.path, sql)
+            const columns = rows.length > 0 ? Object.keys(rows[0]) : src.columns
+            let content: string
+            let ext: string
+            switch (format) {
+                case 'csv':
+                    content = this.exportSvc.toCsv(columns, rows)
+                    ext = 'csv'
+                    break
+                case 'json':
+                    content = this.exportSvc.toJson(rows)
+                    ext = 'json'
+                    break
+                case 'sql':
+                    content = this.exportSvc.toSqlInserts(src.tableName, columns, rows)
+                    ext = 'sql'
+                    break
+                case 'md':
+                    content = this.exportSvc.toMarkdown(columns, rows)
+                    ext = 'md'
+                    break
+            }
+            await this.exportSvc.saveFile(content, `${src.tableName}_query.${ext}`, ext)
+        } finally {
+            this.isExporting.set(false)
         }
     }
 

@@ -79,6 +79,30 @@ export class DatabaseService {
         }
     }
 
+    async fetchAllRows(
+        path: string,
+        tableName: string,
+        sortCol?: string,
+        sortDir?: 'ASC' | 'DESC',
+    ): Promise<Record<string, unknown>[]> {
+        const db = await Database.load(`sqlite://${path}`)
+        try {
+            const orderBy = sortCol ? ` ORDER BY "${sortCol}" ${sortDir ?? 'ASC'}` : ''
+            return await db.select<Record<string, unknown>[]>(`SELECT * FROM "${tableName}"${orderBy}`)
+        } finally {
+            await db.close()
+        }
+    }
+
+    async executeQueryFull(path: string, sql: string): Promise<Record<string, unknown>[]> {
+        const db = await Database.load(`sqlite://${path}`)
+        try {
+            return await db.select<Record<string, unknown>[]>(sql)
+        } finally {
+            await db.close()
+        }
+    }
+
     async loadSchema(path: string, alias: string): Promise<DatabaseSchema> {
         const db = await Database.load(`sqlite://${path}`)
 

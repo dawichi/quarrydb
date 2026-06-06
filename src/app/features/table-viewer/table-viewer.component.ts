@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core'
+import type { ExportFormat } from '../../core/services/export.service'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 
 @Component({
@@ -13,6 +14,7 @@ export class TableViewerComponent {
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly copiedKey = signal<string | null>(null)
+    protected readonly showExportMenu = signal(false)
 
     // ─── Public Methods ───────────────────────────────────────────────────────
     protected isNull(value: unknown): boolean {
@@ -45,6 +47,11 @@ export class TableViewerComponent {
 
     protected toggleSort(col: string): void {
         void this.store.toggleBrowseSort(col)
+    }
+
+    protected exportAs(format: ExportFormat): void {
+        this.showExportMenu.set(false)
+        void this.store.exportTable(format)
     }
 
     private flash(key: string): void {

@@ -1,6 +1,7 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
 import type { DatabaseSchema, Workspace } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
+import { type ExportFormat, ExportService } from '../services/export.service'
 import { SampleDatabaseService } from '../services/sample-database.service'
 
 interface SelectedTable {
@@ -13,6 +14,7 @@ export class WorkspaceStore {
     // ─── Injected Services ────────────────────────────────────────────────────
     private readonly db = inject(DatabaseService)
     private readonly sampleDb = inject(SampleDatabaseService)
+    private readonly exportSvc = inject(ExportService)
 
     // ─── Private ──────────────────────────────────────────────────────────────
     private readonly PAGE_SIZE = 100
@@ -29,6 +31,7 @@ export class WorkspaceStore {
     readonly tableColumns = signal<string[]>([])
     readonly tableRowTotal = signal<number>(0)
     readonly isLoadingTable = signal(false)
+    readonly isExporting = signal(false)
     readonly browseSortCol = signal<string | null>(null)
     readonly browseSortDir = signal<'ASC' | 'DESC'>('ASC')
 
@@ -139,6 +142,51 @@ export class WorkspaceStore {
             this.error.set(err instanceof Error ? err.message : 'Failed to sort table')
         } finally {
             this.isLoadingTable.set(false)
+        }
+    }
+
+    async exportTable(format: ExportFormat): Promise<void> {
+        const sel = this.selectedTable()
+        if (!sel || this.isExporting()) return
+
+        const path = this.schemas().find((s) => s.alias === sel.schemaAlias)?.path
+        if (!path) return
+
+        this.isExporting.set(true)
+        try {
+            const rows = await this.db.fetchAllRows(
+                path,
+                sel.tableName,
+                this.browseSortCol() ?? undefined,
+                this.browseSortDir(),
+            )
+            const columns = rows.length > 0 ? Object.keys(rows[0]) : this.tableColumns()
+            const { tableName } = sel
+            let content: string
+            let ext: string
+            switch (format) {
+                case 'csv':
+                    content = this.exportSvc.toCsv(columns, rows)
+                    ext = 'csv'
+                    break
+                case 'json':
+                    content = this.exportSvc.toJson(rows)
+                    ext = 'json'
+                    break
+                case 'sql':
+                    content = this.exportSvc.toSqlInserts(tableName, columns, rows)
+                    ext = 'sql'
+                    break
+                case 'md':
+                    content = this.exportSvc.toMarkdown(columns, rows)
+                    ext = 'md'
+                    break
+            }
+            await this.exportSvc.saveFile(content, `${tableName}.${ext}`, ext)
+        } catch (err) {
+            this.error.set(err instanceof Error ? err.message : 'Export failed')
+        } finally {
+            this.isExporting.set(false)
         }
     }
 

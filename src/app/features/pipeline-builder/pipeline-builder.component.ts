@@ -1,4 +1,5 @@
 import { Component, effect, HostListener, inject, signal } from '@angular/core'
+import type { ExportFormat } from '../../core/services/export.service'
 import { PipelineStore } from '../../core/store/pipeline.store'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 import { StepCardComponent } from './step-card/step-card.component'
@@ -18,6 +19,7 @@ export class PipelineBuilderComponent {
     protected readonly showPicker = signal(false)
     protected readonly sqlPanelOpen = signal(true)
     protected readonly copied = signal(false)
+    protected readonly showExportMenu = signal(false)
     protected readonly stepDragIndex = signal<number | null>(null)
     protected readonly stepDropTarget = signal<number | null>(null)
 
@@ -106,5 +108,10 @@ export class PipelineBuilderComponent {
         await navigator.clipboard.writeText(this.pipelineStore.generatedSql())
         this.copied.set(true)
         setTimeout(() => this.copied.set(false), 1500)
+    }
+
+    protected exportAs(format: ExportFormat): void {
+        this.showExportMenu.set(false)
+        void this.pipelineStore.exportResult(format)
     }
 }
