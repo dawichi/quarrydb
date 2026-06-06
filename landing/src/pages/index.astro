@@ -1,17 +1,467 @@
 ---
+import '../styles/global.css';
 
+const GITHUB_URL = 'https://github.com/dawichi/quarrydb';
+const VERSION = '0.1.0';
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Quarry — Visual SQLite query builder</title>
+    <meta name="description" content="Build complex SQLite queries by chaining steps, not typing SQL. See the generated SQL live. Free, open source, runs locally." />
+    <meta property="og:title" content="Quarry — Visual SQLite query builder" />
+    <meta property="og:description" content="Build complex SQLite queries by chaining steps, not typing SQL." />
+    <meta property="og:type" content="website" />
+</head>
+
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+
+<!-- ─── Nav ──────────────────────────────────────────────────────────────── -->
+<header class="fixed top-0 inset-x-0 z-40 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <!-- Pickaxe-style logomark -->
+            <svg class="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+            </svg>
+            <span class="font-semibold text-sm tracking-tight">Quarry</span>
+        </div>
+        <nav class="flex items-center gap-6">
+            <a href="#features" class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Features</a>
+            <a href="#download" class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Download</a>
+            <a href={GITHUB_URL} target="_blank" rel="noopener" class="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.92.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" clip-rule="evenodd" />
+                </svg>
+                GitHub
+            </a>
+        </nav>
+    </div>
+</header>
+
+<!-- ─── Hero ──────────────────────────────────────────────────────────────── -->
+<section class="pt-32 pb-20 px-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-14">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-400 text-xs font-medium mb-6">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                Open source · MIT · v{VERSION}
+            </div>
+            <h1 class="text-5xl sm:text-6xl font-bold tracking-tight text-zinc-50 leading-tight mb-5">
+                Visual SQLite<br/>query builder
+            </h1>
+            <p class="text-lg text-zinc-400 max-w-xl mx-auto leading-relaxed">
+                Chain steps like array methods — filter, sort, group, join.
+                See the CTE-based SQL it generates. Runs 100% locally.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
+                <a href="#download" class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-zinc-950 text-sm font-semibold transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Download free
+                </a>
+                <a href={GITHUB_URL} target="_blank" rel="noopener" class="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 text-sm font-medium transition-colors">
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+
+        <!-- Interactive pipeline demo -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-2xl max-w-4xl mx-auto">
+
+            <!-- Fake title bar -->
+            <div class="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-zinc-900/80">
+                <span class="w-3 h-3 rounded-full bg-zinc-700"></span>
+                <span class="w-3 h-3 rounded-full bg-zinc-700"></span>
+                <span class="w-3 h-3 rounded-full bg-zinc-700"></span>
+                <span class="ml-3 text-xs text-zinc-500 font-mono">quarry-sample.db</span>
+            </div>
+
+            <div class="flex" style="min-height: 420px;">
+
+                <!-- Left: pipeline -->
+                <div class="w-72 flex-shrink-0 border-r border-zinc-800 flex flex-col">
+                    <!-- Tab bar -->
+                    <div class="flex border-b border-zinc-800">
+                        <div class="px-4 py-2 text-xs font-medium text-zinc-100 border-b-2 border-sky-500 -mb-px">Query</div>
+                        <div class="px-4 py-2 text-xs font-medium text-zinc-500">Browse</div>
+                    </div>
+                    <!-- Pipeline canvas -->
+                    <div class="flex-1 p-4 overflow-y-auto">
+                        <!-- Source node -->
+                        <div class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125" />
+                                </svg>
+                                <span class="font-medium text-zinc-100">orders</span>
+                            </div>
+                            <span class="text-zinc-500">15 rows</span>
+                        </div>
+
+                        <!-- Step connector + steps container -->
+                        <div id="demo-steps" class="mt-0"></div>
+
+                        <!-- Connector to add button -->
+                        <div class="flex justify-center py-1">
+                            <div class="w-px h-4 bg-zinc-800"></div>
+                        </div>
+
+                        <!-- Add step buttons -->
+                        <div id="demo-add-buttons" class="flex flex-col gap-1.5">
+                            <button id="btn-add-where" class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-zinc-700 text-zinc-500 hover:border-sky-500/50 hover:text-sky-400 text-xs transition-colors">
+                                <span class="font-mono font-bold text-sky-500">WHERE</span>
+                                Filter rows
+                            </button>
+                            <button id="btn-add-orderby" class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-zinc-700 text-zinc-500 hover:border-sky-500/50 hover:text-sky-400 text-xs transition-colors">
+                                <span class="font-mono font-bold text-sky-500">ORDER BY</span>
+                                Sort results
+                            </button>
+                        </div>
+
+                        <!-- Reset -->
+                        <button id="btn-reset" class="mt-3 w-full text-xs text-zinc-600 hover:text-zinc-400 transition-colors py-1 hidden">
+                            Reset pipeline
+                        </button>
+                    </div>
+
+                    <!-- SQL panel -->
+                    <div class="border-t border-zinc-800 bg-zinc-900">
+                        <div class="flex items-center justify-between px-3 py-1.5">
+                            <span class="text-xs text-zinc-500">Generated SQL</span>
+                            <span class="text-xs text-zinc-600">Copy</span>
+                        </div>
+                        <pre id="demo-sql" class="px-3 pb-3 text-xs text-zinc-400 font-mono leading-relaxed overflow-x-auto">SELECT * FROM orders</pre>
+                    </div>
+                </div>
+
+                <!-- Right: result table -->
+                <div class="flex-1 overflow-auto">
+                    <div class="sticky top-0 bg-zinc-900 border-b border-zinc-800 px-3 py-2 flex items-center justify-between">
+                        <span id="demo-row-count" class="text-xs text-zinc-500">15 rows</span>
+                        <span class="text-xs text-zinc-600">results</span>
+                    </div>
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-zinc-800 sticky top-8 bg-zinc-900">
+                                <th class="text-left px-3 py-2 text-zinc-500 font-medium">id</th>
+                                <th class="text-left px-3 py-2 text-zinc-500 font-medium">customer_id</th>
+                                <th class="text-left px-3 py-2 text-zinc-500 font-medium">status</th>
+                                <th class="text-left px-3 py-2 text-zinc-500 font-medium">total</th>
+                                <th class="text-left px-3 py-2 text-zinc-500 font-medium">created_at</th>
+                            </tr>
+                        </thead>
+                        <tbody id="demo-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Features ──────────────────────────────────────────────────────────── -->
+<section id="features" class="py-20 px-6 border-t border-zinc-800/60">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-14">
+            <h2 class="text-3xl font-bold text-zinc-50 mb-3">Everything you need to explore SQLite data</h2>
+            <p class="text-zinc-400 max-w-lg mx-auto">Designed for developers who understand data but find raw SQL friction-heavy.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Pipeline builder -->
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 group hover:border-zinc-700 transition-colors">
+                <div class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-zinc-100 mb-2">Visual pipeline builder</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed">Chain WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and raw SQL steps. Each step shows its intermediate result — like <code class="text-sky-400 font-mono text-xs">.filter().map()</code> for your database.</p>
+                <div class="mt-4 flex flex-wrap gap-1.5">
+                    {['WHERE', 'SELECT', 'ORDER BY', 'GROUP BY', 'JOIN', 'RAW SQL'].map(step => (
+                        <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-zinc-800 text-sky-400">{step}</span>
+                    ))}
+                </div>
+            </div>
+
+            <!-- Generated SQL -->
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 group hover:border-zinc-700 transition-colors">
+                <div class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-zinc-100 mb-2">CTE-based SQL generation</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed mb-4">Every pipeline generates readable, debuggable SQL using named CTEs. Copy it, paste it anywhere — or just learn from what the visual builder produces.</p>
+                <pre class="text-xs font-mono text-zinc-500 leading-relaxed overflow-x-auto"><span class="text-sky-500">WITH</span> step_1 <span class="text-sky-500">AS</span> (
+  <span class="text-sky-500">SELECT</span> * <span class="text-sky-500">FROM</span> orders
+  <span class="text-sky-500">WHERE</span> status = <span class="text-zinc-300">'delivered'</span>
+)
+<span class="text-sky-500">SELECT</span> * <span class="text-sky-500">FROM</span> step_1
+<span class="text-sky-500">ORDER BY</span> total <span class="text-sky-500">DESC</span></pre>
+            </div>
+
+            <!-- Edit mode -->
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 group hover:border-zinc-700 transition-colors">
+                <div class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-zinc-100 mb-2">Safe edit mode</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed">Stage INSERT, UPDATE, and DELETE changes. Review a full diff before applying. Commits as a single atomic transaction — one constraint failure rolls it all back.</p>
+            </div>
+
+            <!-- FK navigation -->
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 group hover:border-zinc-700 transition-colors">
+                <div class="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-zinc-100 mb-2">FK reference navigation</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed">Hover any foreign key cell to reveal a <code class="text-sky-400 font-mono text-xs">→ table</code> chip. Click it to jump to the referenced table pre-filtered to that row. A breadcrumb trail keeps you oriented.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ─── Stack ─────────────────────────────────────────────────────────────── -->
+<section class="py-20 px-6 border-t border-zinc-800/60">
+    <div class="max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+                <h2 class="text-3xl font-bold text-zinc-50 mb-4">Built with modern tools, runs on your machine</h2>
+                <p class="text-zinc-400 leading-relaxed mb-6">
+                    No cloud, no subscription, no data leaves your computer. Quarry talks directly to your <code class="text-sky-400 font-mono text-sm">.db</code> file via Rust — zero latency, maximum privacy.
+                </p>
+                <p class="text-zinc-400 leading-relaxed">
+                    Supports any SQLite file up to the limits of your disk. Large files work fine — queries stream results in pages.
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                {[
+                    { label: 'Tauri 2', sub: 'Rust desktop shell', color: 'text-orange-400' },
+                    { label: 'Angular 20', sub: 'Signals-based UI', color: 'text-red-400' },
+                    { label: 'SQLite', sub: 'via tauri-plugin-sql', color: 'text-sky-400' },
+                    { label: 'Tailwind v4', sub: 'Styling', color: 'text-cyan-400' },
+                    { label: 'TypeScript', sub: 'End-to-end typed', color: 'text-blue-400' },
+                    { label: 'MIT License', sub: 'Open source forever', color: 'text-green-400' },
+                ].map(item => (
+                    <div class="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+                        <div class={`text-sm font-semibold mb-0.5 ${item.color}`}>{item.label}</div>
+                        <div class="text-xs text-zinc-500">{item.sub}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Download ──────────────────────────────────────────────────────────── -->
+<section id="download" class="py-20 px-6 border-t border-zinc-800/60">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-bold text-zinc-50 mb-3">Download Quarry</h2>
+        <p class="text-zinc-400 mb-10">Free, open source, no account required.</p>
+
+        <div class="flex flex-wrap justify-center gap-4 mb-8">
+            <!-- macOS -->
+            <a
+                href="#"
+                class="flex items-center gap-3 px-6 py-4 rounded-xl border border-zinc-700 hover:border-sky-500/50 bg-zinc-900 hover:bg-zinc-800 transition-colors group"
+                aria-label="Download for macOS (coming soon)"
+            >
+                <svg class="w-8 h-8 text-zinc-400 group-hover:text-zinc-200 transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                <div class="text-left">
+                    <div class="text-sm font-semibold text-zinc-200 group-hover:text-white transition-colors">macOS</div>
+                    <div class="text-xs text-zinc-500">Apple Silicon + Intel · v{VERSION}</div>
+                </div>
+            </a>
+
+            <!-- Windows -->
+            <a
+                href="#"
+                class="flex items-center gap-3 px-6 py-4 rounded-xl border border-zinc-700 hover:border-sky-500/50 bg-zinc-900 hover:bg-zinc-800 transition-colors group"
+                aria-label="Download for Windows (coming soon)"
+            >
+                <svg class="w-8 h-8 text-zinc-400 group-hover:text-zinc-200 transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+                </svg>
+                <div class="text-left">
+                    <div class="text-sm font-semibold text-zinc-200 group-hover:text-white transition-colors">Windows</div>
+                    <div class="text-xs text-zinc-500">x64 installer · v{VERSION}</div>
+                </div>
+            </a>
+        </div>
+
+        <p class="text-xs text-zinc-600">
+            Releases coming soon — <a href={GITHUB_URL} class="text-zinc-500 hover:text-zinc-300 underline transition-colors">watch the repo</a> to be notified.
+            <br />Once published, the app auto-updates — no manual re-downloads needed.
+        </p>
+    </div>
+</section>
+
+<!-- ─── Footer ────────────────────────────────────────────────────────────── -->
+<footer class="border-t border-zinc-800/60 py-10 px-6">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-sm text-zinc-500">
+            <svg class="w-4 h-4 text-sky-500/60" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+            </svg>
+            Quarry · MIT License
+        </div>
+        <div class="flex items-center gap-5 text-sm text-zinc-500">
+            <a href={GITHUB_URL} target="_blank" rel="noopener" class="hover:text-zinc-300 transition-colors">GitHub</a>
+            <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noopener" class="hover:text-zinc-300 transition-colors">Issues</a>
+            <a href={`${GITHUB_URL}/releases`} target="_blank" rel="noopener" class="hover:text-zinc-300 transition-colors">Releases</a>
+        </div>
+    </div>
+</footer>
+
+</body>
 </html>
+
+<!-- ─── Interactive demo script ────────────────────────────────────────────── -->
+<script>
+const ORDERS = [
+    { id: 1,  customer_id: 1,  status: 'delivered', total: 1389.98, created_at: '2024-03-01' },
+    { id: 2,  customer_id: 1,  status: 'shipped',   total: 179.98,  created_at: '2024-05-10' },
+    { id: 3,  customer_id: 2,  status: 'delivered', total: 84.98,   created_at: '2024-03-15' },
+    { id: 4,  customer_id: 2,  status: 'cancelled', total: 499.99,  created_at: '2024-04-20' },
+    { id: 5,  customer_id: 3,  status: 'delivered', total: 89.98,   created_at: '2024-04-05' },
+    { id: 6,  customer_id: 4,  status: 'delivered', total: 239.97,  created_at: '2024-04-18' },
+    { id: 7,  customer_id: 5,  status: 'shipped',   total: 329.98,  created_at: '2024-05-02' },
+    { id: 8,  customer_id: 5,  status: 'pending',   total: 44.99,   created_at: '2024-06-01' },
+    { id: 9,  customer_id: 6,  status: 'delivered', total: 139.98,  created_at: '2024-05-20' },
+    { id: 10, customer_id: 7,  status: 'delivered', total: 149.99,  created_at: '2024-04-30' },
+    { id: 11, customer_id: 8,  status: 'shipped',   total: 549.98,  created_at: '2024-05-25' },
+    { id: 12, customer_id: 8,  status: 'pending',   total: 79.99,   created_at: '2024-06-05' },
+    { id: 13, customer_id: 9,  status: 'delivered', total: 239.97,  created_at: '2024-05-08' },
+    { id: 14, customer_id: 10, status: 'delivered', total: 119.98,  created_at: '2024-05-15' },
+    { id: 15, customer_id: 3,  status: 'pending',   total: 499.99,  created_at: '2024-06-08' },
+]
+
+/** @type {{ type: 'where' | 'orderby' }[]} */
+let steps = []
+
+function compute() {
+    let rows = [...ORDERS]
+    const cteParts = []
+    let stepIndex = 0
+
+    if (steps.find(s => s.type === 'where')) {
+        stepIndex++
+        rows = rows.filter(r => r.status === 'delivered')
+        cteParts.push(`step_${stepIndex} AS (\n  SELECT * FROM ${stepIndex === 1 ? 'orders' : `step_${stepIndex - 1}`}\n  WHERE status = 'delivered'\n)`)
+    }
+    if (steps.find(s => s.type === 'orderby')) {
+        stepIndex++
+        rows = [...rows].sort((a, b) => b.total - a.total)
+        cteParts.push(`step_${stepIndex} AS (\n  SELECT * FROM ${stepIndex === 1 ? 'orders' : `step_${stepIndex - 1}`}\n  ORDER BY total DESC\n)`)
+    }
+
+    const sql = cteParts.length
+        ? `WITH ${cteParts.join(',\n     ')}\nSELECT * FROM step_${stepIndex}`
+        : 'SELECT * FROM orders'
+
+    return { rows, sql }
+}
+
+function renderStepCard(type, index) {
+    const label = type === 'where' ? 'WHERE' : 'ORDER BY'
+    const expr = type === 'where' ? "status = 'delivered'" : 'total DESC'
+    return `
+        <div class="flex justify-center py-1"><div class="w-px h-4 bg-zinc-700"></div></div>
+        <div class="rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden text-xs">
+            <div class="flex items-center gap-2 px-3 py-2 border-b border-zinc-800 bg-zinc-800/40">
+                <span class="font-mono font-bold text-sky-400">${label}</span>
+                <button
+                    data-remove="${index}"
+                    class="ml-auto text-zinc-600 hover:text-red-400 transition-colors leading-none"
+                    title="Remove step"
+                >✕</button>
+            </div>
+            <div class="px-3 py-2 font-mono text-zinc-300">${expr}</div>
+        </div>`
+}
+
+function render() {
+    const { rows, sql } = compute()
+
+    // Steps
+    const stepsEl = document.getElementById('demo-steps')
+    stepsEl.innerHTML = steps.map((s, i) => renderStepCard(s.type, i)).join('')
+
+    // Remove buttons
+    stepsEl.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const i = Number(btn.getAttribute('data-remove'))
+            steps.splice(i, 1)
+            render()
+        })
+    })
+
+    // SQL
+    document.getElementById('demo-sql').textContent = sql
+
+    // Row count
+    document.getElementById('demo-row-count').textContent = `${rows.length} row${rows.length !== 1 ? 's' : ''}`
+
+    // Table body
+    const tbody = document.getElementById('demo-table-body')
+    tbody.innerHTML = rows.slice(0, 10).map((r, i) => `
+        <tr class="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors ${i % 2 === 0 ? '' : 'bg-zinc-900/20'}">
+            <td class="px-3 py-2 text-zinc-400">${r.id}</td>
+            <td class="px-3 py-2 text-zinc-400">${r.customer_id}</td>
+            <td class="px-3 py-2">
+                <span class="px-1.5 py-0.5 rounded text-xs ${
+                    r.status === 'delivered' ? 'bg-green-900/40 text-green-400' :
+                    r.status === 'shipped'   ? 'bg-sky-900/40 text-sky-400' :
+                    r.status === 'pending'   ? 'bg-yellow-900/40 text-yellow-400' :
+                                               'bg-red-900/40 text-red-400'
+                }">${r.status}</span>
+            </td>
+            <td class="px-3 py-2 text-zinc-300 font-mono">$${r.total.toFixed(2)}</td>
+            <td class="px-3 py-2 text-zinc-500">${r.created_at}</td>
+        </tr>`).join('')
+
+    // Add buttons / reset visibility
+    const hasWhere   = steps.some(s => s.type === 'where')
+    const hasOrderBy = steps.some(s => s.type === 'orderby')
+    const btnWhere   = document.getElementById('btn-add-where')
+    const btnOrderBy = document.getElementById('btn-add-orderby')
+    const btnReset   = document.getElementById('btn-reset')
+
+    btnWhere.classList.toggle('hidden', hasWhere)
+    btnOrderBy.classList.toggle('hidden', hasOrderBy)
+    btnReset.classList.toggle('hidden', steps.length === 0)
+
+    const addButtons = document.getElementById('demo-add-buttons')
+    addButtons.classList.toggle('hidden', hasWhere && hasOrderBy)
+}
+
+document.getElementById('btn-add-where').addEventListener('click', () => {
+    steps.push({ type: 'where' })
+    render()
+})
+document.getElementById('btn-add-orderby').addEventListener('click', () => {
+    steps.push({ type: 'orderby' })
+    render()
+})
+document.getElementById('btn-reset').addEventListener('click', () => {
+    steps = []
+    render()
+})
+
+render()
+</script>

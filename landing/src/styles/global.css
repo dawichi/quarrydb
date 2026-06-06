@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@layer base {
+    :root {
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    * {
+        box-sizing: border-box;
+    }
+}
