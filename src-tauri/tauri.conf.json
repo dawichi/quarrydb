@@ -33,5 +33,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGMTdFMUQzREFFQUE5RTMKUldUanFlcmEwK0VYdi9ITGU1RlJ6S1NTY0x6S3k4L09ESTRKTmdHS2kzNFIwdXVjcnhva2lwQUgK",
+      "endpoints": [
+        "https://github.com/dawichi/quarrydb/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
