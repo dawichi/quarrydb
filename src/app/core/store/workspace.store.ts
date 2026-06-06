@@ -36,14 +36,14 @@ export class WorkspaceStore {
     readonly browseSortCol = signal<string | null>(null)
     readonly browseSortDir = signal<'ASC' | 'DESC'>('ASC')
 
-    readonly activeTab = signal<'browse' | 'query'>('browse')
+    readonly activeTab = signal<'browse' | 'query' | 'edit'>('browse')
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly hasWorkspace = computed(() => this.workspace() !== null)
     readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
 
     // ─── Public Methods ───────────────────────────────────────────────────────
-    setActiveTab(tab: 'browse' | 'query'): void {
+    setActiveTab(tab: 'browse' | 'query' | 'edit'): void {
         this.activeTab.set(tab)
     }
 

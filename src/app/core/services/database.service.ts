@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 import type { DatabaseSchema, TableSchema } from '@quarrydb/shared'
 import { open } from '@tauri-apps/plugin-dialog'
 import Database from '@tauri-apps/plugin-sql'
+import type { EditOperation } from '../store/edit.store'
 
 interface PragmaColumnRow {
     cid: number
@@ -98,6 +99,45 @@ export class DatabaseService {
         const db = await Database.load(`sqlite://${path}`)
         try {
             return await db.select<Record<string, unknown>[]>(sql)
+        } finally {
+            await db.close()
+        }
+    }
+
+    async applyEdits(path: string, tableName: string, ops: EditOperation[]): Promise<void> {
+        const db = await Database.load(`sqlite://${path}`)
+        try {
+            await db.execute('BEGIN')
+            try {
+                for (const op of ops) {
+                    if (op.kind === 'update') {
+                        const cols = Object.keys(op.changes)
+                        const pks = Object.keys(op.pkValues)
+                        const setClauses = cols.map((k) => `"${k}" = ?`).join(', ')
+                        const whereClauses = pks.map((k) => `"${k}" = ?`).join(' AND ')
+                        await db.execute(`UPDATE "${tableName}" SET ${setClauses} WHERE ${whereClauses}`, [
+                            ...Object.values(op.changes),
+                            ...Object.values(op.pkValues),
+                        ])
+                    } else if (op.kind === 'delete') {
+                        const pks = Object.keys(op.pkValues)
+                        const whereClauses = pks.map((k) => `"${k}" = ?`).join(' AND ')
+                        await db.execute(`DELETE FROM "${tableName}" WHERE ${whereClauses}`, Object.values(op.pkValues))
+                    } else if (op.kind === 'insert') {
+                        const cols = Object.keys(op.values)
+                        const colList = cols.map((k) => `"${k}"`).join(', ')
+                        const placeholders = cols.map(() => '?').join(', ')
+                        await db.execute(
+                            `INSERT INTO "${tableName}" (${colList}) VALUES (${placeholders})`,
+                            Object.values(op.values),
+                        )
+                    }
+                }
+                await db.execute('COMMIT')
+            } catch (err) {
+                await db.execute('ROLLBACK')
+                throw err
+            }
         } finally {
             await db.close()
         }

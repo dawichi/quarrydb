@@ -28,6 +28,8 @@
 
             @if (workspaceStore.activeTab() === 'browse') {
                 <app-table-viewer />
+            } @else if (workspaceStore.activeTab() === 'edit') {
+                <app-edit-mode />
             } @else {
                 <app-pipeline-builder />
             }
