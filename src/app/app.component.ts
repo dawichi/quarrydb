@@ -1,4 +1,5 @@
 import { Component, OnInit, effect, inject, signal, untracked } from '@angular/core'
+import { MenuService } from './core/services/menu.service'
 import { SessionService } from './core/services/session.service'
 import { WorkspaceStore } from './core/store/workspace.store'
 import { EditModeComponent } from './features/edit-mode/edit-mode.component'
@@ -17,6 +18,7 @@ export class AppComponent implements OnInit {
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly workspaceStore = inject(WorkspaceStore)
     private readonly sessionSvc = inject(SessionService)
+    private readonly menuSvc = inject(MenuService)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly isRestoring = signal(true)
@@ -33,7 +35,7 @@ export class AppComponent implements OnInit {
     }
 
     async ngOnInit(): Promise<void> {
-        await this.sessionSvc.restore()
+        await Promise.all([this.menuSvc.register(), this.sessionSvc.restore()])
         this.isRestoring.set(false)
     }
 }
