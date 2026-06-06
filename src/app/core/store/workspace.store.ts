@@ -3,6 +3,7 @@ import type { DatabaseSchema, ForeignKey, Workspace } from '@quarrydb/shared'
 import { save } from '@tauri-apps/plugin-dialog'
 import { DatabaseService } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
+import { RecentFilesService } from '../services/recent-files.service'
 import { SampleDatabaseService } from '../services/sample-database.service'
 
 interface SelectedTable {
@@ -28,6 +29,7 @@ export class WorkspaceStore {
     private readonly db = inject(DatabaseService)
     private readonly sampleDb = inject(SampleDatabaseService)
     private readonly exportSvc = inject(ExportService)
+    private readonly recentFilesSvc = inject(RecentFilesService)
 
     // ─── Private ──────────────────────────────────────────────────────────────
     private readonly PAGE_SIZE = 100
@@ -353,6 +355,20 @@ export class WorkspaceStore {
         this.schemas.set(schemas)
     }
 
+    async openRecentFile(path: string): Promise<void> {
+        this.isLoading.set(true)
+        this.error.set(null)
+        try {
+            await this.loadFilePath(path)
+        } catch {
+            // File moved or deleted — remove from recent list and show error
+            this.recentFilesSvc.remove(path)
+            this.error.set(`File not found: ${path.split('/').pop()}`)
+        } finally {
+            this.isLoading.set(false)
+        }
+    }
+
     private async loadFilePath(path: string): Promise<void> {
         const alias = 'main'
         const schema = await this.db.loadSchema(path, alias)
@@ -365,5 +381,6 @@ export class WorkspaceStore {
             updatedAt: Date.now(),
         })
         this.schemas.set([schema])
+        this.recentFilesSvc.add(path)
     }
 }

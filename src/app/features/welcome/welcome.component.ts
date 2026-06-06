@@ -1,4 +1,6 @@
 import { Component, inject } from '@angular/core'
+import { RecentFilesService } from '../../core/services/recent-files.service'
+import { TutorialService } from '../../core/services/tutorial.service'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 
 @Component({
@@ -7,6 +9,16 @@ import { WorkspaceStore } from '../../core/store/workspace.store'
     templateUrl: './welcome.component.html',
 })
 export class WelcomeComponent {
-    // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly tutorialSvc = inject(TutorialService)
+    protected readonly recentFilesSvc = inject(RecentFilesService)
+
+    protected get recentFiles() {
+        return this.recentFilesSvc.load()
+    }
+
+    protected startTutorial(): void {
+        this.tutorialSvc.start()
+        void this.workspaceStore.openSampleDatabase()
+    }
 }

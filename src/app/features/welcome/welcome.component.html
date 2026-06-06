@@ -7,23 +7,47 @@
             <div class="flex flex-col gap-1">
                 <button
                     type="button"
-                    class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-left transition-colors w-full"
-                    disabled
+                    class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-left transition-colors w-full disabled:opacity-40 disabled:cursor-not-allowed"
+                    [disabled]="workspaceStore.isLoading()"
+                    (click)="startTutorial()"
                 >
                     <!-- Book icon -->
-                    <svg aria-hidden="true"class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                     </svg>
                     <span>Interactive tutorial</span>
-                    <span class="ml-auto text-xs text-zinc-600">soon</span>
                 </button>
             </div>
         </div>
 
         <div>
             <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Recent</h2>
-            <p class="text-xs text-zinc-600 italic">No recent files</p>
+            @if (recentFiles.length === 0) {
+                <p class="text-xs text-zinc-600 italic">No recent files</p>
+            } @else {
+                <div class="flex flex-col gap-0.5">
+                    @for (file of recentFiles; track file.path) {
+                        <button
+                            type="button"
+                            class="group flex items-center gap-2 px-3 py-2 rounded-md text-left w-full transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                            [disabled]="workspaceStore.isLoading()"
+                            (click)="workspaceStore.openRecentFile(file.path)"
+                            [title]="file.path"
+                        >
+                            <!-- DB icon -->
+                            <svg aria-hidden="true" class="w-3.5 h-3.5 flex-shrink-0 text-zinc-600 group-hover:text-zinc-400 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                            </svg>
+                            <span class="text-xs text-zinc-400 group-hover:text-zinc-100 transition-colors truncate">{{ file.name }}</span>
+                        </button>
+                    }
+                </div>
+            }
         </div>
+
+        @if (workspaceStore.error()) {
+            <p class="text-xs text-red-400">{{ workspaceStore.error() }}</p>
+        }
     </div>
 
     <!-- Right: main CTA -->
@@ -40,7 +64,7 @@
             (click)="workspaceStore.openDatabase()"
         >
             <!-- Folder open icon -->
-            <svg aria-hidden="true"class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
             </svg>
             @if (workspaceStore.isLoading()) {

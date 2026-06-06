@@ -4,12 +4,13 @@ import { WorkspaceStore } from './core/store/workspace.store'
 import { EditModeComponent } from './features/edit-mode/edit-mode.component'
 import { PipelineBuilderComponent } from './features/pipeline-builder/pipeline-builder.component'
 import { TableViewerComponent } from './features/table-viewer/table-viewer.component'
+import { TutorialOverlayComponent } from './features/tutorial/tutorial-overlay.component'
 import { WelcomeComponent } from './features/welcome/welcome.component'
 import { SidebarComponent } from './layout/sidebar/sidebar.component'
 
 @Component({
     selector: 'app-root',
-    imports: [SidebarComponent, WelcomeComponent, TableViewerComponent, PipelineBuilderComponent, EditModeComponent],
+    imports: [SidebarComponent, WelcomeComponent, TableViewerComponent, PipelineBuilderComponent, EditModeComponent, TutorialOverlayComponent],
     templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {
