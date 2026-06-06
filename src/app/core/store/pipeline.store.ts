@@ -144,6 +144,7 @@ export class PipelineStore {
         const step: PipelineStep = { id: crypto.randomUUID(), type: 'WHERE', expression: '' }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+        void this.executeFrom(this.steps().length - 1)
     }
 
     addOrderByStep(): void {
@@ -151,6 +152,7 @@ export class PipelineStore {
         const step: OrderByStep = { id: crypto.randomUUID(), type: 'ORDER_BY', columns: [], limit: null }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+        void this.executeFrom(this.steps().length - 1)
     }
 
     addSelectStep(): void {
@@ -158,6 +160,7 @@ export class PipelineStore {
         const step: SelectStep = { id: crypto.randomUUID(), type: 'SELECT', columns: [] }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+        void this.executeFrom(this.steps().length - 1)
     }
 
     updateSelectStep(index: number, columns: SelectColumn[]): void {
@@ -171,6 +174,7 @@ export class PipelineStore {
         const step: RawSqlStep = { id: crypto.randomUUID(), type: 'RAW_SQL', sql: '' }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+        void this.executeFrom(this.steps().length - 1)
     }
 
     addJoinStep(): void {
@@ -185,6 +189,7 @@ export class PipelineStore {
         }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+        void this.executeFrom(this.steps().length - 1)
     }
 
     updateJoinStep(index: number, joinType: JoinType, table: string, alias: string | undefined, on: string): void {
@@ -200,6 +205,7 @@ export class PipelineStore {
         const step: GroupByStep = { id: crypto.randomUUID(), type: 'GROUP_BY', groupBy: [], aggregations: [] }
         this.steps.update((prev) => [...prev, step])
         this.stepResults.update((prev) => [...prev, { ...EMPTY_RESULT }])
+        void this.executeFrom(this.steps().length - 1)
     }
 
     updateGroupByStep(index: number, groupBy: string[], aggregations: Aggregation[]): void {
@@ -287,6 +293,17 @@ export class PipelineStore {
         if (!src) return
 
         const steps = this.steps()
+
+        // If any upstream step already failed, everything from here is blocked — don't execute.
+        const upstreamFailed = this.stepResults()
+            .slice(0, fromIndex)
+            .some((r) => r.error !== null)
+        if (upstreamFailed) {
+            for (let k = fromIndex; k < steps.length; k++) {
+                this.setResult(k, { ...EMPTY_RESULT, error: 'Blocked by upstream error' })
+            }
+            return
+        }
 
         for (let i = fromIndex; i < steps.length; i++) {
             const step = steps[i]
