@@ -341,6 +341,18 @@ export class WorkspaceStore {
         }
     }
 
+    // Called by SessionService during restore — schemas already loaded, skip re-fetching.
+    restoreWorkspace(schemas: DatabaseSchema[], name: string): void {
+        this.workspace.set({
+            id: crypto.randomUUID(),
+            name,
+            databases: schemas.map((s) => ({ path: s.path, alias: s.alias })),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        })
+        this.schemas.set(schemas)
+    }
+
     private async loadFilePath(path: string): Promise<void> {
         const alias = 'main'
         const schema = await this.db.loadSchema(path, alias)

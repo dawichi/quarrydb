@@ -1,43 +1,58 @@
-<div class="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+@if (isRestoring()) {
 
-    <!-- Sidebar: schema browser -->
-    <aside class="w-60 flex-shrink-0">
-        <app-sidebar />
-    </aside>
+    <!-- Session restore in progress -->
+    <div class="flex items-center justify-center h-screen bg-zinc-950 gap-2 text-zinc-600 text-sm">
+        <svg aria-hidden="true" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span>Restoring session…</span>
+    </div>
 
-    <!-- Main content area -->
-    <main class="flex-1 overflow-hidden flex flex-col">
+} @else {
 
-        @if (workspaceStore.hasWorkspace()) {
+    <div class="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
 
-            @if (workspaceStore.selectedTable()) {
-                <!-- Tab bar -->
-                <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
-                    @for (tab of tabs; track tab) {
-                        <button
-                            type="button"
-                            class="px-3 py-2.5 text-xs font-medium transition-colors capitalize border-b-2 -mb-px"
-                            [class]="workspaceStore.activeTab() === tab
-                                ? 'text-zinc-100 border-amber-500'
-                                : 'text-zinc-500 border-transparent hover:text-zinc-300'"
-                            (click)="workspaceStore.setActiveTab(tab)"
-                        >{{ tab }}</button>
-                    }
-                </div>
-            }
+        <!-- Sidebar: schema browser -->
+        <aside class="w-60 flex-shrink-0">
+            <app-sidebar />
+        </aside>
 
-            @if (workspaceStore.activeTab() === 'browse') {
-                <app-table-viewer />
-            } @else if (workspaceStore.activeTab() === 'edit') {
-                <app-edit-mode />
+        <!-- Main content area -->
+        <main class="flex-1 overflow-hidden flex flex-col">
+
+            @if (workspaceStore.hasWorkspace()) {
+
+                @if (workspaceStore.selectedTable()) {
+                    <!-- Tab bar -->
+                    <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
+                        @for (tab of tabs; track tab) {
+                            <button
+                                type="button"
+                                class="px-3 py-2.5 text-xs font-medium transition-colors capitalize border-b-2 -mb-px"
+                                [class]="workspaceStore.activeTab() === tab
+                                    ? 'text-zinc-100 border-amber-500'
+                                    : 'text-zinc-500 border-transparent hover:text-zinc-300'"
+                                (click)="workspaceStore.setActiveTab(tab)"
+                            >{{ tab }}</button>
+                        }
+                    </div>
+                }
+
+                @if (workspaceStore.activeTab() === 'browse') {
+                    <app-table-viewer />
+                } @else if (workspaceStore.activeTab() === 'edit') {
+                    <app-edit-mode />
+                } @else {
+                    <app-pipeline-builder />
+                }
+
             } @else {
-                <app-pipeline-builder />
+                <app-welcome />
             }
 
-        } @else {
-            <app-welcome />
-        }
+        </main>
 
-    </main>
+    </div>
 
-</div>
+}

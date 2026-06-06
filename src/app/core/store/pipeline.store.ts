@@ -177,6 +177,15 @@ export class PipelineStore {
         }
     }
 
+    // Called by SessionService during restore — sets steps and re-executes them against the DB.
+    restoreSteps(steps: PipelineStep[]): void {
+        this.steps.set(steps.map((s) => ({ ...s })))
+        this.stepResults.set(steps.map(() => ({ ...EMPTY_RESULT })))
+        this._history.set([steps.map((s) => ({ ...s }))])
+        this._historyIndex.set(0)
+        void this.executeFrom(0)
+    }
+
     addStep(): void {
         this.pushToHistory()
         const step: PipelineStep = { id: crypto.randomUUID(), type: 'WHERE', expression: '' }
