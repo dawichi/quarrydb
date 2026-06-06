@@ -182,9 +182,7 @@ export class WorkspaceStore {
         if (!path) return
 
         const currentFilter = this.browseFilter()
-        const label = currentFilter
-            ? `${sel.tableName} [${currentFilter.col} = ${currentFilter.value}]`
-            : sel.tableName
+        const label = currentFilter ? `${sel.tableName} [${currentFilter.col} = ${currentFilter.value}]` : sel.tableName
 
         this.browseNavStack.update((stack) => [
             ...stack,
@@ -203,7 +201,15 @@ export class WorkspaceStore {
         this.isLoadingTable.set(true)
         try {
             const filter = { col: filterCol, value: filterValue }
-            const { rows, total } = await this.db.queryRows(path, referencedTable, this.PAGE_SIZE, 0, undefined, undefined, filter)
+            const { rows, total } = await this.db.queryRows(
+                path,
+                referencedTable,
+                this.PAGE_SIZE,
+                0,
+                undefined,
+                undefined,
+                filter,
+            )
             const schemaColumns =
                 this.schemas()
                     .find((s) => s.alias === sel.schemaAlias)

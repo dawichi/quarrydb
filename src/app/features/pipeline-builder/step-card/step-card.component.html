@@ -1,8 +1,6 @@
 <div
     class="rounded-lg border bg-zinc-900 overflow-hidden transition-opacity"
-    [class.border-zinc-700]="result()?.error !== 'Blocked by upstream error'"
-    [class.border-zinc-700/30]="result()?.error === 'Blocked by upstream error'"
-    [class.opacity-60]="result()?.error === 'Blocked by upstream error'"
+    [class]="result()?.error === 'Blocked by upstream error' ? 'border-zinc-700/30 opacity-60' : 'border-zinc-700'"
 >
 
     <!-- Header -->

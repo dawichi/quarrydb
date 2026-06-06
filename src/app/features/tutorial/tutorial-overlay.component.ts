@@ -19,7 +19,8 @@ export class TutorialOverlayComponent {
     protected readonly steps: Record<number, StepConfig> = {
         1: {
             title: 'Load the sample database',
-            description: 'A save dialog will open. Choose where to save the sample e-commerce database (customers, orders, products).',
+            description:
+                'A save dialog will open. Choose where to save the sample e-commerce database (customers, orders, products).',
             hint: 'Waiting for database to open…',
         },
         2: {
@@ -29,7 +30,8 @@ export class TutorialOverlayComponent {
         },
         3: {
             title: 'Build a query',
-            description: 'Click the Query tab above, press "+ Add step", and choose WHERE. Try typing: status = \'delivered\'',
+            description:
+                'Click the Query tab above, press "+ Add step", and choose WHERE. Try typing: status = \'delivered\'',
             hint: 'Waiting for your first step…',
         },
         4: {

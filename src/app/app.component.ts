@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject, signal, untracked } from '@angular/core'
+import { Component, effect, inject, OnInit, signal, untracked } from '@angular/core'
 import { MenuService } from './core/services/menu.service'
 import { SessionService } from './core/services/session.service'
 import { WorkspaceStore } from './core/store/workspace.store'
@@ -11,7 +11,14 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
 
 @Component({
     selector: 'app-root',
-    imports: [SidebarComponent, WelcomeComponent, TableViewerComponent, PipelineBuilderComponent, EditModeComponent, TutorialOverlayComponent],
+    imports: [
+        SidebarComponent,
+        WelcomeComponent,
+        TableViewerComponent,
+        PipelineBuilderComponent,
+        EditModeComponent,
+        TutorialOverlayComponent,
+    ],
     templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {

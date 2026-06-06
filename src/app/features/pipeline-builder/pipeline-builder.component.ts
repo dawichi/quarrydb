@@ -1,7 +1,7 @@
-import { Component, HostListener, effect, inject, signal } from '@angular/core'
+import { Component, effect, HostListener, inject, signal } from '@angular/core'
+import type { ExportFormat } from '../../core/services/export.service'
 import type { SavedQuery } from '../../core/services/saved-queries.service'
 import { SavedQueriesService } from '../../core/services/saved-queries.service'
-import type { ExportFormat } from '../../core/services/export.service'
 import { PipelineStore } from '../../core/store/pipeline.store'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 import { StepCardComponent } from './step-card/step-card.component'
@@ -49,12 +49,30 @@ export class PipelineBuilderComponent {
     }
 
     // ─── Add step ─────────────────────────────────────────────────────────────
-    protected addWhereStep(): void { this.pipelineStore.addStep(); this.showPicker.set(false) }
-    protected addOrderByStep(): void { this.pipelineStore.addOrderByStep(); this.showPicker.set(false) }
-    protected addSelectStep(): void { this.pipelineStore.addSelectStep(); this.showPicker.set(false) }
-    protected addRawSqlStep(): void { this.pipelineStore.addRawSqlStep(); this.showPicker.set(false) }
-    protected addGroupByStep(): void { this.pipelineStore.addGroupByStep(); this.showPicker.set(false) }
-    protected addJoinStep(): void { this.pipelineStore.addJoinStep(); this.showPicker.set(false) }
+    protected addWhereStep(): void {
+        this.pipelineStore.addStep()
+        this.showPicker.set(false)
+    }
+    protected addOrderByStep(): void {
+        this.pipelineStore.addOrderByStep()
+        this.showPicker.set(false)
+    }
+    protected addSelectStep(): void {
+        this.pipelineStore.addSelectStep()
+        this.showPicker.set(false)
+    }
+    protected addRawSqlStep(): void {
+        this.pipelineStore.addRawSqlStep()
+        this.showPicker.set(false)
+    }
+    protected addGroupByStep(): void {
+        this.pipelineStore.addGroupByStep()
+        this.showPicker.set(false)
+    }
+    protected addJoinStep(): void {
+        this.pipelineStore.addJoinStep()
+        this.showPicker.set(false)
+    }
 
     // ─── Keyboard ─────────────────────────────────────────────────────────────
     @HostListener('document:keydown', ['$event'])

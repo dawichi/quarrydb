@@ -1,5 +1,4 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { SavedQuery } from '../services/saved-queries.service'
 import type {
     Aggregation,
     GroupByStep,
@@ -14,6 +13,7 @@ import type {
 } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
+import type { SavedQuery } from '../services/saved-queries.service'
 
 export interface StepResultState {
     rows: Record<string, unknown>[]
@@ -42,13 +42,20 @@ function substituteVars(text: string, vars: Record<string, string>): string {
 
 function getStepTexts(step: PipelineStep): string[] {
     switch (step.type) {
-        case 'WHERE': return [step.expression]
-        case 'SELECT': return step.columns.flatMap((c) => [c.expr, c.alias ?? ''])
-        case 'ORDER_BY': return []
-        case 'GROUP_BY': return step.aggregations.flatMap((a) => [a.expr, a.alias])
-        case 'JOIN': return [step.on, step.table]
-        case 'RAW_SQL': return [step.sql]
-        default: return []
+        case 'WHERE':
+            return [step.expression]
+        case 'SELECT':
+            return step.columns.flatMap((c) => [c.expr, c.alias ?? ''])
+        case 'ORDER_BY':
+            return []
+        case 'GROUP_BY':
+            return step.aggregations.flatMap((a) => [a.expr, a.alias])
+        case 'JOIN':
+            return [step.on, step.table]
+        case 'RAW_SQL':
+            return [step.sql]
+        default:
+            return []
     }
 }
 
@@ -147,9 +154,7 @@ export class PipelineStore {
         const re = /:([a-zA-Z_][a-zA-Z0-9_]*)/g
         for (const step of this.steps()) {
             for (const text of getStepTexts(step)) {
-                re.lastIndex = 0
-                let m: RegExpExecArray | null
-                while ((m = re.exec(text)) !== null) found.add(m[1])
+                for (const match of text.matchAll(re)) found.add(match[1])
             }
         }
         return [...found]

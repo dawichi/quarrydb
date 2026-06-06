@@ -1,4 +1,4 @@
-import { Injectable, effect, inject, signal } from '@angular/core'
+import { effect, Injectable, inject, signal } from '@angular/core'
 import { PipelineStore } from '../store/pipeline.store'
 import { WorkspaceStore } from '../store/workspace.store'
 

@@ -1,4 +1,4 @@
-@if (tutorialSvc.step() >= 1 && tutorialSvc.step() <= 4 && current) {
+@if (current) {
 
     <div class="fixed top-6 right-6 z-50 w-80 rounded-xl border border-sky-500/30 bg-zinc-900/95 shadow-2xl backdrop-blur-sm">
 
@@ -26,7 +26,7 @@
             <p class="text-sm font-semibold text-zinc-100 mb-1">{{ current.title }}</p>
             <p class="text-xs text-zinc-400 leading-relaxed">{{ current.description }}</p>
 
-            @if (current.hint && tutorialSvc.step() < 4) {
+            @if (current.hint && tutorialSvc.step() !== 4) {
                 <p class="mt-2 text-xs text-sky-500/60 italic">{{ current.hint }}</p>
             }
 
