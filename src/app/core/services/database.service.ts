@@ -60,12 +60,18 @@ export class DatabaseService {
         tableName: string,
         limit: number,
         offset: number,
+        sortCol?: string,
+        sortDir?: 'ASC' | 'DESC',
     ): Promise<{ rows: Record<string, unknown>[]; total: number }> {
         const db = await Database.load(`sqlite://${path}`)
         try {
+            const orderBy = sortCol ? ` ORDER BY "${sortCol}" ${sortDir ?? 'ASC'}` : ''
             const [countResult, rows] = await Promise.all([
                 db.select<[{ count: number }]>(`SELECT COUNT(*) as count FROM "${tableName}"`),
-                db.select<Record<string, unknown>[]>(`SELECT * FROM "${tableName}" LIMIT ? OFFSET ?`, [limit, offset]),
+                db.select<Record<string, unknown>[]>(`SELECT * FROM "${tableName}"${orderBy} LIMIT ? OFFSET ?`, [
+                    limit,
+                    offset,
+                ]),
             ])
             return { rows, total: countResult[0]?.count ?? 0 }
         } finally {
