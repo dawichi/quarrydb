@@ -1,8 +1,11 @@
 {
   "name": "quarrydb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
-  "workspaces": ["packages/*", "landing"],
+  "workspaces": [
+    "packages/*",
+    "landing"
+  ],
   "scripts": {
     "ng": "ng",
     "tw:dev": "tailwindcss -i src/tailwind-input.css -o src/styles.css --watch",
@@ -38,6 +41,7 @@
     "@angular/cli": "^20.1.4",
     "@angular/compiler-cli": "^20.1.4",
     "@biomejs/biome": "^2",
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/cli": "^4.3.0",
     "@tauri-apps/cli": "^2",
     "concurrently": "^10.0.3",
