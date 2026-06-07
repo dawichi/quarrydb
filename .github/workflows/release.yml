@@ -70,24 +70,25 @@ jobs:
           includeUpdaterJson: false
           args: ${{ matrix.args }}
 
-      # macOS: tauri-action repacks the .app into a new tar.gz (breaking the Tauri-signed one).
-      # Fix: overwrite the uploaded tar.gz with the original signed version + upload its .sig.
-      - name: Upload macOS updater artifacts
+      # macOS: tauri-action repacks the .app into a fresh tar.gz right before upload,
+      # which invalidates the Tauri-CLI-generated signature AND deletes the original
+      # .sig (so there's nothing valid to "restore"). Fix: re-sign the final repacked
+      # bundle ourselves — the one tauri-action already uploaded — using the same
+      # private key, then upload that matching signature.
+      - name: Re-sign macOS updater bundle
         if: matrix.platform == 'macos-latest'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          BUNDLE_DIR="src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos"
+          BUNDLE="src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/Quarry.app.tar.gz"
           ARCH="${{ matrix.arch }}"
           TAG="${{ github.ref_name }}"
 
-          # Rename locally so gh upload uses the right asset name
-          cp "$BUNDLE_DIR/Quarry.app.tar.gz"     "Quarry_${ARCH}.app.tar.gz"
-          cp "$BUNDLE_DIR/Quarry.app.tar.gz.sig"  "Quarry_${ARCH}.app.tar.gz.sig"
+          bunx tauri signer sign -k "$TAURI_SIGNING_PRIVATE_KEY" -p "" "$BUNDLE"
 
-          # Overwrite the repacked tar.gz with the original (correctly signed) one
-          gh release upload "$TAG" "Quarry_${ARCH}.app.tar.gz"     --clobber
+          cp "$BUNDLE.sig" "Quarry_${ARCH}.app.tar.gz.sig"
           gh release upload "$TAG" "Quarry_${ARCH}.app.tar.gz.sig" --clobber
 
       # Windows: tauri-action signs the NSIS bundle but never uploads the .sig.
