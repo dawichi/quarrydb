@@ -51,5 +51,6 @@ export class AppComponent implements OnInit {
         await Promise.all([this.menuSvc.register(), this.sessionSvc.restore()])
         this.isRestoring.set(false)
         void this.updaterSvc.checkForUpdate()
+        this.updaterSvc.startPolling()
     }
 }
