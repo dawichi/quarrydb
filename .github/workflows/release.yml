@@ -103,12 +103,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ github.ref_name }}"
-          VERSION="${TAG#v}"
-          SIG="src-tauri/target/release/bundle/nsis/Quarry_${VERSION}_x64-setup.exe.sig"
+          NSIS_DIR="src-tauri/target/release/bundle/nsis"
 
-          if [ -f "$SIG" ]; then
+          # Glob instead of constructing the exact filename — sidesteps any
+          # mismatch between `${{ github.ref_name }}`-derived version strings
+          # and what tauri-action actually wrote to disk.
+          SIG=$(ls "$NSIS_DIR"/*setup.exe.sig 2>/dev/null | head -n1)
+
+          if [ -n "$SIG" ] && [ -f "$SIG" ]; then
             cp "$SIG" "Quarry_x64-setup.exe.sig"
             gh release upload "$TAG" "Quarry_x64-setup.exe.sig" --clobber
+          else
+            echo "::warning::Windows updater .sig not found in $NSIS_DIR"
+            ls -la "$NSIS_DIR" || true
           fi
 
   # Runs after all three build jobs. Downloads the .sig files uploaded above
