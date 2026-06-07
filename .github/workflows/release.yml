@@ -86,7 +86,10 @@ jobs:
           ARCH="${{ matrix.arch }}"
           TAG="${{ github.ref_name }}"
 
-          bunx tauri signer sign -k "$TAURI_SIGNING_PRIVATE_KEY" -p "" "$BUNDLE"
+          # `tauri build` reads TAURI_SIGNING_PRIVATE_KEY directly and tolerates a
+          # trailing newline, but `signer sign -k`'s base64 decoder does not — strip it.
+          KEY=$(printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" | tr -d '\n\r')
+          bunx tauri signer sign -k "$KEY" -p "" "$BUNDLE"
 
           cp "$BUNDLE.sig" "Quarry_${ARCH}.app.tar.gz.sig"
           gh release upload "$TAG" "Quarry_${ARCH}.app.tar.gz.sig" --clobber
