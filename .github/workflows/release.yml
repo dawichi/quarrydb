@@ -94,37 +94,39 @@ jobs:
           cp "$BUNDLE.sig" "Quarry_${ARCH}.app.tar.gz.sig"
           gh release upload "$TAG" "Quarry_${ARCH}.app.tar.gz.sig" --clobber
 
-      # Windows: tauri-action signs the NSIS bundle but never uploads the .sig.
-      # Upload it so the finalize job can include it in latest.json.
-      - name: Upload Windows updater sig
+      # Windows: same story as macOS above — tauri-action relocates/repacks the
+      # NSIS installer before upload and the original .sig never survives (the
+      # bundle dir ends up containing only the .exe, confirmed via diagnostics
+      # in a prior run). Re-sign the final installer ourselves and upload that.
+      - name: Re-sign Windows updater bundle
         if: matrix.platform == 'windows-latest'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
           TAG="${{ github.ref_name }}"
           NSIS_DIR="src-tauri/target/release/bundle/nsis"
 
-          echo "--- contents of $NSIS_DIR ---"
-          ls -la "$NSIS_DIR" || true
-
-          # Glob via a for-loop instead of `ls | head` — under `set -e -o pipefail`
-          # a non-matching `ls` aborts the whole script with exit 2 before the `if`
-          # is ever reached. An unexpanded glob just stays literal, so `[ -e ]` is safe.
-          SIG=""
-          for f in "$NSIS_DIR"/*setup.exe.sig; do
+          BUNDLE=""
+          for f in "$NSIS_DIR"/*setup.exe; do
             if [ -e "$f" ]; then
-              SIG="$f"
+              BUNDLE="$f"
               break
             fi
           done
 
-          if [ -n "$SIG" ]; then
-            cp "$SIG" "Quarry_x64-setup.exe.sig"
-            gh release upload "$TAG" "Quarry_x64-setup.exe.sig" --clobber
-          else
-            echo "::warning::Windows updater .sig not found in $NSIS_DIR"
+          if [ -z "$BUNDLE" ]; then
+            echo "::error::Windows NSIS installer not found in $NSIS_DIR"
+            ls -la "$NSIS_DIR" || true
+            exit 1
           fi
+
+          KEY=$(printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" | tr -d '\n\r')
+          bunx tauri signer sign -k "$KEY" -p "" "$BUNDLE"
+
+          cp "$BUNDLE.sig" "Quarry_x64-setup.exe.sig"
+          gh release upload "$TAG" "Quarry_x64-setup.exe.sig" --clobber
 
   # Runs after all three build jobs. Downloads the .sig files uploaded above
   # and assembles the final latest.json that the in-app updater fetches.
