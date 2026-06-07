@@ -8,6 +8,7 @@ import { PipelineBuilderComponent } from './features/pipeline-builder/pipeline-b
 import { TableViewerComponent } from './features/table-viewer/table-viewer.component'
 import { TutorialOverlayComponent } from './features/tutorial/tutorial-overlay.component'
 import { UpdateBannerComponent } from './features/update-banner/update-banner.component'
+import { UpdateCheckModalComponent } from './features/update-check-modal/update-check-modal.component'
 import { WelcomeComponent } from './features/welcome/welcome.component'
 import { SidebarComponent } from './layout/sidebar/sidebar.component'
 
@@ -21,6 +22,7 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
         EditModeComponent,
         TutorialOverlayComponent,
         UpdateBannerComponent,
+        UpdateCheckModalComponent,
     ],
     templateUrl: './app.component.html',
 })

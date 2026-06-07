@@ -22,6 +22,8 @@ fn build_menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
             &MenuItem::with_id(app, "open-database", "Open Database…", true, Some("CmdOrCtrl+O"))?,
             &MenuItem::with_id(app, "open-sample", "Open Sample Database…", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(app, "check-for-updates", "Check for Updates…", true, None::<&str>)?,
+            &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "hard-reset", "Hard Reset…", true, None::<&str>)?,
         ],
     )?;
@@ -92,6 +94,9 @@ pub fn run() {
             }
             "open-sample" => {
                 let _ = app.emit("menu:open-sample", ());
+            }
+            "check-for-updates" => {
+                let _ = app.emit("menu:check-for-updates", ());
             }
             "hard-reset" => {
                 let _ = app.emit("menu:hard-reset", ());

@@ -1,0 +1,97 @@
+@if (updaterSvc.manualCheck(); as status) {
+
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 backdrop-blur-sm" (click)="close()">
+
+        <div
+            class="w-80 rounded-xl border border-sky-500/30 bg-zinc-900/95 shadow-2xl p-6 text-center"
+            (click)="$event.stopPropagation()"
+        >
+            @switch (status) {
+
+                @case ('checking') {
+                    <svg class="w-6 h-6 mx-auto mb-3 animate-spin text-sky-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">Checking for updates…</p>
+                    <p class="text-xs text-zinc-500 mt-1">Talking to GitHub Releases.</p>
+                }
+
+                @case ('up-to-date') {
+                    <svg class="w-6 h-6 mx-auto mb-3 text-sky-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">You're up to date</p>
+                    <p class="text-xs text-zinc-500 mt-1">
+                        Quarry v{{ updaterSvc.currentVersion() }} is the latest version. All good.
+                    </p>
+                    <button
+                        type="button"
+                        class="mt-4 w-full py-2 rounded-lg text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
+                        (click)="close()"
+                    >
+                        Close
+                    </button>
+                }
+
+                @case ('available') {
+                    <svg class="w-6 h-6 mx-auto mb-3 text-sky-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75v6m0 0 3-3m-3 3-3-3m9-9.75H6a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 6 21h12a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 18 4.5Z" />
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">New version found</p>
+                    @if (updaterSvc.pending(); as update) {
+                        <p class="text-xs text-zinc-500 mt-1">
+                            Quarry v{{ update.version }} is available — want to update?
+                        </p>
+                    }
+                    <div class="mt-4 flex gap-2">
+                        <button
+                            type="button"
+                            class="flex-1 py-2 rounded-lg text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
+                            (click)="close()"
+                        >
+                            Later
+                        </button>
+                        <button
+                            type="button"
+                            class="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                            [class]="updaterSvc.installing()
+                                ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                                : 'bg-sky-500 hover:bg-sky-400 text-zinc-950'"
+                            [disabled]="updaterSvc.installing()"
+                            (click)="updaterSvc.installUpdate()"
+                        >
+                            @if (updaterSvc.installing()) {
+                                <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                Installing…
+                            } @else {
+                                Update
+                            }
+                        </button>
+                    </div>
+                }
+
+                @case ('error') {
+                    <svg class="w-6 h-6 mx-auto mb-3 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">Couldn't check for updates</p>
+                    <p class="text-xs text-zinc-500 mt-1">Check your connection and try again.</p>
+                    <button
+                        type="button"
+                        class="mt-4 w-full py-2 rounded-lg text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
+                        (click)="close()"
+                    >
+                        Close
+                    </button>
+                }
+
+            }
+        </div>
+
+    </div>
+
+}

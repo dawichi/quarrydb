@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core'
+import { getVersion } from '@tauri-apps/api/app'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 
@@ -7,10 +8,16 @@ export interface PendingUpdate {
     notes: string
 }
 
+export type ManualCheckResult = 'checking' | 'up-to-date' | 'available' | 'error'
+
 @Injectable({ providedIn: 'root' })
 export class UpdaterService {
     readonly pending = signal<PendingUpdate | null>(null)
     readonly installing = signal(false)
+
+    /** Result of a user-triggered check (menu: "Check for Updates…"), shown in a modal. */
+    readonly manualCheck = signal<ManualCheckResult | null>(null)
+    readonly currentVersion = signal('')
 
     async checkForUpdate(): Promise<void> {
         try {
@@ -24,6 +31,26 @@ export class UpdaterService {
         } catch {
             // Network unavailable or endpoint not yet live — silently ignore
         }
+    }
+
+    async checkManually(): Promise<void> {
+        this.manualCheck.set('checking')
+        try {
+            const [update, version] = await Promise.all([check(), getVersion()])
+            this.currentVersion.set(version)
+            if (update?.available) {
+                this.pending.set({ version: update.version, notes: update.body ?? '' })
+                this.manualCheck.set('available')
+            } else {
+                this.manualCheck.set('up-to-date')
+            }
+        } catch {
+            this.manualCheck.set('error')
+        }
+    }
+
+    dismissManualCheck(): void {
+        this.manualCheck.set(null)
     }
 
     async installUpdate(): Promise<void> {
