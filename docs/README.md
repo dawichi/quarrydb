@@ -1,13 +1,16 @@
 # Quarry — AI & Developer Reference
 
-This folder contains coding conventions and guidelines for the Quarry project.
-Any AI agent working on this codebase should read these files at the start of each session.
+This folder contains the project context, architecture notes, product spec, status, and
+coding conventions for Quarry. Any AI agent or contributor working on this codebase should
+start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(s) here.
 
 ## Project Context
 
-Full project spec, design decisions, and milestone log live in the notes vault:
-`/Users/dawichi/Documents/dawichi-notes/journal/github/projects/quarry.md`
-(on David's machine — teammates should ask David for the equivalent reference)
+| File | What it covers |
+|------|---------------|
+| [architecture.md](architecture.md) | Stack, repo layout, the pipeline → CTE → SQL data flow, workspace model, release pipeline |
+| [product-spec.md](product-spec.md) | What each feature does and why (pipeline interaction model, step types, JOIN modes, edit mode, saved queries, …) |
+| [status.md](status.md) | Current implementation status, roadmap, testing strategy, milestone log |
 
 ## Convention Files
 
