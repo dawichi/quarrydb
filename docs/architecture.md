@@ -95,6 +95,15 @@ merged. If you're touching the release workflow, the rule is **assemble the fina
 manifest yourself, after signing, in a dedicated step** — don't trust the per-arch build
 outputs to compose correctly on their own.
 
+**Differential ("delta") updates — investigated, declined (2026-06-07):** full update
+bundles are already small (~6MB macOS, ~4MB Windows), and Tauri has no built-in support for
+binary-diff updates (open upstream request: `tauri-apps/tauri#11863`, unaddressed since
+Dec 2024). Building it ourselves would mean bypassing `tauri-plugin-updater` for a custom
+patch-and-replace flow on a signed executable — high complexity and risk for savings that
+compiled-binary diffing likely wouldn't even deliver (small source changes reshuffle binary
+layout, so patches stay large). Revisit only if the bundle grows substantially or Tauri
+ships native support.
+
 ## Known Platform Issues
 
 ### macOS: "app is damaged" on first install
