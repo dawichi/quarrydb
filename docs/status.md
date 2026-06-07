@@ -37,6 +37,7 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | GitHub Releases + tauri-plugin-updater auto-update pipeline | ✅ Done |
 | Logo: Quarry Pit (app icon + landing + favicon) | ✅ Done |
 | Testing — Vitest unit tests for CTE builder (34 tests) | ✅ Done |
+| Testing — integration tests for pipeline run/export and edit-mode transactions (8 tests) | ✅ Done |
 | Query history (opt-in) | ⬜ Todo |
 | Testing — Playwright E2E | ⬜ Post-MVP |
 | JOIN: branch input mode | ⬜ Post-MVP |
@@ -62,7 +63,7 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | Layer | Tool | Scope |
 |-------|------|-------|
 | Unit | Vitest | CTE query builder (input: step array → output: SQL string). Pure function, high coverage. |
-| Integration | Tauri test utils | Open a real test `.db`, run queries through `tauri-plugin-sql`, assert results. Catches Rust/TS boundary bugs. |
+| Integration | Vitest + `node:sqlite` fake | Real SQLite-backed fixture standing in for `tauri-plugin-sql` (see `src/app/core/integration/fixtures/`) — runs generated pipeline SQL and `applyEdits` transactions against real SQLite, asserting on real rows, real constraint failures, and real rollback behavior. Covers: pipeline run → export, and edit mode → apply → rollback-on-constraint-failure (UNIQUE + FK). |
 | E2E | Playwright | Full GUI flows: open file, build pipeline, edit row, export. |
 
 AI-assisted development makes solid test coverage critical — tests are the safety net

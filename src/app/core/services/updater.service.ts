@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core'
 import { getVersion } from '@tauri-apps/api/app'
-import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
+import { check } from '@tauri-apps/plugin-updater'
 
 export interface PendingUpdate {
     version: string

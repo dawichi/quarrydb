@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core'
 import { listen } from '@tauri-apps/api/event'
-import { UpdaterService } from './updater.service'
 import { WorkspaceStore } from '../store/workspace.store'
+import { UpdaterService } from './updater.service'
 
 @Injectable({ providedIn: 'root' })
 export class MenuService {
