@@ -105,17 +105,25 @@ jobs:
           TAG="${{ github.ref_name }}"
           NSIS_DIR="src-tauri/target/release/bundle/nsis"
 
-          # Glob instead of constructing the exact filename — sidesteps any
-          # mismatch between `${{ github.ref_name }}`-derived version strings
-          # and what tauri-action actually wrote to disk.
-          SIG=$(ls "$NSIS_DIR"/*setup.exe.sig 2>/dev/null | head -n1)
+          echo "--- contents of $NSIS_DIR ---"
+          ls -la "$NSIS_DIR" || true
 
-          if [ -n "$SIG" ] && [ -f "$SIG" ]; then
+          # Glob via a for-loop instead of `ls | head` — under `set -e -o pipefail`
+          # a non-matching `ls` aborts the whole script with exit 2 before the `if`
+          # is ever reached. An unexpanded glob just stays literal, so `[ -e ]` is safe.
+          SIG=""
+          for f in "$NSIS_DIR"/*setup.exe.sig; do
+            if [ -e "$f" ]; then
+              SIG="$f"
+              break
+            fi
+          done
+
+          if [ -n "$SIG" ]; then
             cp "$SIG" "Quarry_x64-setup.exe.sig"
             gh release upload "$TAG" "Quarry_x64-setup.exe.sig" --clobber
           else
             echo "::warning::Windows updater .sig not found in $NSIS_DIR"
-            ls -la "$NSIS_DIR" || true
           fi
 
   # Runs after all three build jobs. Downloads the .sig files uploaded above
