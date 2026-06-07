@@ -22,6 +22,7 @@ start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(
 | [conventions/component-structure.md](conventions/component-structure.md) | Section separators, visibility modifiers, component size |
 | [conventions/typescript-strict.md](conventions/typescript-strict.md) | No `any`, explicit types, type imports |
 | [conventions/styling.md](conventions/styling.md) | Tailwind-first, when SCSS is allowed |
+| [conventions/shared-package-structure.md](conventions/shared-package-structure.md) | No-barrel-index rule for `packages/shared` — domain files get their own subpath exports |
 
 ## Quick Rules
 
