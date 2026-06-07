@@ -32,6 +32,8 @@ Read it first, then `docs/README.md` for coding conventions.
 - `docs/product-spec.md` — what each feature does and why (pipeline interaction model,
   step types, JOIN modes, edit mode, saved queries, schema browser, etc.)
 - `docs/status.md` — milestone log, implementation status, known issues, roadmap
+- `docs/post-mvp-scoping.md` — Goals/Non-goals notes for post-MVP features, written before
+  starting them (JOIN branch/subpipeline modes, SQLCipher)
 - `docs/conventions/` — coding conventions (naming, structure, styling, TypeScript)
 
 ## Core Priorities

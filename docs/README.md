@@ -11,6 +11,7 @@ start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(
 | [architecture.md](architecture.md) | Stack, repo layout, the pipeline → CTE → SQL data flow, workspace model, release pipeline |
 | [product-spec.md](product-spec.md) | What each feature does and why (pipeline interaction model, step types, JOIN modes, edit mode, saved queries, …) |
 | [status.md](status.md) | Current implementation status, roadmap, testing strategy, milestone log |
+| [post-mvp-scoping.md](post-mvp-scoping.md) | Goals/Non-goals notes for post-MVP features, written before starting them |
 
 ## Convention Files
 

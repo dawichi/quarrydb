@@ -52,9 +52,11 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 3. **Query history** — opt-in, disabled by default; logs every executed query with
    timestamp, duration, and row count, searchable. Post-MVP.
 4. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
-   the build-order rationale.
+   the build-order rationale, and `docs/post-mvp-scoping.md` for Goals/Non-goals before
+   starting either one.
 5. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
-   build without architectural changes; deferred until users actually request it.
+   build without architectural changes; deferred until users actually request it. See
+   `docs/post-mvp-scoping.md` for Goals/Non-goals.
 6. **Code signing** — Apple notarization + Windows EV certificate, see
    `docs/architecture.md#known-platform-issues`. Worth doing once the project has real users.
 
@@ -106,6 +108,8 @@ multiple features.
 | 2026-06-07 | v0.1.0 released — first public GitHub Release (all 3 platforms) |
 | 2026-06-07 | Logo: Quarry Pit (concentric square rings, sky blue, dark navy bg) — app icons all sizes (.icns, .ico, Windows APPX), landing page hero + nav, favicon |
 | 2026-06-07 | Auto-update pipeline fix (v0.1.2): root cause was tauri-action repacking the signed .tar.gz before reading its sig — fixed by bypassing tauri-action's latest.json generation and assembling it in a dedicated `finalize` job after all builds |
+| 2026-06-07 | Integration tests (8): `node:sqlite`-backed fake standing in for `tauri-plugin-sql`, covering pipeline run → export and edit-mode apply/rollback (UNIQUE + FK) |
+| 2026-06-07 | `docs/post-mvp-scoping.md`: Goals/Non-goals notes for JOIN branch mode, JOIN subpipeline mode, and SQLCipher — written before starting any of them |
 
 ## Team
 
