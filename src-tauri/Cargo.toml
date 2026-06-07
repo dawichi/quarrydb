@@ -1,6 +1,6 @@
 [package]
 name = "quarrydb"
-version = "0.1.1"
+version = "0.1.2"
 description = "Local SQLite UI manager with a visual composable query builder"
 authors = ["David M. Fajardo"]
 edition = "2021"

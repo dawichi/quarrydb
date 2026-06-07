@@ -16,10 +16,16 @@ jobs:
         include:
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
+            rust_target: aarch64-apple-darwin
+            arch: aarch64
           - platform: macos-latest
             args: '--target x86_64-apple-darwin'
+            rust_target: x86_64-apple-darwin
+            arch: x64
           - platform: windows-latest
             args: ''
+            rust_target: ''
+            arch: x64
 
     runs-on: ${{ matrix.platform }}
 
@@ -43,6 +49,9 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
+      # tauri-action builds and uploads the DMG/EXE/MSI installers.
+      # includeUpdaterJson is disabled because tauri-action repacks the macOS .tar.gz
+      # (breaking its signature) before it tries to find it. We handle latest.json ourselves.
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -58,4 +67,119 @@ jobs:
             **Auto-update:** if you already have Quarry installed, it will prompt you automatically.
           releaseDraft: false
           prerelease: false
+          includeUpdaterJson: false
           args: ${{ matrix.args }}
+
+      # macOS: tauri-action repacks the .app into a new tar.gz (breaking the Tauri-signed one).
+      # Fix: overwrite the uploaded tar.gz with the original signed version + upload its .sig.
+      - name: Upload macOS updater artifacts
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BUNDLE_DIR="src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos"
+          ARCH="${{ matrix.arch }}"
+          TAG="${{ github.ref_name }}"
+
+          # Rename locally so gh upload uses the right asset name
+          cp "$BUNDLE_DIR/Quarry.app.tar.gz"     "Quarry_${ARCH}.app.tar.gz"
+          cp "$BUNDLE_DIR/Quarry.app.tar.gz.sig"  "Quarry_${ARCH}.app.tar.gz.sig"
+
+          # Overwrite the repacked tar.gz with the original (correctly signed) one
+          gh release upload "$TAG" "Quarry_${ARCH}.app.tar.gz"     --clobber
+          gh release upload "$TAG" "Quarry_${ARCH}.app.tar.gz.sig" --clobber
+
+      # Windows: tauri-action signs the NSIS bundle but never uploads the .sig.
+      # Upload it so the finalize job can include it in latest.json.
+      - name: Upload Windows updater sig
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          SIG="src-tauri/target/release/bundle/nsis/Quarry_${VERSION}_x64-setup.exe.sig"
+
+          if [ -f "$SIG" ]; then
+            cp "$SIG" "Quarry_x64-setup.exe.sig"
+            gh release upload "$TAG" "Quarry_x64-setup.exe.sig" --clobber
+          fi
+
+  # Runs after all three build jobs. Downloads the .sig files uploaded above
+  # and assembles the final latest.json that the in-app updater fetches.
+  finalize:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Generate and upload latest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          BASE_URL="https://github.com/dawichi/quarrydb/releases/download/$TAG"
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          mkdir /tmp/sigs
+          gh release download "$TAG" \
+            --repo dawichi/quarrydb \
+            --pattern "*.sig" \
+            --dir /tmp/sigs/ || true
+
+          python3 - <<PYEOF
+          import json, os
+
+          sig_dir = "/tmp/sigs"
+          base_url = "$BASE_URL"
+          version  = "$VERSION"
+          pub_date = "$PUB_DATE"
+
+          def read_sig(name):
+              path = os.path.join(sig_dir, name)
+              return open(path).read().strip() if os.path.exists(path) else None
+
+          platforms = {}
+
+          aarch64_sig = read_sig("Quarry_aarch64.app.tar.gz.sig")
+          if aarch64_sig:
+              platforms["darwin-aarch64"] = {
+                  "signature": aarch64_sig,
+                  "url": f"{base_url}/Quarry_aarch64.app.tar.gz",
+              }
+
+          x64_mac_sig = read_sig("Quarry_x64.app.tar.gz.sig")
+          if x64_mac_sig:
+              platforms["darwin-x86_64"] = {
+                  "signature": x64_mac_sig,
+                  "url": f"{base_url}/Quarry_x64.app.tar.gz",
+              }
+
+          win_sig = read_sig("Quarry_x64-setup.exe.sig")
+          if win_sig:
+              platforms["windows-x86_64"] = {
+                  "signature": win_sig,
+                  "url": f"{base_url}/Quarry_{version}_x64-setup.exe",
+              }
+
+          payload = {
+              "version": version,
+              "notes": "See the full changelog in the commit history.\n\n**Install:** download the file for your platform below.\n**Auto-update:** if you already have Quarry installed, it will prompt you automatically.",
+              "pub_date": pub_date,
+              "platforms": platforms,
+          }
+
+          out = "/tmp/latest.json"
+          with open(out, "w") as f:
+              json.dump(payload, f, indent=2)
+
+          print(f"Generated latest.json with platforms: {list(platforms.keys())}")
+          print(open(out).read())
+          PYEOF
+
+          gh release upload "$TAG" /tmp/latest.json --clobber \
+            --repo dawichi/quarrydb
