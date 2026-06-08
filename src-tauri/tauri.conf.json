@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Quarry",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "identifier": "dev.quarrydb.app",
   "build": {
     "beforeDevCommand": "bun run start",
@@ -36,7 +36,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGMTdFMUQzREFFQUE5RTMKUldUanFlcmEwK0VYdi9ITGU1RlJ6S1NTY0x6S3k4L09ESTRKTmdHS2kzNFIwdXVjcnhva2lwQUgK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFBNTgwNzZEQTUxNkU1RTYKUldUbTVSYWxiUWRZR29uSUs4MG5Kb3BQd1ZiZS9WYWE2aWJ1a2c5UmhmTFRQMzkvRE5Nb2l0d2UK",
       "endpoints": [
         "https://github.com/dawichi/quarrydb/releases/latest/download/latest.json"
       ]

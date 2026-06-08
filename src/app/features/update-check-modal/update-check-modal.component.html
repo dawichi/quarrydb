@@ -1,4 +1,4 @@
-@if (updaterSvc.manualCheck(); as status) {
+@if (updaterSvc.modalStatus(); as status) {
 
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 backdrop-blur-sm" (click)="close()">
 
@@ -54,24 +54,55 @@
                         </button>
                         <button
                             type="button"
-                            class="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-                            [class]="updaterSvc.installing()
-                                ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
-                                : 'bg-sky-500 hover:bg-sky-400 text-zinc-950'"
-                            [disabled]="updaterSvc.installing()"
+                            class="flex-1 py-2 rounded-lg text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-zinc-950 transition-colors"
                             (click)="updaterSvc.installUpdate()"
                         >
-                            @if (updaterSvc.installing()) {
-                                <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                                Installing…
-                            } @else {
-                                Update
-                            }
+                            Update
                         </button>
                     </div>
+                }
+
+                @case ('downloading') {
+                    <svg class="w-6 h-6 mx-auto mb-3 animate-spin text-sky-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">Downloading update…</p>
+                    @if (updaterSvc.pending(); as update) {
+                        <p class="text-xs text-zinc-500 mt-1">Fetching Quarry v{{ update.version }}.</p>
+                    }
+                }
+
+                @case ('downloaded') {
+                    <svg class="w-6 h-6 mx-auto mb-3 text-sky-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">Update downloaded</p>
+                    <p class="text-xs text-zinc-500 mt-1">Installing now — almost there.</p>
+                }
+
+                @case ('restarting') {
+                    <svg class="w-6 h-6 mx-auto mb-3 animate-spin text-sky-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">Restarting Quarry…</p>
+                    <p class="text-xs text-zinc-500 mt-1">It'll relaunch on the new version in a moment.</p>
+                }
+
+                @case ('install-error') {
+                    <svg class="w-6 h-6 mx-auto mb-3 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    <p class="text-sm font-semibold text-zinc-100">Couldn't finish the update</p>
+                    <p class="text-xs text-zinc-500 mt-1">Try again later, or restart Quarry manually to pick up the new version.</p>
+                    <button
+                        type="button"
+                        class="mt-4 w-full py-2 rounded-lg text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
+                        (click)="close()"
+                    >
+                        Close
+                    </button>
                 }
 
                 @case ('error') {

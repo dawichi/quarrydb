@@ -50,3 +50,8 @@ src-tauri/icons/ios/
 
 # Claude Code session runtime state (lock files, scheduled-task bookkeeping)
 .claude/
+
+# Local update-test harness — generated keypair (never commit a private key,
+# even a test-only one) and the per-run serve directory (rebuilt each time)
+scripts/local-update-test/keys/
+scripts/local-update-test/serve/

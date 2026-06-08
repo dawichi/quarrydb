@@ -95,6 +95,28 @@ merged. If you're touching the release workflow, the rule is **assemble the fina
 manifest yourself, after signing, in a dedicated step** — don't trust the per-arch build
 outputs to compose correctly on their own.
 
+**Testing the update flow locally:** the only way to exercise the real chain — detect,
+download, signature verification, install, relaunch — is on a real install, and asking
+David + a friend to babysit every release doesn't scale. `scripts/local-update-test.ts`
+runs that chain end-to-end on localhost:
+
+1. `bun scripts/local-update-test.ts baseline <low version>` — builds and opens an
+   installable "old" app (`QuarryUpdateTest` / `dev.quarrydb.app.localtest`, distinct
+   identifiers so it can never collide with your real Quarry install).
+2. Install and launch it.
+3. `bun scripts/local-update-test.ts release <higher version>` — builds a "new" version,
+   signs the updater artifact, writes `latest.json`, and serves both on `localhost:17420`.
+4. In the running baseline app, trigger "Check for Updates…" (or wait for the 4-minute
+   background poll) and watch it detect, download, verify, install, and relaunch into
+   the new version for real.
+
+Both builds are signed with a dedicated test-only keypair (gitignored, generated once via
+`bunx tauri signer generate --ci -p "" -w scripts/local-update-test/keys/test.key`) and
+point `plugins.updater.endpoints` at `localhost` instead of GitHub Releases — fully
+decoupled from the production signing key and pipeline, so there's no risk to either.
+Logic-level regressions (banner triggering, `update.body` parsing, polling cadence) are
+covered separately by `src/app/core/services/updater.service.spec.ts`'s mocked unit tests.
+
 **Differential ("delta") updates — investigated, declined (2026-06-07):** full update
 bundles are already small (~6MB macOS, ~4MB Windows), and Tauri has no built-in support for
 binary-diff updates (open upstream request: `tauri-apps/tauri#11863`, unaddressed since
