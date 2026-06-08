@@ -192,6 +192,11 @@ export class PipelineBuilderComponent {
         this.refreshHistory()
     }
 
+    protected disableHistory(): void {
+        this.queryHistorySvc.setEnabled(false)
+        this.historyEnabled.set(false)
+    }
+
     protected onHistorySearchInput(value: string): void {
         this.historySearch.set(value)
         this.refreshHistory()

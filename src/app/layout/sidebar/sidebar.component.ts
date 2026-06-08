@@ -11,6 +11,9 @@ export class SidebarComponent {
 
     // ─── State ────────────────────────────────────────────────────────────────
     private readonly expandedTables = signal<Set<string>>(new Set())
+    private readonly expandedSections = signal<Set<string>>(new Set())
+    private readonly expandedViews = signal<Set<string>>(new Set())
+    private readonly expandedTriggers = signal<Set<string>>(new Set())
 
     // ─── Public Methods ───────────────────────────────────────────────────────
     protected isExpanded(tableName: string): boolean {
@@ -28,13 +31,32 @@ export class SidebarComponent {
     }
 
     protected toggleTable(tableName: string): void {
-        const next = new Set(this.expandedTables())
-        if (next.has(tableName)) {
-            next.delete(tableName)
-        } else {
-            next.add(tableName)
-        }
-        this.expandedTables.set(next)
+        this.expandedTables.set(this.toggled(this.expandedTables(), tableName))
+    }
+
+    /** Section keys are namespaced per-schema (`<alias>:views`) so two attached files don't collide. */
+    protected isSectionExpanded(alias: string, section: 'views' | 'triggers'): boolean {
+        return this.expandedSections().has(`${alias}:${section}`)
+    }
+
+    protected toggleSection(alias: string, section: 'views' | 'triggers'): void {
+        this.expandedSections.set(this.toggled(this.expandedSections(), `${alias}:${section}`))
+    }
+
+    protected isViewExpanded(viewName: string): boolean {
+        return this.expandedViews().has(viewName)
+    }
+
+    protected toggleView(viewName: string): void {
+        this.expandedViews.set(this.toggled(this.expandedViews(), viewName))
+    }
+
+    protected isTriggerExpanded(triggerName: string): boolean {
+        return this.expandedTriggers().has(triggerName)
+    }
+
+    protected toggleTrigger(triggerName: string): void {
+        this.expandedTriggers.set(this.toggled(this.expandedTriggers(), triggerName))
     }
 
     protected getFileName(path: string): string {
@@ -44,5 +66,16 @@ export class SidebarComponent {
     protected formatCount(count: number): string {
         if (count >= 1000) return `${(count / 1000).toFixed(1)}k`
         return String(count)
+    }
+
+    // ─── Private Helpers ──────────────────────────────────────────────────────
+    private toggled(set: Set<string>, key: string): Set<string> {
+        const next = new Set(set)
+        if (next.has(key)) {
+            next.delete(key)
+        } else {
+            next.add(key)
+        }
+        return next
     }
 }

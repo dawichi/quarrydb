@@ -45,17 +45,25 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | JOIN: branch input mode | ⬜ Post-MVP |
 | JOIN: subpipeline mode | ⬜ Post-MVP |
 | Encrypted SQLite (SQLCipher) | ⬜ Post-MVP |
+| Schema management (DDL): tables, columns, indexes, views, triggers | 🔵 In progress |
 
 ## Roadmap / Planned Next Steps
 
-1. **Windows menu bar** — verify once a contributor tests on Windows.
-2. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
+See `docs/roadmap.md` for the long-term phased view (SQLite-complete → production polish →
+multi-engine expansion). This list is the near-term, concrete slice of that.
+
+1. **Schema management (DDL)** — current focus. Closes the biggest capability gap toward
+   a full-featured SQLite app: today Quarry can browse/query/edit row data but can't touch
+   schema structure. See `docs/schema-management-plan.md` for the checkpoint-by-checkpoint
+   build order, starting with surfacing views/triggers in the schema browser.
+2. **Windows menu bar** — verify once a contributor tests on Windows.
+3. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
    the build-order rationale, and `docs/post-mvp-scoping.md` for Goals/Non-goals before
    starting either one.
-3. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
+4. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
    build without architectural changes; deferred until users actually request it. See
    `docs/post-mvp-scoping.md` for Goals/Non-goals.
-4. **Code signing** — Apple notarization + Windows EV certificate, see
+5. **Code signing** — Apple notarization + Windows EV certificate, see
    `docs/architecture.md#known-platform-issues`. Deliberately deferred — the project has
    no users yet, the workaround is trivial, and the source being public/open already
    signals legitimacy to the early-adopter audience that would install it first. Revisit

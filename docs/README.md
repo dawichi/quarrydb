@@ -10,7 +10,9 @@ start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(
 |------|---------------|
 | [architecture.md](architecture.md) | Stack, repo layout, the pipeline → CTE → SQL data flow, workspace model, release pipeline |
 | [product-spec.md](product-spec.md) | What each feature does and why (pipeline interaction model, step types, JOIN modes, edit mode, saved queries, …) |
-| [status.md](status.md) | Current implementation status, roadmap, testing strategy, milestone log |
+| [status.md](status.md) | Current implementation status, near-term roadmap, testing strategy, milestone log |
+| [roadmap.md](roadmap.md) | Long-term vision and phased checkpoints (SQLite-complete → production polish → multi-engine expansion) |
+| [schema-management-plan.md](schema-management-plan.md) | Build-order plan for DDL support (create/alter/drop tables, columns, indexes, views, triggers) — current focus |
 | [post-mvp-scoping.md](post-mvp-scoping.md) | Goals/Non-goals notes for post-MVP features, written before starting them |
 
 ## Convention Files

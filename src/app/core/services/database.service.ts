@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import type { DatabaseSchema, TableSchema } from '@quarrydb/shared'
+import type { DatabaseSchema, TableSchema, TriggerSchema, ViewSchema } from '@quarrydb/shared'
 import { open } from '@tauri-apps/plugin-dialog'
 import Database from '@tauri-apps/plugin-sql'
 import type { EditOperation } from '../store/edit.store'
@@ -25,6 +25,12 @@ interface PragmaIndexRow {
     seq: number
     name: string
     unique: number
+}
+
+interface SqliteMasterRow {
+    name: string
+    tbl_name: string
+    sql: string | null
 }
 
 @Injectable({ providedIn: 'root' })
@@ -149,9 +155,24 @@ export class DatabaseService {
     async loadSchema(path: string, alias: string): Promise<DatabaseSchema> {
         const db = await Database.load(`sqlite://${path}`)
 
-        const tableRows = await db.select<{ name: string }[]>(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
-        )
+        const [tableRows, viewRows, triggerRows] = await Promise.all([
+            db.select<{ name: string }[]>(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+            ),
+            db.select<SqliteMasterRow[]>(
+                "SELECT name, tbl_name, sql FROM sqlite_master WHERE type='view' ORDER BY name",
+            ),
+            db.select<SqliteMasterRow[]>(
+                "SELECT name, tbl_name, sql FROM sqlite_master WHERE type='trigger' ORDER BY name",
+            ),
+        ])
+
+        const views: ViewSchema[] = viewRows.map((v) => ({ name: v.name, sql: v.sql ?? '' }))
+        const triggers: TriggerSchema[] = triggerRows.map((t) => ({
+            name: t.name,
+            table: t.tbl_name,
+            sql: t.sql ?? '',
+        }))
 
         const tables: TableSchema[] = []
 
@@ -185,6 +206,6 @@ export class DatabaseService {
         }
 
         await db.close()
-        return { path, alias, tables }
+        return { path, alias, tables, views, triggers }
     }
 }

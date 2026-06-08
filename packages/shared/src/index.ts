@@ -114,10 +114,23 @@ export interface TableSchema {
     rowCount?: number
 }
 
+export interface ViewSchema {
+    name: string
+    sql: string
+}
+
+export interface TriggerSchema {
+    name: string
+    table: string
+    sql: string
+}
+
 export interface DatabaseSchema {
     path: string
     alias: string
     tables: TableSchema[]
+    views: ViewSchema[]
+    triggers: TriggerSchema[]
 }
 
 // ─── Query Result ─────────────────────────────────────────────────────────────
