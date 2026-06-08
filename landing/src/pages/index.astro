@@ -3,7 +3,8 @@ import '../styles/global.css';
 import { RELEASES_URL } from '../lib/releases';
 
 const GITHUB_URL = 'https://github.com/dawichi/quarrydb';
-const VERSION = '0.1.3';
+// Fallback shown until client-side JS replaces it with the live latest release tag.
+const VERSION = '0.1.6';
 ---
 
 <html lang="en">
@@ -64,7 +65,7 @@ const VERSION = '0.1.3';
             </div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-400 text-xs font-medium mb-6">
                 <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-                Open source · MIT · v{VERSION}
+                Open source · MIT · <span id="hero-version">v{VERSION}</span>
             </div>
             <h1 class="text-5xl sm:text-6xl font-bold tracking-tight text-zinc-50 leading-tight mb-5">
                 Visual SQLite<br/>query builder
@@ -510,6 +511,7 @@ import { fetchLatestRelease, RELEASES_URL } from '../lib/releases'
 
 async function initDownloadLinks() {
     const status = document.getElementById('release-status')
+    const heroVersion = document.getElementById('hero-version')
     const cards = document.querySelectorAll<HTMLAnchorElement>('#download a[data-asset]')
 
     try {
@@ -517,6 +519,10 @@ async function initDownloadLinks() {
 
         if (status) {
             status.textContent = release.tag_name ? `Latest release: ${release.tag_name}` : 'Could not load release info.'
+        }
+
+        if (heroVersion && release.tag_name) {
+            heroVersion.textContent = release.tag_name.startsWith('v') ? release.tag_name : `v${release.tag_name}`
         }
 
         cards.forEach((card) => {
