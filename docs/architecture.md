@@ -96,8 +96,8 @@ manifest yourself, after signing, in a dedicated step** — don't trust the per-
 outputs to compose correctly on their own.
 
 **Testing the update flow locally:** the only way to exercise the real chain — detect,
-download, signature verification, install, relaunch — is on a real install, and asking
-David + a friend to babysit every release doesn't scale. `scripts/local-update-test.ts`
+download, signature verification, install, relaunch — is on a real install, and manually
+babysitting every release doesn't scale. `scripts/local-update-test.ts`
 runs that chain end-to-end on localhost:
 
 1. `bun scripts/local-update-test.ts baseline <low version>` — builds and opens an
