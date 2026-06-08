@@ -39,7 +39,8 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | Testing — Vitest unit tests for CTE builder (34 tests) | ✅ Done |
 | Testing — Vitest unit tests for updater service (18 tests) | ✅ Done |
 | Testing — integration tests for pipeline run/export and edit-mode transactions (8 tests) | ✅ Done |
-| Query history (opt-in) | ⬜ Todo |
+| Query history (opt-in) | ✅ Done |
+| Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
 | Testing — Playwright E2E | ⬜ Post-MVP |
 | JOIN: branch input mode | ⬜ Post-MVP |
 | JOIN: subpipeline mode | ⬜ Post-MVP |
@@ -48,16 +49,17 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 ## Roadmap / Planned Next Steps
 
 1. **Windows menu bar** — verify once a contributor tests on Windows.
-2. **Query history** — opt-in, disabled by default; logs every executed query with
-   timestamp, duration, and row count, searchable. Post-MVP.
-3. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
+2. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
    the build-order rationale, and `docs/post-mvp-scoping.md` for Goals/Non-goals before
    starting either one.
-4. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
+3. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
    build without architectural changes; deferred until users actually request it. See
    `docs/post-mvp-scoping.md` for Goals/Non-goals.
-5. **Code signing** — Apple notarization + Windows EV certificate, see
-   `docs/architecture.md#known-platform-issues`. Worth doing once the project has real users.
+4. **Code signing** — Apple notarization + Windows EV certificate, see
+   `docs/architecture.md#known-platform-issues`. Deliberately deferred — the project has
+   no users yet, the workaround is trivial, and the source being public/open already
+   signals legitimacy to the early-adopter audience that would install it first. Revisit
+   if it gains real organic traction (e.g. >20 users).
 
 ## Testing Strategy
 
@@ -113,3 +115,4 @@ multiple features.
 | 2026-06-07 | `docs/conventions/shared-package-structure.md`: no-barrel-index convention for `packages/shared`, written before the package grows enough to need splitting |
 | 2026-06-08 | Auto-update relaunch fix (v0.1.7): found and fixed a missing `process:allow-restart` capability that silently blocked relaunch after install — the update landed on disk but never relaunched into it; replaced the silent install spinner with a narrated modal flow (downloading → downloaded → restarting); added `scripts/local-update-test.ts` to exercise the real detect → download → verify → install → relaunch chain end-to-end on localhost with a dedicated test-only signing keypair; rotated the production updater signing keypair (previous private key was lost/unrecoverable) |
 | 2026-06-08 | Update prompts: added Skip/Later actions to the banner and modal, release-date display, and link-out to the GitHub release page (instead of rendering notes inline); skipped versions persist to `localStorage` so the silent poller stops surfacing them, while a manual "Check for Updates…" still reports the truth — `updater.service.spec.ts` now covers all of it (18 tests) |
+| 2026-06-08 | Query history (opt-in, off by default): logs each executed query with its SQL, source, duration, and row count once the pipeline "settles" (3s of no further edits) and dedupes consecutive repeats for the same source — keeps the live-execution-on-every-keystroke model from spamming the log; entries snapshot the pipeline `steps` so they can be reloaded straight back into the visual builder; `query-history.service.spec.ts` covers enable/persist, log/dedupe/cap, search, and clear (15 tests) |

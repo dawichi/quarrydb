@@ -1,5 +1,7 @@
 import { Component, effect, HostListener, inject, signal } from '@angular/core'
 import type { ExportFormat } from '../../core/services/export.service'
+import type { QueryHistoryEntry } from '../../core/services/query-history.service'
+import { QueryHistoryService } from '../../core/services/query-history.service'
 import type { SavedQuery } from '../../core/services/saved-queries.service'
 import { SavedQueriesService } from '../../core/services/saved-queries.service'
 import { PipelineStore } from '../../core/store/pipeline.store'
@@ -17,6 +19,7 @@ export class PipelineBuilderComponent {
     protected readonly pipelineStore = inject(PipelineStore)
     protected readonly workspaceStore = inject(WorkspaceStore)
     private readonly savedQueriesSvc = inject(SavedQueriesService)
+    private readonly queryHistorySvc = inject(QueryHistoryService)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly showPicker = signal(false)
@@ -29,6 +32,10 @@ export class PipelineBuilderComponent {
     protected readonly saveQueryName = signal('')
     protected readonly showQueriesPanel = signal(false)
     protected readonly savedQueries = signal<SavedQuery[]>([])
+    protected readonly showHistoryPanel = signal(false)
+    protected readonly historyEnabled = signal(false)
+    protected readonly historyEntries = signal<QueryHistoryEntry[]>([])
+    protected readonly historySearch = signal('')
     private varDebounce: ReturnType<typeof setTimeout> | null = null
 
     constructor() {
@@ -168,5 +175,44 @@ export class PipelineBuilderComponent {
         this.savedQueriesSvc.delete(id)
         const tableName = this.pipelineStore.source()?.tableName ?? ''
         this.savedQueries.set(this.savedQueriesSvc.forTable(tableName))
+    }
+
+    // ─── Query history ────────────────────────────────────────────────────────
+    protected openHistoryPanel(): void {
+        this.historyEnabled.set(this.queryHistorySvc.isEnabled())
+        this.refreshHistory()
+        this.showHistoryPanel.set(!this.showHistoryPanel())
+        this.showQueriesPanel.set(false)
+        this.showSaveModal.set(false)
+    }
+
+    protected enableHistory(): void {
+        this.queryHistorySvc.setEnabled(true)
+        this.historyEnabled.set(true)
+        this.refreshHistory()
+    }
+
+    protected onHistorySearchInput(value: string): void {
+        this.historySearch.set(value)
+        this.refreshHistory()
+    }
+
+    protected loadHistoryEntry(entry: QueryHistoryEntry): void {
+        this.showHistoryPanel.set(false)
+        void this.pipelineStore.loadHistoryEntry(entry)
+    }
+
+    protected clearHistory(): void {
+        this.queryHistorySvc.clear()
+        this.refreshHistory()
+    }
+
+    private refreshHistory(): void {
+        // Newest first — that's what a history list is for.
+        this.historyEntries.set(this.queryHistorySvc.search(this.historySearch()).reverse())
+    }
+
+    protected historyTimeLabel(executedAt: number): string {
+        return new Date(executedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 }

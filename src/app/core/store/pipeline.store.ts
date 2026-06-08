@@ -13,6 +13,8 @@ import type {
 } from '@quarrydb/shared'
 import { DatabaseService } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
+import type { QueryHistoryEntry } from '../services/query-history.service'
+import { QueryHistoryService } from '../services/query-history.service'
 import type { SavedQuery } from '../services/saved-queries.service'
 
 export interface StepResultState {
@@ -33,6 +35,15 @@ interface PipelineSource {
 
 const EMPTY_RESULT: StepResultState = { rows: [], columns: [], total: 0, error: null, isLoading: false }
 const PREVIEW_LIMIT = 50
+
+/**
+ * How long the full pipeline must stay unchanged before its query is logged to history.
+ * Pipelines re-run live on every edit (debounced ~500ms at the input layer) — logging
+ * that raw would spam the log with near-duplicate entries per keystroke. Waiting for a
+ * longer "settle" pause collapses rapid edits into one entry per query the user actually
+ * arrived at.
+ */
+const HISTORY_SETTLE_MS = 3000
 
 // ─── Variable Helpers ─────────────────────────────────────────────────────────
 
@@ -133,6 +144,7 @@ export class PipelineStore {
     // ─── Injected Services ────────────────────────────────────────────────────
     private readonly db = inject(DatabaseService)
     private readonly exportSvc = inject(ExportService)
+    private readonly queryHistorySvc = inject(QueryHistoryService)
 
     // ─── State ────────────────────────────────────────────────────────────────
     readonly isExporting = signal(false)
@@ -142,6 +154,7 @@ export class PipelineStore {
     readonly variableValues = signal<Record<string, string>>({})
     private readonly _history = signal<PipelineStep[][]>([[]])
     private readonly _historyIndex = signal(0)
+    private historySettleTimer: ReturnType<typeof setTimeout> | null = null
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly generatedSql = computed(() => {
@@ -239,6 +252,13 @@ export class PipelineStore {
         await this.openForTable(src.path, src.alias, src.tableName, src.columns)
         this.variableValues.set({})
         this.restoreSteps(query.steps)
+    }
+
+    async loadHistoryEntry(entry: QueryHistoryEntry): Promise<void> {
+        const src = entry.source
+        await this.openForTable(src.path, src.alias, src.tableName, src.columns)
+        this.variableValues.set({})
+        this.restoreSteps(entry.steps)
     }
 
     addStep(): void {
@@ -439,8 +459,19 @@ export class PipelineStore {
 
             try {
                 const sql = buildPipelineSql(src.tableName, steps.slice(0, i + 1), this.variableValues())
+                const startedAt = performance.now()
                 const result = await this.db.executeQuery(src.path, sql, PREVIEW_LIMIT)
                 this.setResult(i, { ...result, error: null, isLoading: false })
+
+                if (i === steps.length - 1) {
+                    this.scheduleHistoryLog({
+                        sql,
+                        steps: steps.map((s) => ({ ...s })),
+                        source: { path: src.path, alias: src.alias, tableName: src.tableName, columns: src.columns },
+                        durationMs: Math.round(performance.now() - startedAt),
+                        rowCount: result.total,
+                    })
+                }
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'Query failed'
                 this.setResult(i, { ...EMPTY_RESULT, error: msg })
@@ -450,6 +481,19 @@ export class PipelineStore {
                 break
             }
         }
+    }
+
+    /**
+     * Debounces query-history logging behind `HISTORY_SETTLE_MS` of inactivity — every
+     * successful full-pipeline run reschedules the timer, so only the query the user
+     * actually settles on gets logged, not each intermediate keystroke's version of it.
+     */
+    private scheduleHistoryLog(entry: Parameters<QueryHistoryService['log']>[0]): void {
+        if (this.historySettleTimer) clearTimeout(this.historySettleTimer)
+        this.historySettleTimer = setTimeout(() => {
+            this.historySettleTimer = null
+            this.queryHistorySvc.log(entry)
+        }, HISTORY_SETTLE_MS)
     }
 
     private setResult(index: number, result: StepResultState): void {
