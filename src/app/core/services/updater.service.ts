@@ -1,11 +1,26 @@
 import { Injectable, signal } from '@angular/core'
 import { getVersion } from '@tauri-apps/api/app'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check } from '@tauri-apps/plugin-updater'
 
 export interface PendingUpdate {
     version: string
-    notes: string
+    /** Release date formatted for display (e.g. "Jun 6, 2026"), or `null` if the feed didn't include one. */
+    releasedOn: string | null
+}
+
+const RELEASES_URL = 'https://github.com/dawichi/quarrydb/releases'
+
+/** Persists the version the user chose to skip — silent re-checks stop surfacing it. */
+const SKIPPED_VERSION_KEY = 'quarry_skipped_update_version'
+
+/** Formats the updater feed's `pub_date` (ISO 8601), pinned to UTC so it reads the same regardless of the viewer's timezone. */
+function formatReleaseDate(iso: string | undefined): string | null {
+    if (!iso) return null
+    const parsed = new Date(iso)
+    if (Number.isNaN(parsed.getTime())) return null
+    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 }
 
 /**
@@ -35,6 +50,13 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 export class UpdaterService {
     readonly pending = signal<PendingUpdate | null>(null)
 
+    /**
+     * Update details from a manual "Check for Updates…" — feeds the modal's "available" view.
+     * Kept separate from `pending` (the silent poller's passive banner) so a manual check can
+     * never resurrect the banner for a version the user already chose to skip.
+     */
+    readonly checkedUpdate = signal<PendingUpdate | null>(null)
+
     /** Status behind the shared update modal — manual-check results and install progress alike. */
     readonly modalStatus = signal<UpdateModalStatus | null>(null)
     readonly currentVersion = signal('')
@@ -50,11 +72,8 @@ export class UpdaterService {
     async checkForUpdate(): Promise<void> {
         try {
             const update = await check()
-            if (update?.available) {
-                this.pending.set({
-                    version: update.version,
-                    notes: update.body ?? '',
-                })
+            if (update?.available && update.version !== localStorage.getItem(SKIPPED_VERSION_KEY)) {
+                this.pending.set({ version: update.version, releasedOn: formatReleaseDate(update.date) })
             }
         } catch {
             // Network unavailable or endpoint not yet live — silently ignore
@@ -67,7 +86,7 @@ export class UpdaterService {
             const [update, version] = await Promise.all([check(), getVersion()])
             this.currentVersion.set(version)
             if (update?.available) {
-                this.pending.set({ version: update.version, notes: update.body ?? '' })
+                this.checkedUpdate.set({ version: update.version, releasedOn: formatReleaseDate(update.date) })
                 this.modalStatus.set('available')
             } else {
                 this.modalStatus.set('up-to-date')
@@ -78,6 +97,22 @@ export class UpdaterService {
     }
 
     dismissModal(): void {
+        this.modalStatus.set(null)
+    }
+
+    /** Opens the GitHub release page for `version` in the system browser — we link out instead of rendering notes inline. */
+    openReleaseNotes(version: string): void {
+        void openUrl(`${RELEASES_URL}/tag/v${version}`)
+    }
+
+    /**
+     * Remembers `version` as skipped so the silent poller stops surfacing it. A manual
+     * "Check for Updates…" still reports the truth — skipping only quiets the passive nag.
+     */
+    skipVersion(version: string): void {
+        localStorage.setItem(SKIPPED_VERSION_KEY, version)
+        this.pending.set(null)
+        this.checkedUpdate.set(null)
         this.modalStatus.set(null)
     }
 

@@ -3,31 +3,45 @@ import { UpdaterService } from './updater.service'
 
 // `vi.mock` factories are hoisted above imports — `vi.hoisted` lets us share the
 // underlying `vi.fn()`s so each test can drive `check`/`relaunch`/`getVersion` directly.
-const { checkMock, relaunchMock, getVersionMock } = vi.hoisted(() => ({
+const { checkMock, relaunchMock, getVersionMock, openUrlMock } = vi.hoisted(() => ({
     checkMock: vi.fn(),
     relaunchMock: vi.fn(),
     getVersionMock: vi.fn(),
+    openUrlMock: vi.fn(),
 }))
 
 vi.mock('@tauri-apps/plugin-updater', () => ({ check: checkMock }))
 vi.mock('@tauri-apps/plugin-process', () => ({ relaunch: relaunchMock }))
 vi.mock('@tauri-apps/api/app', () => ({ getVersion: getVersionMock }))
+vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: openUrlMock }))
+
+// The spec runs under vitest's `node` environment, which has no `localStorage` —
+// stub a minimal in-memory stand-in so `UpdaterService`'s skipped-version persistence is testable.
+let storage = new Map<string, string>()
+vi.stubGlobal('localStorage', {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => void storage.set(key, value),
+    removeItem: (key: string) => void storage.delete(key),
+    clear: () => {
+        storage = new Map()
+    },
+})
 
 /** Minimal stand-in for the `Update` resource — only the members `UpdaterService` touches. */
 interface FakeUpdate {
     available: true
     version: string
-    body?: string
+    date?: string
     downloadAndInstall: ReturnType<typeof vi.fn>
 }
 
 function fakeUpdate(
-    opts: { version?: string; body?: string; downloadAndInstall?: ReturnType<typeof vi.fn> } = {},
+    opts: { version?: string; date?: string; downloadAndInstall?: ReturnType<typeof vi.fn> } = {},
 ): FakeUpdate {
     return {
         available: true,
         version: opts.version ?? '0.2.0',
-        body: opts.body,
+        date: opts.date,
         downloadAndInstall: opts.downloadAndInstall ?? vi.fn().mockResolvedValue(undefined),
     }
 }
@@ -39,6 +53,7 @@ let service: UpdaterService
 
 beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     service = new UpdaterService()
 })
 
@@ -49,20 +64,31 @@ afterEach(() => {
 // ─── checkForUpdate (silent — feeds the passive banner) ───────────────────────
 
 describe('checkForUpdate', () => {
-    it('stages the update for the banner when one is available', async () => {
-        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0', body: 'New stuff' }))
+    it('stages the update for the banner, formatting the release date in UTC', async () => {
+        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0', date: '2026-06-06T23:00:00Z' }))
 
         await service.checkForUpdate()
 
-        expect(service.pending()).toEqual({ version: '0.2.0', notes: 'New stuff' })
+        expect(service.pending()).toEqual({ version: '0.2.0', releasedOn: 'Jun 6, 2026' })
     })
 
-    it('falls back to an empty notes string when the release has no body', async () => {
-        checkMock.mockResolvedValue(fakeUpdate({ body: undefined }))
+    it('falls back to a null release date when the feed omits one', async () => {
+        checkMock.mockResolvedValue(fakeUpdate({ date: undefined }))
 
         await service.checkForUpdate()
 
-        expect(service.pending()?.notes).toBe('')
+        expect(service.pending()?.releasedOn).toBeNull()
+    })
+
+    it('does not surface a version the user previously chose to skip', async () => {
+        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0' }))
+        service.skipVersion('0.2.0')
+        vi.clearAllMocks()
+        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0' }))
+
+        await service.checkForUpdate()
+
+        expect(service.pending()).toBeNull()
     })
 
     it('leaves pending unset when already up to date', async () => {
@@ -103,14 +129,14 @@ describe('startPolling', () => {
 
 describe('checkManually', () => {
     it('reports "available", stages the update, and records the running version', async () => {
-        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0', body: 'Notes' }))
+        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0', date: '2026-06-06T23:00:00Z' }))
         getVersionMock.mockResolvedValue('0.1.6')
 
         await service.checkManually()
 
         expect(service.modalStatus()).toBe('available')
         expect(service.currentVersion()).toBe('0.1.6')
-        expect(service.pending()).toEqual({ version: '0.2.0', notes: 'Notes' })
+        expect(service.checkedUpdate()).toEqual({ version: '0.2.0', releasedOn: 'Jun 6, 2026' })
     })
 
     it('reports "up-to-date" without staging an update', async () => {
@@ -159,6 +185,46 @@ describe('dismissModal', () => {
     })
 })
 
+// ─── skipVersion / openReleaseNotes ───────────────────────────────────────────
+
+describe('skipVersion', () => {
+    it('persists the skipped version and hides both the banner and the modal', async () => {
+        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0' }))
+        getVersionMock.mockResolvedValue('0.1.6')
+        await service.checkManually()
+        expect(service.checkedUpdate()).not.toBeNull()
+        expect(service.modalStatus()).toBe('available')
+
+        service.skipVersion('0.2.0')
+
+        expect(service.checkedUpdate()).toBeNull()
+        expect(service.modalStatus()).toBeNull()
+        expect(localStorage.getItem('quarry_skipped_update_version')).toBe('0.2.0')
+    })
+
+    it('still reports a skipped version as available on a manual check — skipping only quiets the silent poller', async () => {
+        service.skipVersion('0.2.0')
+        checkMock.mockResolvedValue(fakeUpdate({ version: '0.2.0' }))
+        getVersionMock.mockResolvedValue('0.1.6')
+
+        await service.checkManually()
+
+        expect(service.modalStatus()).toBe('available')
+        expect(service.checkedUpdate()?.version).toBe('0.2.0')
+        // Regression: a manual check must never repopulate `pending` — otherwise the banner
+        // would resurrect itself for a version the user just told the silent poller to ignore.
+        expect(service.pending()).toBeNull()
+    })
+})
+
+describe('openReleaseNotes', () => {
+    it('opens the GitHub release page for the given version in the system browser', () => {
+        service.openReleaseNotes('0.2.0')
+
+        expect(openUrlMock).toHaveBeenCalledWith('https://github.com/dawichi/quarrydb/releases/tag/v0.2.0')
+    })
+})
+
 // ─── installUpdate (narrated through the shared modal) ────────────────────────
 
 describe('installUpdate', () => {
@@ -170,7 +236,7 @@ describe('installUpdate', () => {
         const update = fakeUpdate({ version: '0.2.0' })
         checkMock.mockResolvedValue(update)
         // Pre-stage it as the banner would, to confirm install takes over from it.
-        service.pending.set({ version: '0.2.0', notes: '' })
+        service.pending.set({ version: '0.2.0', releasedOn: null })
 
         const result = service.installUpdate()
 
