@@ -62,9 +62,6 @@ jobs:
           releaseName: 'Quarry ${{ github.ref_name }}'
           releaseBody: |
             See the full changelog in the commit history.
-
-            Install: download the file for your platform below.
-            Auto-update: if you already have Quarry installed, it will prompt you automatically.
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: false
