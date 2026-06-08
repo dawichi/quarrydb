@@ -37,6 +37,7 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | GitHub Releases + tauri-plugin-updater auto-update pipeline | ✅ Done |
 | Logo: Quarry Pit (app icon + landing + favicon) | ✅ Done |
 | Testing — Vitest unit tests for CTE builder (34 tests) | ✅ Done |
+| Testing — Vitest unit tests for updater service (18 tests) | ✅ Done |
 | Testing — integration tests for pipeline run/export and edit-mode transactions (8 tests) | ✅ Done |
 | Query history (opt-in) | ⬜ Todo |
 | Testing — Playwright E2E | ⬜ Post-MVP |
@@ -46,25 +47,23 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 
 ## Roadmap / Planned Next Steps
 
-1. **Verify auto-update in production** — confirm installs on v0.1.0/v0.1.1 see the in-app
-   update banner and successfully update via the v0.1.2 pipeline fix.
-2. **Windows menu bar** — verify once a contributor tests on Windows.
-3. **Query history** — opt-in, disabled by default; logs every executed query with
+1. **Windows menu bar** — verify once a contributor tests on Windows.
+2. **Query history** — opt-in, disabled by default; logs every executed query with
    timestamp, duration, and row count, searchable. Post-MVP.
-4. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
+3. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
    the build-order rationale, and `docs/post-mvp-scoping.md` for Goals/Non-goals before
    starting either one.
-5. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
+4. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
    build without architectural changes; deferred until users actually request it. See
    `docs/post-mvp-scoping.md` for Goals/Non-goals.
-6. **Code signing** — Apple notarization + Windows EV certificate, see
+5. **Code signing** — Apple notarization + Windows EV certificate, see
    `docs/architecture.md#known-platform-issues`. Worth doing once the project has real users.
 
 ## Testing Strategy
 
 | Layer | Tool | Scope |
 |-------|------|-------|
-| Unit | Vitest | CTE query builder (input: step array → output: SQL string). Pure function, high coverage. |
+| Unit | Vitest | CTE query builder (input: step array → output: SQL string, pure-function coverage) and the updater service (mocked Tauri plugin APIs — polling, manual checks, skip persistence, install narration, error paths). |
 | Integration | Vitest + `node:sqlite` fake | Real SQLite-backed fixture standing in for `tauri-plugin-sql` (see `src/app/core/integration/fixtures/`) — runs generated pipeline SQL and `applyEdits` transactions against real SQLite, asserting on real rows, real constraint failures, and real rollback behavior. Covers: pipeline run → export, and edit mode → apply → rollback-on-constraint-failure (UNIQUE + FK). |
 | E2E | Playwright | Full GUI flows: open file, build pipeline, edit row, export. |
 
@@ -112,3 +111,5 @@ multiple features.
 | 2026-06-07 | `docs/post-mvp-scoping.md`: Goals/Non-goals notes for JOIN branch mode, JOIN subpipeline mode, and SQLCipher — written before starting any of them |
 | 2026-06-07 | Differential-update spike: investigated binary-diff updates for the auto-updater — declined (bundles already small ~6MB, no upstream Tauri support, custom patch-and-replace of signed binaries is high-risk for likely-modest savings); see `docs/architecture.md#release-pipeline--auto-updates` |
 | 2026-06-07 | `docs/conventions/shared-package-structure.md`: no-barrel-index convention for `packages/shared`, written before the package grows enough to need splitting |
+| 2026-06-08 | Auto-update relaunch fix (v0.1.7): found and fixed a missing `process:allow-restart` capability that silently blocked relaunch after install — the update landed on disk but never relaunched into it; replaced the silent install spinner with a narrated modal flow (downloading → downloaded → restarting); added `scripts/local-update-test.ts` to exercise the real detect → download → verify → install → relaunch chain end-to-end on localhost with a dedicated test-only signing keypair; rotated the production updater signing keypair (previous private key was lost/unrecoverable) |
+| 2026-06-08 | Update prompts: added Skip/Later actions to the banner and modal, release-date display, and link-out to the GitHub release page (instead of rendering notes inline); skipped versions persist to `localStorage` so the silent poller stops surfacing them, while a manual "Check for Updates…" still reports the truth — `updater.service.spec.ts` now covers all of it (18 tests) |
