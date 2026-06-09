@@ -152,6 +152,15 @@ export class DatabaseService {
         }
     }
 
+    async runDdl(path: string, sql: string): Promise<void> {
+        const db = await Database.load(`sqlite://${path}`)
+        try {
+            await db.execute(sql)
+        } finally {
+            await db.close()
+        }
+    }
+
     async loadSchema(path: string, alias: string): Promise<DatabaseSchema> {
         const db = await Database.load(`sqlite://${path}`)
 

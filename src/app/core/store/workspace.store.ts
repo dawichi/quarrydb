@@ -51,6 +51,7 @@ export class WorkspaceStore {
     readonly browseSortDir = signal<'ASC' | 'DESC'>('ASC')
 
     readonly activeTab = signal<'browse' | 'query' | 'edit'>('browse')
+    readonly createTableTarget = signal<{ alias: string; path: string } | null>(null)
     readonly browseFilter = signal<BrowseFilter | null>(null)
     readonly browseNavStack = signal<BrowseNavEntry[]>([])
 
@@ -70,6 +71,23 @@ export class WorkspaceStore {
     // ─── Public Methods ───────────────────────────────────────────────────────
     setActiveTab(tab: 'browse' | 'query' | 'edit'): void {
         this.activeTab.set(tab)
+    }
+
+    openCreateTable(alias: string): void {
+        const path = this.schemas().find((s) => s.alias === alias)?.path
+        if (!path) return
+        this.createTableTarget.set({ alias, path })
+    }
+
+    closeCreateTable(): void {
+        this.createTableTarget.set(null)
+    }
+
+    async reloadSchema(alias: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        const updated = await this.db.loadSchema(schema.path, alias)
+        this.schemas.update((schemas) => schemas.map((s) => (s.alias === alias ? updated : s)))
     }
 
     async selectTable(alias: string, tableName: string): Promise<void> {
