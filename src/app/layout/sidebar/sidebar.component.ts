@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core'
+import type { TriggerSchema, ViewSchema } from '@quarrydb/shared'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 
 @Component({
@@ -62,6 +63,16 @@ export class SidebarComponent {
     protected openSettings(alias: string, tableName: string, event: Event): void {
         event.stopPropagation()
         this.workspaceStore.openTableSettings(alias, tableName)
+    }
+
+    protected openViewEdit(alias: string, view: ViewSchema, event: Event): void {
+        event.stopPropagation()
+        this.workspaceStore.openEditView(alias, view)
+    }
+
+    protected openTriggerEdit(alias: string, trigger: TriggerSchema, event: Event): void {
+        event.stopPropagation()
+        this.workspaceStore.openEditTrigger(alias, trigger)
     }
 
     protected getFileName(path: string): string {

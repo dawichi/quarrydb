@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { DatabaseSchema, ForeignKey, Workspace } from '@quarrydb/shared'
+import type { DatabaseSchema, ForeignKey, TriggerSchema, ViewSchema, Workspace } from '@quarrydb/shared'
 import { save } from '@tauri-apps/plugin-dialog'
 import { DatabaseService, type TableImpact } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
@@ -57,6 +57,8 @@ export class WorkspaceStore {
     readonly isLoadingImpact = signal(false)
     readonly browseFilter = signal<BrowseFilter | null>(null)
     readonly browseNavStack = signal<BrowseNavEntry[]>([])
+    readonly viewModalTarget = signal<{ alias: string; view: ViewSchema | null } | null>(null)
+    readonly triggerModalTarget = signal<{ alias: string; trigger: TriggerSchema | null } | null>(null)
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     readonly hasWorkspace = computed(() => this.workspace() !== null)
@@ -159,6 +161,77 @@ export class WorkspaceStore {
             this.tableColumns.set([])
             this.tableRowTotal.set(0)
         }
+    }
+
+    openCreateView(alias: string): void {
+        this.viewModalTarget.set({ alias, view: null })
+    }
+
+    openEditView(alias: string, view: ViewSchema): void {
+        this.viewModalTarget.set({ alias, view })
+    }
+
+    closeViewModal(): void {
+        this.viewModalTarget.set(null)
+    }
+
+    openCreateTrigger(alias: string): void {
+        this.triggerModalTarget.set({ alias, trigger: null })
+    }
+
+    openEditTrigger(alias: string, trigger: TriggerSchema): void {
+        this.triggerModalTarget.set({ alias, trigger })
+    }
+
+    closeTriggerModal(): void {
+        this.triggerModalTarget.set(null)
+    }
+
+    async createView(alias: string, name: string, selectSql: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, `CREATE VIEW "${name}" AS ${selectSql}`)
+        await this.reloadSchema(alias)
+    }
+
+    async editView(alias: string, oldName: string, name: string, selectSql: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdlScript(schema.path, [
+            'BEGIN',
+            `DROP VIEW "${oldName}"`,
+            `CREATE VIEW "${name}" AS ${selectSql}`,
+            'COMMIT',
+        ])
+        await this.reloadSchema(alias)
+    }
+
+    async dropView(alias: string, name: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, `DROP VIEW "${name}"`)
+        await this.reloadSchema(alias)
+    }
+
+    async createTrigger(alias: string, sql: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, sql)
+        await this.reloadSchema(alias)
+    }
+
+    async editTrigger(alias: string, oldName: string, sql: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdlScript(schema.path, ['BEGIN', `DROP TRIGGER "${oldName}"`, sql, 'COMMIT'])
+        await this.reloadSchema(alias)
+    }
+
+    async dropTrigger(alias: string, name: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, `DROP TRIGGER "${name}"`)
+        await this.reloadSchema(alias)
     }
 
     async reloadSchema(alias: string): Promise<void> {

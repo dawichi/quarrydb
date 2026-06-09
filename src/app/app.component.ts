@@ -8,9 +8,11 @@ import { EditModeComponent } from './features/edit-mode/edit-mode.component'
 import { PipelineBuilderComponent } from './features/pipeline-builder/pipeline-builder.component'
 import { TableSettingsModalComponent } from './features/table-settings-modal/table-settings-modal.component'
 import { TableViewerComponent } from './features/table-viewer/table-viewer.component'
+import { TriggerModalComponent } from './features/trigger-modal/trigger-modal.component'
 import { TutorialOverlayComponent } from './features/tutorial/tutorial-overlay.component'
 import { UpdateBannerComponent } from './features/update-banner/update-banner.component'
 import { UpdateCheckModalComponent } from './features/update-check-modal/update-check-modal.component'
+import { ViewModalComponent } from './features/view-modal/view-modal.component'
 import { WelcomeComponent } from './features/welcome/welcome.component'
 import { SidebarComponent } from './layout/sidebar/sidebar.component'
 
@@ -27,6 +29,8 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
         UpdateCheckModalComponent,
         CreateTableModalComponent,
         TableSettingsModalComponent,
+        ViewModalComponent,
+        TriggerModalComponent,
     ],
     templateUrl: './app.component.html',
 })

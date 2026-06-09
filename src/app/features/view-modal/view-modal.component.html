@@ -1,0 +1,190 @@
+@if (workspaceStore.viewModalTarget(); as target) {
+
+    <div
+        class="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-zinc-950/70 backdrop-blur-sm"
+        (click)="close()"
+    >
+        <div
+            class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+            (click)="$event.stopPropagation()"
+        >
+
+            <!-- ─── Header ─────────────────────────────────────────────────────── -->
+            <div
+                class="flex items-center gap-3 px-5 py-4 border-b"
+                [class]="mode() === 'drop' ? 'border-red-900/40' : 'border-zinc-800'"
+            >
+                @if (mode() === 'drop') {
+                    <!-- Warning icon -->
+                    <svg aria-hidden="true" class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                } @else {
+                    <!-- Eye icon -->
+                    <svg aria-hidden="true" class="w-4 h-4 text-zinc-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                }
+                <div class="flex-1 min-w-0">
+                    @if (mode() === 'create') {
+                        <h2 class="text-sm font-semibold text-zinc-100">Create View</h2>
+                    } @else if (mode() === 'edit') {
+                        <h2 class="text-sm font-semibold text-zinc-100">Edit View</h2>
+                        <p class="text-xs text-zinc-500 font-mono truncate">{{ originalView()?.name }}</p>
+                    } @else {
+                        <h2 class="text-sm font-semibold text-red-400">Drop View</h2>
+                        <p class="text-xs text-zinc-500 font-mono truncate">{{ originalView()?.name }}</p>
+                    }
+                </div>
+                <button
+                    type="button"
+                    class="text-zinc-600 hover:text-zinc-300 transition-colors flex-shrink-0"
+                    [disabled]="isExecuting()"
+                    (click)="close()"
+                >
+                    <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto max-h-[70vh]">
+                <div class="px-5 py-4 space-y-4">
+
+                    <!-- ─── Create / Edit form ──────────────────────────────────── -->
+                    @if (mode() === 'create' || mode() === 'edit') {
+
+                        <!-- View name -->
+                        <div class="space-y-1.5">
+                            <label class="text-xs text-zinc-400">View name</label>
+                            <input
+                                type="text"
+                                autocomplete="off"
+                                spellcheck="false"
+                                class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono"
+                                placeholder="view_name"
+                                [value]="viewName()"
+                                (input)="viewName.set($any($event.target).value)"
+                            />
+                        </div>
+
+                        <!-- SELECT body -->
+                        <div class="space-y-1.5">
+                            <label class="text-xs text-zinc-400">SELECT body</label>
+                            <textarea
+                                autocomplete="off"
+                                spellcheck="false"
+                                rows="6"
+                                class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono resize-y"
+                                placeholder="SELECT id, name FROM users WHERE active = 1"
+                                [value]="selectSql()"
+                                (input)="selectSql.set($any($event.target).value)"
+                            ></textarea>
+                        </div>
+
+                        <!-- SQL preview -->
+                        @if (generatedSql()) {
+                            <pre class="px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-400 font-mono whitespace-pre-wrap break-all">{{ generatedSql() }}</pre>
+                        }
+
+                        <!-- Error -->
+                        @if (error()) {
+                            <p class="text-xs text-red-400 bg-red-950/40 rounded px-2 py-1.5">{{ error() }}</p>
+                        }
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-2 pt-1">
+                            @if (mode() === 'edit') {
+                                <button
+                                    type="button"
+                                    class="px-3 py-1.5 rounded-md text-sm text-red-500 hover:text-red-300 hover:bg-red-950/30 transition-colors disabled:opacity-50 border border-red-900/40"
+                                    [disabled]="isExecuting()"
+                                    (click)="showDrop()"
+                                >Drop View</button>
+                            }
+                            <div class="flex-1"></div>
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                                [disabled]="isExecuting()"
+                                (click)="close()"
+                            >Cancel</button>
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                                [class]="canExecute()
+                                    ? 'bg-sky-700 hover:bg-sky-600 text-white'
+                                    : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'"
+                                [disabled]="!canExecute()"
+                                (click)="execute()"
+                            >
+                                @if (isExecuting()) {
+                                    @if (mode() === 'create') { Creating… } @else { Saving… }
+                                } @else {
+                                    @if (mode() === 'create') { Create View } @else { Save Changes }
+                                }
+                            </button>
+                        </div>
+
+                    }
+
+                    <!-- ─── Drop confirmation ───────────────────────────────────── -->
+                    @if (mode() === 'drop') {
+
+                        <p class="text-xs text-zinc-500">This action is permanent and cannot be undone. The view definition will be removed; no row data is affected.</p>
+
+                        <!-- Type-to-confirm -->
+                        <div class="space-y-1.5">
+                            <p class="text-xs text-zinc-400">
+                                Type <span class="font-mono text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded">{{ originalView()?.name }}</span> to confirm:
+                            </p>
+                            <input
+                                type="text"
+                                autocomplete="off"
+                                spellcheck="false"
+                                class="w-full px-3 py-2 rounded-md bg-zinc-900 border text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none transition-colors font-mono"
+                                [class]="confirmName() === originalView()?.name && confirmName().length > 0
+                                    ? 'border-red-600 focus:border-red-500'
+                                    : 'border-zinc-700 focus:border-zinc-600'"
+                                [placeholder]="originalView()?.name ?? ''"
+                                [value]="confirmName()"
+                                (input)="confirmName.set($any($event.target).value)"
+                            />
+                        </div>
+
+                        <!-- Error -->
+                        @if (error()) {
+                            <p class="text-xs text-red-400 bg-red-950/40 rounded px-2 py-1.5">{{ error() }}</p>
+                        }
+
+                        <!-- Actions -->
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                                [disabled]="isExecuting()"
+                                (click)="showEdit()"
+                            >Back</button>
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                                [class]="canExecute()
+                                    ? 'bg-red-700 hover:bg-red-600 text-white'
+                                    : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'"
+                                [disabled]="!canExecute()"
+                                (click)="execute()"
+                            >
+                                @if (isExecuting()) { Dropping… } @else { Drop View }
+                            </button>
+                        </div>
+
+                    }
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+}
