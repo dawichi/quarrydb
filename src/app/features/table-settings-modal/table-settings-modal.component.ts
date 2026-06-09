@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import { WorkspaceStore } from '../../core/store/workspace.store'
+import { type AddColumnDef, buildAddColumnSql, buildRenameColumnSql, buildRenameTableSql } from './alter-table.utils'
 import { buildCreateIndexSql } from './index.utils'
 
 @Component({
@@ -11,7 +12,9 @@ export class TableSettingsModalComponent {
     protected readonly workspaceStore = inject(WorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
-    protected readonly view = signal<'settings' | 'drop' | 'create-index' | 'drop-index'>('settings')
+    protected readonly view = signal<
+        'settings' | 'drop' | 'create-index' | 'drop-index' | 'add-column' | 'rename-column' | 'rename-table'
+    >('settings')
 
     // Drop table
     protected readonly confirmName = signal('')
@@ -27,6 +30,18 @@ export class TableSettingsModalComponent {
 
     // Drop index
     protected readonly dropIndexTarget = signal<string | null>(null)
+
+    // Alter table (add column / rename column / rename table)
+    protected readonly alterColTarget = signal<string | null>(null)
+    protected readonly alterNewName = signal('')
+    protected readonly alterColName = signal('')
+    protected readonly alterColType = signal('TEXT')
+    protected readonly alterColNotNull = signal(false)
+    protected readonly alterColDefault = signal('')
+    protected readonly isAltering = signal(false)
+    protected readonly alterError = signal<string | null>(null)
+
+    protected readonly COLUMN_TYPES = ['TEXT', 'INTEGER', 'REAL', 'BLOB', 'NUMERIC'] as const
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     protected readonly tableColumns = computed(() => {
@@ -72,6 +87,52 @@ export class TableSettingsModalComponent {
         () => this.idxName().trim().length > 0 && this.idxColumns().length > 0 && !this.isIndexing(),
     )
 
+    protected readonly activeDropIndex = computed(() => {
+        const name = this.dropIndexTarget()
+        return this.tableIndexes().find((i) => i.name === name) ?? null
+    })
+
+    protected readonly generatedAddColumnSql = computed(() => {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const name = this.alterColName().trim()
+        if (!t || !name) return ''
+        const col: AddColumnDef = {
+            name,
+            type: this.alterColType(),
+            notNull: this.alterColNotNull(),
+            defaultValue: this.alterColDefault(),
+        }
+        return buildAddColumnSql(t.tableName, col)
+    })
+
+    protected readonly generatedRenameColumnSql = computed(() => {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const oldName = this.alterColTarget()
+        const newName = this.alterNewName().trim()
+        if (!t || !oldName || !newName || newName === oldName) return ''
+        return buildRenameColumnSql(t.tableName, oldName, newName)
+    })
+
+    protected readonly generatedRenameTableSql = computed(() => {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const newName = this.alterNewName().trim()
+        if (!t || !newName || newName === t.tableName) return ''
+        return buildRenameTableSql(t.tableName, newName)
+    })
+
+    protected readonly canAddColumn = computed(() => this.alterColName().trim().length > 0 && !this.isAltering())
+
+    protected readonly canRenameColumn = computed(() => {
+        const newName = this.alterNewName().trim()
+        return newName.length > 0 && newName !== this.alterColTarget() && !this.isAltering()
+    })
+
+    protected readonly canRenameTable = computed(() => {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const newName = this.alterNewName().trim()
+        return t !== null && newName.length > 0 && newName !== t.tableName && !this.isAltering()
+    })
+
     // ─── Actions ──────────────────────────────────────────────────────────────
     protected showDropView(): void {
         this.view.set('drop')
@@ -86,6 +147,22 @@ export class TableSettingsModalComponent {
         this.view.set('drop-index')
     }
 
+    protected showAddColumn(): void {
+        this.view.set('add-column')
+    }
+
+    protected showRenameColumn(colName: string): void {
+        this.alterColTarget.set(colName)
+        this.alterNewName.set(colName)
+        this.view.set('rename-column')
+    }
+
+    protected showRenameTable(): void {
+        const t = this.workspaceStore.tableSettingsTarget()
+        this.alterNewName.set(t?.tableName ?? '')
+        this.view.set('rename-table')
+    }
+
     protected backToSettings(): void {
         this.view.set('settings')
         this.confirmName.set('')
@@ -96,10 +173,18 @@ export class TableSettingsModalComponent {
         this.idxUnique.set(false)
         this.isIndexing.set(false)
         this.indexError.set(null)
+        this.alterColTarget.set(null)
+        this.alterNewName.set('')
+        this.alterColName.set('')
+        this.alterColType.set('TEXT')
+        this.alterColNotNull.set(false)
+        this.alterColDefault.set('')
+        this.isAltering.set(false)
+        this.alterError.set(null)
     }
 
     protected close(): void {
-        if (this.isDropping() || this.isIndexing()) return
+        if (this.isDropping() || this.isIndexing() || this.isAltering()) return
         this.workspaceStore.closeTableSettings()
         this.reset()
     }
@@ -122,6 +207,57 @@ export class TableSettingsModalComponent {
             this.indexError.set(err instanceof Error ? err.message : 'Failed to create index')
         } finally {
             this.isIndexing.set(false)
+        }
+    }
+
+    protected async addColumn(): Promise<void> {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const sql = this.generatedAddColumnSql()
+        if (!t || !sql || !this.canAddColumn()) return
+
+        this.isAltering.set(true)
+        this.alterError.set(null)
+        try {
+            await this.workspaceStore.alterAddColumn(t.alias, sql)
+            this.backToSettings()
+        } catch (err) {
+            this.alterError.set(err instanceof Error ? err.message : 'Failed to add column')
+        } finally {
+            this.isAltering.set(false)
+        }
+    }
+
+    protected async renameColumn(): Promise<void> {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const sql = this.generatedRenameColumnSql()
+        if (!t || !sql || !this.canRenameColumn()) return
+
+        this.isAltering.set(true)
+        this.alterError.set(null)
+        try {
+            await this.workspaceStore.alterRenameColumn(t.alias, sql)
+            this.backToSettings()
+        } catch (err) {
+            this.alterError.set(err instanceof Error ? err.message : 'Failed to rename column')
+        } finally {
+            this.isAltering.set(false)
+        }
+    }
+
+    protected async renameTable(): Promise<void> {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const newName = this.alterNewName().trim()
+        if (!t || !newName || !this.canRenameTable()) return
+
+        this.isAltering.set(true)
+        this.alterError.set(null)
+        try {
+            await this.workspaceStore.alterRenameTable(t.alias, t.tableName, newName)
+            this.backToSettings()
+        } catch (err) {
+            this.alterError.set(err instanceof Error ? err.message : 'Failed to rename table')
+        } finally {
+            this.isAltering.set(false)
         }
     }
 
@@ -180,5 +316,13 @@ export class TableSettingsModalComponent {
         this.idxUnique.set(false)
         this.isIndexing.set(false)
         this.indexError.set(null)
+        this.alterColTarget.set(null)
+        this.alterNewName.set('')
+        this.alterColName.set('')
+        this.alterColType.set('TEXT')
+        this.alterColNotNull.set(false)
+        this.alterColDefault.set('')
+        this.isAltering.set(false)
+        this.alterError.set(null)
     }
 }

@@ -111,6 +111,34 @@ export class WorkspaceStore {
         await this.reloadSchema(alias)
     }
 
+    async alterAddColumn(alias: string, sql: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, sql)
+        await this.reloadSchema(alias)
+        await this.reselectIfOpen(alias)
+    }
+
+    async alterRenameColumn(alias: string, sql: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, sql)
+        await this.reloadSchema(alias)
+        await this.reselectIfOpen(alias)
+    }
+
+    async alterRenameTable(alias: string, oldName: string, newName: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, `ALTER TABLE "${oldName}" RENAME TO "${newName}"`)
+        await this.reloadSchema(alias)
+        this.tableSettingsTarget.set({ alias, tableName: newName })
+        const sel = this.selectedTable()
+        if (sel?.schemaAlias === alias && sel?.tableName === oldName) {
+            this.selectedTable.set({ schemaAlias: alias, tableName: newName })
+        }
+    }
+
     async dropTable(alias: string, tableName: string): Promise<void> {
         const schema = this.schemas().find((s) => s.alias === alias)
         if (!schema) return
@@ -130,6 +158,14 @@ export class WorkspaceStore {
         if (!schema) return
         const updated = await this.db.loadSchema(schema.path, alias)
         this.schemas.update((schemas) => schemas.map((s) => (s.alias === alias ? updated : s)))
+    }
+
+    private async reselectIfOpen(alias: string): Promise<void> {
+        const target = this.tableSettingsTarget()
+        const sel = this.selectedTable()
+        if (target && sel?.schemaAlias === alias && sel?.tableName === target.tableName) {
+            await this.selectTable(alias, target.tableName)
+        }
     }
 
     async selectTable(alias: string, tableName: string): Promise<void> {
