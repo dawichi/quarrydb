@@ -1,5 +1,11 @@
+import type { Column, ForeignKey, Index } from '@quarrydb/shared'
 import { describe, expect, it } from 'vitest'
-import { buildAddColumnSql, buildRenameColumnSql, buildRenameTableSql } from './alter-table.utils'
+import {
+    buildAddColumnSql,
+    buildDropColumnScript,
+    buildRenameColumnSql,
+    buildRenameTableSql,
+} from './alter-table.utils'
 
 describe('buildRenameTableSql', () => {
     it('generates RENAME TO', () => {
@@ -54,5 +60,69 @@ describe('buildAddColumnSql', () => {
         expect(
             buildAddColumnSql('orders', { name: 'qty', type: 'INTEGER', notNull: true, defaultValue: '  1  ' }),
         ).toBe('ALTER TABLE "orders" ADD COLUMN "qty" INTEGER NOT NULL DEFAULT 1')
+    })
+})
+
+describe('buildDropColumnScript', () => {
+    const idCol: Column = { name: 'id', type: 'INTEGER', nullable: false, primaryKey: true }
+    const nameCol: Column = { name: 'name', type: 'TEXT', nullable: false, primaryKey: false }
+    const scoreCol: Column = { name: 'score', type: 'REAL', nullable: false, primaryKey: false, defaultValue: '0.0' }
+
+    it('generates the full rebuild sequence', () => {
+        const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], [], [])
+        expect(stmts[0]).toBe('PRAGMA foreign_keys = OFF')
+        expect(stmts[1]).toBe('BEGIN')
+        expect(stmts[stmts.length - 2]).toBe('COMMIT')
+        expect(stmts[stmts.length - 1]).toBe('PRAGMA foreign_keys = ON')
+    })
+
+    it('creates the new table with only remaining columns', () => {
+        const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], [], [])
+        const create = stmts.find((s) => s.startsWith('CREATE TABLE'))!
+        expect(create).toContain('"__quarry_new_users"')
+        expect(create).toContain('"id" INTEGER PRIMARY KEY')
+        expect(create).toContain('"name" TEXT NOT NULL')
+        expect(create).not.toContain('"email"')
+    })
+
+    it('copies only the remaining columns in the INSERT', () => {
+        const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], [], [])
+        const insert = stmts.find((s) => s.startsWith('INSERT INTO'))!
+        expect(insert).toBe('INSERT INTO "__quarry_new_users" SELECT "id", "name" FROM "users"')
+    })
+
+    it('includes DEFAULT in the CREATE TABLE when present', () => {
+        const stmts = buildDropColumnScript('stats', 'email', [idCol, scoreCol], [], [])
+        const create = stmts.find((s) => s.startsWith('CREATE TABLE'))!
+        expect(create).toContain('"score" REAL NOT NULL DEFAULT 0.0')
+    })
+
+    it('drops the FK for the removed column and keeps the rest', () => {
+        const fks: ForeignKey[] = [
+            { column: 'email', referencesTable: 'domains', referencesColumn: 'id' },
+            { column: 'name', referencesTable: 'labels', referencesColumn: 'id' },
+        ]
+        const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], fks, [])
+        const create = stmts.find((s) => s.startsWith('CREATE TABLE'))!
+        expect(create).not.toContain('domains')
+        expect(create).toContain('FOREIGN KEY ("name") REFERENCES "labels" ("id")')
+    })
+
+    it('recreates indexes that reference only remaining columns', () => {
+        const indexes: Index[] = [
+            { name: 'idx_name', columns: ['name'], unique: false },
+            { name: 'idx_email', columns: ['email'], unique: true },
+            { name: 'idx_name_email', columns: ['name', 'email'], unique: false },
+        ]
+        const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], [], indexes)
+        expect(stmts.some((s) => s.includes('"idx_name"'))).toBe(true)
+        expect(stmts.some((s) => s.includes('"idx_email"'))).toBe(false)
+        expect(stmts.some((s) => s.includes('"idx_name_email"'))).toBe(false)
+    })
+
+    it('marks unique indexes with UNIQUE keyword', () => {
+        const indexes: Index[] = [{ name: 'idx_name', columns: ['name'], unique: true }]
+        const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], [], indexes)
+        expect(stmts.some((s) => s.startsWith('CREATE UNIQUE INDEX'))).toBe(true)
     })
 })

@@ -127,6 +127,14 @@ export class WorkspaceStore {
         await this.reselectIfOpen(alias)
     }
 
+    async alterDropColumn(alias: string, statements: string[]): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdlScript(schema.path, statements)
+        await this.reloadSchema(alias)
+        await this.reselectIfOpen(alias)
+    }
+
     async alterRenameTable(alias: string, oldName: string, newName: string): Promise<void> {
         const schema = this.schemas().find((s) => s.alias === alias)
         if (!schema) return

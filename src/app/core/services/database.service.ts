@@ -229,6 +229,29 @@ export class DatabaseService {
         }
     }
 
+    async runDdlScript(path: string, statements: string[]): Promise<void> {
+        const db = await Database.load(`sqlite://${path}`)
+        try {
+            for (const sql of statements) {
+                await db.execute(sql)
+            }
+        } catch (err) {
+            try {
+                await db.execute('ROLLBACK')
+            } catch {
+                /* not in a transaction */
+            }
+            try {
+                await db.execute('PRAGMA foreign_keys = ON')
+            } catch {
+                /* ignore */
+            }
+            throw err
+        } finally {
+            await db.close()
+        }
+    }
+
     async loadSchema(path: string, alias: string): Promise<DatabaseSchema> {
         const db = await Database.load(`sqlite://${path}`)
 

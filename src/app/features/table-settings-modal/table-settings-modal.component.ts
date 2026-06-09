@@ -1,6 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import { WorkspaceStore } from '../../core/store/workspace.store'
-import { type AddColumnDef, buildAddColumnSql, buildRenameColumnSql, buildRenameTableSql } from './alter-table.utils'
+import {
+    type AddColumnDef,
+    buildAddColumnSql,
+    buildDropColumnScript,
+    buildRenameColumnSql,
+    buildRenameTableSql,
+} from './alter-table.utils'
 import { buildCreateIndexSql } from './index.utils'
 
 @Component({
@@ -13,7 +19,14 @@ export class TableSettingsModalComponent {
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly view = signal<
-        'settings' | 'drop' | 'create-index' | 'drop-index' | 'add-column' | 'rename-column' | 'rename-table'
+        | 'settings'
+        | 'drop'
+        | 'create-index'
+        | 'drop-index'
+        | 'add-column'
+        | 'rename-column'
+        | 'rename-table'
+        | 'drop-column'
     >('settings')
 
     // Drop table
@@ -30,6 +43,12 @@ export class TableSettingsModalComponent {
 
     // Drop index
     protected readonly dropIndexTarget = signal<string | null>(null)
+
+    // Drop column
+    protected readonly dropColTarget = signal<string | null>(null)
+    protected readonly dropColConfirm = signal('')
+    protected readonly isDroppingCol = signal(false)
+    protected readonly dropColError = signal<string | null>(null)
 
     // Alter table (add column / rename column / rename table)
     protected readonly alterColTarget = signal<string | null>(null)
@@ -133,6 +152,27 @@ export class TableSettingsModalComponent {
         return t !== null && newName.length > 0 && newName !== t.tableName && !this.isAltering()
     })
 
+    protected readonly generatedDropColumnScript = computed(() => {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const colName = this.dropColTarget()
+        if (!t || !colName) return []
+        const cols = this.tableColumns()
+        const remaining = cols.filter((c) => c.name !== colName)
+        if (remaining.length === 0) return []
+        const schema = this.workspaceStore.schemas().find((s) => s.alias === t.alias)
+        const table = schema?.tables.find((tbl) => tbl.name === t.tableName)
+        if (!table) return []
+        return buildDropColumnScript(t.tableName, colName, remaining, table.foreignKeys, table.indexes)
+    })
+
+    protected readonly canDropColumn = computed(
+        () =>
+            this.dropColTarget() !== null &&
+            this.dropColConfirm() === this.dropColTarget() &&
+            this.generatedDropColumnScript().length > 0 &&
+            !this.isDroppingCol(),
+    )
+
     // ─── Actions ──────────────────────────────────────────────────────────────
     protected showDropView(): void {
         this.view.set('drop')
@@ -145,6 +185,12 @@ export class TableSettingsModalComponent {
     protected showDropIndex(name: string): void {
         this.dropIndexTarget.set(name)
         this.view.set('drop-index')
+    }
+
+    protected showDropColumn(colName: string): void {
+        this.dropColTarget.set(colName)
+        this.dropColConfirm.set('')
+        this.view.set('drop-column')
     }
 
     protected showAddColumn(): void {
@@ -181,10 +227,14 @@ export class TableSettingsModalComponent {
         this.alterColDefault.set('')
         this.isAltering.set(false)
         this.alterError.set(null)
+        this.dropColTarget.set(null)
+        this.dropColConfirm.set('')
+        this.isDroppingCol.set(false)
+        this.dropColError.set(null)
     }
 
     protected close(): void {
-        if (this.isDropping() || this.isIndexing() || this.isAltering()) return
+        if (this.isDropping() || this.isIndexing() || this.isAltering() || this.isDroppingCol()) return
         this.workspaceStore.closeTableSettings()
         this.reset()
     }
@@ -261,6 +311,23 @@ export class TableSettingsModalComponent {
         }
     }
 
+    protected async dropColumn(): Promise<void> {
+        const t = this.workspaceStore.tableSettingsTarget()
+        const script = this.generatedDropColumnScript()
+        if (!t || !script.length || !this.canDropColumn()) return
+
+        this.isDroppingCol.set(true)
+        this.dropColError.set(null)
+        try {
+            await this.workspaceStore.alterDropColumn(t.alias, script)
+            this.backToSettings()
+        } catch (err) {
+            this.dropColError.set(err instanceof Error ? err.message : 'Failed to drop column')
+        } finally {
+            this.isDroppingCol.set(false)
+        }
+    }
+
     protected async dropIndex(): Promise<void> {
         const t = this.workspaceStore.tableSettingsTarget()
         const name = this.dropIndexTarget()
@@ -324,5 +391,9 @@ export class TableSettingsModalComponent {
         this.alterColDefault.set('')
         this.isAltering.set(false)
         this.alterError.set(null)
+        this.dropColTarget.set(null)
+        this.dropColConfirm.set('')
+        this.isDroppingCol.set(false)
+        this.dropColError.set(null)
     }
 }
