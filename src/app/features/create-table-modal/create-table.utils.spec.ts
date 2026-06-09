@@ -3,7 +3,7 @@ import type { ColumnDef } from './create-table.utils'
 import { generateCreateTableSql } from './create-table.utils'
 
 function col(overrides: Pick<ColumnDef, 'name' | 'type'> & Partial<ColumnDef>): ColumnDef {
-    return { id: '1', notNull: false, primaryKey: false, defaultValue: '', ...overrides }
+    return { id: '1', notNull: false, primaryKey: false, defaultValue: '', foreignKey: null, ...overrides }
 }
 
 describe('generateCreateTableSql', () => {
@@ -61,5 +61,25 @@ describe('generateCreateTableSql', () => {
         const sql = generateCreateTableSql('my table', [col({ name: 'my col', type: 'TEXT' })])
         expect(sql).toContain('"my table"')
         expect(sql).toContain('"my col"')
+    })
+
+    it('emits REFERENCES for a foreign key column', () => {
+        const sql = generateCreateTableSql('order_items', [
+            col({ name: 'id', type: 'INTEGER', primaryKey: true }),
+            col({ name: 'order_id', type: 'INTEGER', notNull: true, foreignKey: { table: 'orders', column: 'id' } }),
+        ])
+        expect(sql).toContain('REFERENCES "orders"("id")')
+    })
+
+    it('omits REFERENCES when foreignKey is null', () => {
+        const sql = generateCreateTableSql('t', [col({ name: 'x', type: 'INTEGER', foreignKey: null })])
+        expect(sql).not.toContain('REFERENCES')
+    })
+
+    it('omits REFERENCES when table or column is empty', () => {
+        const sql = generateCreateTableSql('t', [
+            col({ name: 'x', type: 'INTEGER', foreignKey: { table: 'orders', column: '' } }),
+        ])
+        expect(sql).not.toContain('REFERENCES')
     })
 })

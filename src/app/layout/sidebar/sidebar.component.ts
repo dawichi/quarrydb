@@ -14,6 +14,7 @@ export class SidebarComponent {
     private readonly expandedSections = signal<Set<string>>(new Set())
     private readonly expandedViews = signal<Set<string>>(new Set())
     private readonly expandedTriggers = signal<Set<string>>(new Set())
+    protected readonly pendingDrop = signal<{ alias: string; tableName: string } | null>(null)
 
     // ─── Public Methods ───────────────────────────────────────────────────────
     protected isExpanded(tableName: string): boolean {
@@ -57,6 +58,27 @@ export class SidebarComponent {
 
     protected toggleTrigger(triggerName: string): void {
         this.expandedTriggers.set(this.toggled(this.expandedTriggers(), triggerName))
+    }
+
+    protected initiateDrop(alias: string, tableName: string, event: Event): void {
+        event.stopPropagation()
+        this.pendingDrop.set({ alias, tableName })
+    }
+
+    protected cancelDrop(): void {
+        this.pendingDrop.set(null)
+    }
+
+    protected async confirmDrop(): Promise<void> {
+        const target = this.pendingDrop()
+        if (!target) return
+        this.pendingDrop.set(null)
+        await this.workspaceStore.dropTable(target.alias, target.tableName)
+    }
+
+    protected isPendingDrop(alias: string, tableName: string): boolean {
+        const p = this.pendingDrop()
+        return p?.alias === alias && p?.tableName === tableName
     }
 
     protected getFileName(path: string): string {

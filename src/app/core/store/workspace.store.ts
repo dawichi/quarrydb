@@ -83,6 +83,20 @@ export class WorkspaceStore {
         this.createTableTarget.set(null)
     }
 
+    async dropTable(alias: string, tableName: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, `DROP TABLE "${tableName}"`)
+        await this.reloadSchema(alias)
+        const sel = this.selectedTable()
+        if (sel?.schemaAlias === alias && sel?.tableName === tableName) {
+            this.selectedTable.set(null)
+            this.tableRows.set([])
+            this.tableColumns.set([])
+            this.tableRowTotal.set(0)
+        }
+    }
+
     async reloadSchema(alias: string): Promise<void> {
         const schema = this.schemas().find((s) => s.alias === alias)
         if (!schema) return
