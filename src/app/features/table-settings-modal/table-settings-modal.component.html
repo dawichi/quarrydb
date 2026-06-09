@@ -1,0 +1,205 @@
+@if (workspaceStore.tableSettingsTarget(); as target) {
+
+    <div
+        class="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-zinc-950/70 backdrop-blur-sm"
+        (click)="close()"
+    >
+        <div
+            class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+            (click)="$event.stopPropagation()"
+        >
+
+            <!-- ─── Settings view ─────────────────────────────────────────────── -->
+            @if (view() === 'settings') {
+
+                <!-- Header -->
+                <div class="flex items-center gap-3 px-5 py-4 border-b border-zinc-800">
+                    <svg aria-hidden="true" class="w-4 h-4 text-zinc-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-semibold text-zinc-100">Table Settings</h2>
+                        <p class="text-xs text-zinc-500 font-mono truncate">{{ target.tableName }}</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="text-zinc-600 hover:text-zinc-300 transition-colors flex-shrink-0"
+                        (click)="close()"
+                    >
+                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto max-h-[70vh]">
+
+                    <!-- Structure section -->
+                    <div class="px-5 py-4 border-b border-zinc-800">
+                        <h3 class="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-3">Structure</h3>
+                        <div class="space-y-1.5">
+                            @for (col of tableColumns(); track col.name) {
+                                <div class="flex items-center gap-2">
+                                    @if (col.primaryKey) {
+                                        <svg aria-hidden="true" class="w-3 h-3 text-sky-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 0 1 21.75 8.25Z" />
+                                        </svg>
+                                    } @else {
+                                        <span class="w-3 h-3 flex-shrink-0 flex items-center justify-center">
+                                            <span class="w-1 h-1 rounded-full bg-zinc-700"></span>
+                                        </span>
+                                    }
+                                    <span class="text-sm text-zinc-300 font-mono flex-1 truncate">{{ col.name }}</span>
+                                    <span class="text-xs text-zinc-600 flex-shrink-0">{{ col.type }}</span>
+                                    @if (!col.nullable) {
+                                        <span class="text-[10px] text-zinc-700 uppercase tracking-wide flex-shrink-0">not null</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="px-5 py-4">
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-red-900/40 bg-red-950/10 text-sm text-red-400 hover:bg-red-950/30 hover:border-red-800/60 hover:text-red-300 transition-colors text-left"
+                            (click)="showDropView()"
+                        >
+                            <svg aria-hidden="true" class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                            <span class="flex-1">Drop Table</span>
+                            <svg aria-hidden="true" class="w-3.5 h-3.5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </button>
+                    </div>
+
+                </div>
+
+            }
+
+            <!-- ─── Drop-confirm view ──────────────────────────────────────────── -->
+            @if (view() === 'drop') {
+
+                <!-- Header -->
+                <div class="flex items-center gap-3 px-5 py-4 border-b border-red-900/40">
+                    <svg aria-hidden="true" class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-semibold text-red-400">Drop Table</h2>
+                        <p class="text-xs text-zinc-500 font-mono truncate">{{ target.tableName }}</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="text-zinc-600 hover:text-zinc-300 transition-colors flex-shrink-0"
+                        [disabled]="isDropping()"
+                        (click)="close()"
+                    >
+                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto max-h-[70vh]">
+                    <div class="px-5 py-4 space-y-4">
+
+                        <p class="text-xs text-zinc-500">This action is permanent and cannot be undone.</p>
+
+                        <!-- Impact analysis -->
+                        @if (workspaceStore.isLoadingImpact()) {
+                            <div class="flex items-center gap-2 text-xs text-zinc-500">
+                                <svg aria-hidden="true" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <span>Analyzing impact…</span>
+                            </div>
+                        } @else if (workspaceStore.tableImpact(); as imp) {
+                            <div class="rounded-lg border border-red-900/30 bg-red-950/15 px-3 py-2.5 space-y-1.5 text-xs">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-red-400 flex-shrink-0 mt-px">→</span>
+                                    <span class="text-zinc-300">
+                                        <span class="font-semibold text-red-300">{{ formatCount(imp.rowCount) }} rows</span>
+                                        in <span class="font-mono text-zinc-200">{{ target.tableName }}</span> will be permanently deleted
+                                    </span>
+                                </div>
+
+                                @for (node of imp.cascadeNodes; track node.tableName) {
+                                    <div class="flex items-start gap-2" [style.paddingLeft.px]="node.depth * 16">
+                                        <span class="text-orange-400 flex-shrink-0 mt-px">→</span>
+                                        <span class="text-zinc-300">
+                                            <span class="font-semibold text-orange-300">{{ formatCount(node.rowCount) }} rows</span>
+                                            in <span class="font-mono text-zinc-200">{{ node.tableName }}</span>
+                                            <span class="text-zinc-600 ml-1">(CASCADE from <span class="font-mono">{{ node.parentTable }}</span>)</span>
+                                        </span>
+                                    </div>
+                                }
+
+                                @if (imp.cascadeNodes.length > 0) {
+                                    <div class="pt-2 mt-1 border-t border-red-900/30 flex items-center gap-2">
+                                        <span class="text-zinc-500">Total rows affected:</span>
+                                        <span class="font-semibold text-red-400">{{ formatCount(totalImpactRows()) }}</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Type-to-confirm -->
+                        <div class="space-y-1.5">
+                            <p class="text-xs text-zinc-400">
+                                Type <span class="font-mono text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded">{{ target.tableName }}</span> to confirm:
+                            </p>
+                            <input
+                                type="text"
+                                autocomplete="off"
+                                spellcheck="false"
+                                class="w-full px-3 py-2 rounded-md bg-zinc-900 border text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none transition-colors font-mono"
+                                [class]="confirmName() === target.tableName && confirmName().length > 0
+                                    ? 'border-red-600 focus:border-red-500'
+                                    : 'border-zinc-700 focus:border-zinc-600'"
+                                [placeholder]="target.tableName"
+                                [value]="confirmName()"
+                                (input)="onConfirmInput($event)"
+                            />
+                        </div>
+
+                        <!-- Error -->
+                        @if (dropError()) {
+                            <p class="text-xs text-red-400 bg-red-950/40 rounded px-2 py-1.5">{{ dropError() }}</p>
+                        }
+
+                        <!-- Actions -->
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                                [disabled]="isDropping()"
+                                (click)="backToSettings()"
+                            >Cancel</button>
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                                [class]="canDrop()
+                                    ? 'bg-red-700 hover:bg-red-600 text-white'
+                                    : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'"
+                                [disabled]="!canDrop()"
+                                (click)="drop()"
+                            >
+                                @if (isDropping()) { Dropping… } @else { Drop Table }
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            }
+
+        </div>
+    </div>
+
+}

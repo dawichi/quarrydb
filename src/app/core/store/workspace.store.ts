@@ -1,7 +1,7 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
 import type { DatabaseSchema, ForeignKey, Workspace } from '@quarrydb/shared'
 import { save } from '@tauri-apps/plugin-dialog'
-import { DatabaseService } from '../services/database.service'
+import { DatabaseService, type TableImpact } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
 import { RecentFilesService } from '../services/recent-files.service'
 import { SampleDatabaseService } from '../services/sample-database.service'
@@ -52,6 +52,9 @@ export class WorkspaceStore {
 
     readonly activeTab = signal<'browse' | 'query' | 'edit'>('browse')
     readonly createTableTarget = signal<{ alias: string; path: string } | null>(null)
+    readonly tableSettingsTarget = signal<{ alias: string; tableName: string } | null>(null)
+    readonly tableImpact = signal<TableImpact | null>(null)
+    readonly isLoadingImpact = signal(false)
     readonly browseFilter = signal<BrowseFilter | null>(null)
     readonly browseNavStack = signal<BrowseNavEntry[]>([])
 
@@ -81,6 +84,17 @@ export class WorkspaceStore {
 
     closeCreateTable(): void {
         this.createTableTarget.set(null)
+    }
+
+    openTableSettings(alias: string, tableName: string): void {
+        this.tableSettingsTarget.set({ alias, tableName })
+        this.tableImpact.set(null)
+        void this.loadTableImpact(alias, tableName)
+    }
+
+    closeTableSettings(): void {
+        this.tableSettingsTarget.set(null)
+        this.tableImpact.set(null)
     }
 
     async dropTable(alias: string, tableName: string): Promise<void> {
@@ -404,6 +418,19 @@ export class WorkspaceStore {
             this.error.set(`File not found: ${path.split('/').pop()}`)
         } finally {
             this.isLoading.set(false)
+        }
+    }
+
+    private async loadTableImpact(alias: string, tableName: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        const allTableNames = schema.tables.map((t) => t.name)
+        this.isLoadingImpact.set(true)
+        try {
+            const impact = await this.db.getTableImpact(schema.path, tableName, allTableNames)
+            this.tableImpact.set(impact)
+        } finally {
+            this.isLoadingImpact.set(false)
         }
     }
 

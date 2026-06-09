@@ -19,6 +19,20 @@ interface PragmaFKRow {
     table: string
     from: string
     to: string
+    on_update: string
+    on_delete: string
+}
+
+export interface CascadeNode {
+    tableName: string
+    rowCount: number
+    depth: number
+    parentTable: string
+}
+
+export interface TableImpact {
+    rowCount: number
+    cascadeNodes: CascadeNode[]
 }
 
 interface PragmaIndexRow {
@@ -147,6 +161,53 @@ export class DatabaseService {
                 await db.execute('ROLLBACK')
                 throw err
             }
+        } finally {
+            await db.close()
+        }
+    }
+
+    async getTableImpact(path: string, tableName: string, allTableNames: string[]): Promise<TableImpact> {
+        const db = await Database.load(`sqlite://${path}`)
+        try {
+            const countResult = await db.select<[{ count: number }]>(`SELECT COUNT(*) as count FROM "${tableName}"`)
+            const rowCount = countResult[0]?.count ?? 0
+
+            // Build FK map: otherTable → its declared FK rows
+            const fkMap = new Map<string, PragmaFKRow[]>()
+            for (const t of allTableNames) {
+                if (t === tableName) continue
+                const fks = await db.select<PragmaFKRow[]>(`PRAGMA foreign_key_list("${t}")`)
+                fkMap.set(t, fks)
+            }
+
+            // BFS following ON DELETE CASCADE edges to find the full domino chain
+            const cascadeNodes: CascadeNode[] = []
+            const visited = new Set<string>([tableName])
+            const queue: Array<{ table: string; depth: number }> = [{ table: tableName, depth: 0 }]
+
+            while (queue.length > 0) {
+                const item = queue.shift()
+                if (!item) break
+                const { table: current, depth } = item
+                for (const [otherTable, fks] of fkMap) {
+                    if (visited.has(otherTable)) continue
+                    const hasCascade = fks.some(
+                        (fk) => fk.table === current && fk.on_delete.toUpperCase() === 'CASCADE',
+                    )
+                    if (!hasCascade) continue
+                    visited.add(otherTable)
+                    const cnt = await db.select<[{ count: number }]>(`SELECT COUNT(*) as count FROM "${otherTable}"`)
+                    cascadeNodes.push({
+                        tableName: otherTable,
+                        rowCount: cnt[0]?.count ?? 0,
+                        depth: depth + 1,
+                        parentTable: current,
+                    })
+                    queue.push({ table: otherTable, depth: depth + 1 })
+                }
+            }
+
+            return { rowCount, cascadeNodes }
         } finally {
             await db.close()
         }

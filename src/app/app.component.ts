@@ -6,6 +6,7 @@ import { WorkspaceStore } from './core/store/workspace.store'
 import { CreateTableModalComponent } from './features/create-table-modal/create-table-modal.component'
 import { EditModeComponent } from './features/edit-mode/edit-mode.component'
 import { PipelineBuilderComponent } from './features/pipeline-builder/pipeline-builder.component'
+import { TableSettingsModalComponent } from './features/table-settings-modal/table-settings-modal.component'
 import { TableViewerComponent } from './features/table-viewer/table-viewer.component'
 import { TutorialOverlayComponent } from './features/tutorial/tutorial-overlay.component'
 import { UpdateBannerComponent } from './features/update-banner/update-banner.component'
@@ -25,6 +26,7 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
         UpdateBannerComponent,
         UpdateCheckModalComponent,
         CreateTableModalComponent,
+        TableSettingsModalComponent,
     ],
     templateUrl: './app.component.html',
 })
