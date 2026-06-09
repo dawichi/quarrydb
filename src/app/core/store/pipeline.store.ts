@@ -2,6 +2,7 @@ import { computed, Injectable, inject, signal } from '@angular/core'
 import type {
     Aggregation,
     GroupByStep,
+    JoinMode,
     JoinStep,
     JoinType,
     OrderByStep,
@@ -320,6 +321,11 @@ export class PipelineStore {
             prev.map((s, i) => (i === index ? ({ ...s, joinType, table, alias, on } as PipelineStep) : s)),
         )
         void this.executeFrom(index)
+    }
+
+    setJoinMode(index: number, mode: JoinMode): void {
+        this.pushToHistory()
+        this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, mode } as PipelineStep) : s)))
     }
 
     addGroupByStep(): void {

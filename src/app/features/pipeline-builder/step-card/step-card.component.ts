@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core'
-import type { AggFn, Aggregation, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
+import type { AggFn, Aggregation, JoinMode, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 import { WorkspaceStore } from '../../../core/store/workspace.store'
 
@@ -31,6 +31,7 @@ export class StepCardComponent implements OnInit {
     protected readonly groupByColumns = signal<string[]>([])
     protected readonly aggregations = signal<Aggregation[]>([])
     protected readonly AGG_FNS: AggFn[] = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
+    protected readonly joinMode = signal<JoinMode>('inline')
     protected readonly joinType = signal<JoinType>('INNER')
     protected readonly joinTable = signal('')
     protected readonly joinAlias = signal('')
@@ -72,6 +73,7 @@ export class StepCardComponent implements OnInit {
             this.aggregations.set(s.aggregations)
         }
         if (s.type === 'JOIN') {
+            this.joinMode.set(s.mode)
             this.joinType.set(s.joinType)
             this.joinTable.set(s.table)
             this.joinAlias.set(s.alias ?? '')
@@ -246,6 +248,11 @@ export class StepCardComponent implements OnInit {
     }
 
     // ─── JOIN methods ─────────────────────────────────────────────────────────
+    protected setJoinMode(mode: JoinMode): void {
+        this.joinMode.set(mode)
+        this.pipelineStore.setJoinMode(this.stepIndex(), mode)
+    }
+
     protected cycleJoinType(): void {
         const next = this.JOIN_TYPES[(this.JOIN_TYPES.indexOf(this.joinType()) + 1) % this.JOIN_TYPES.length]
         this.joinType.set(next)

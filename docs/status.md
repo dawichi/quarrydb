@@ -42,7 +42,7 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | Query history (opt-in) | ✅ Done |
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
 | Testing — Playwright E2E | ⬜ Post-MVP |
-| JOIN: branch input mode | ⬜ Post-MVP |
+| JOIN: branch input mode | ✅ Done |
 | JOIN: subpipeline mode | ⬜ Post-MVP |
 | Encrypted SQLite (SQLCipher) | ⬜ Post-MVP |
 | Schema management (DDL): tables, columns, indexes, views, triggers | ✅ Done |
@@ -53,9 +53,9 @@ See `docs/roadmap.md` for the long-term phased view (SQLite-complete → product
 multi-engine expansion). This list is the near-term, concrete slice of that.
 
 1. **Windows menu bar** — verify once a contributor tests on Windows.
-3. **JOIN: branch input & subpipeline modes** — see `docs/product-spec.md#join-modes` for
-   the build-order rationale, and `docs/post-mvp-scoping.md` for Goals/Non-goals before
-   starting either one.
+3. **JOIN: subpipeline mode** — see `docs/product-spec.md#join-modes` for the build-order
+   rationale, and `docs/post-mvp-scoping.md` for Goals/Non-goals before starting it.
+   (Branch input mode is done.)
 4. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
    build without architectural changes; deferred until users actually request it. See
    `docs/post-mvp-scoping.md` for Goals/Non-goals.
@@ -125,3 +125,4 @@ multiple features.
 | 2026-06-09 | DDL checkpoint 4: ALTER TABLE — add column (name, type, NOT NULL, optional DEFAULT), rename column, rename table; SQL preview panel on each operation; `WorkspaceStore` gains `alterAddColumn` / `alterRenameColumn` / `alterRenameTable` with `reselectIfOpen` so the open table refreshes in place; unit tests in `alter-table.utils.spec.ts` (9 tests) |
 | 2026-06-09 | DDL checkpoint 6: views & triggers — create, edit, drop; `ViewModal` and `TriggerModal` follow the same preview-before-execute pattern; edit wraps DROP + CREATE in `BEGIN/COMMIT` via `runDdlScript`; sidebar gains "+" buttons on Views/Triggers section headers and a pencil-on-hover edit button for each existing object |
 | 2026-06-09 | DDL checkpoint 5 (partial): drop column via rebuild dance — SQLite rebuild script (PRAGMA fk OFF → BEGIN → CREATE new → INSERT SELECT → DROP old → RENAME → recreate indexes → COMMIT → PRAGMA fk ON), drop button on hover for non-PK columns (hidden when only one column remains), type-the-column-name confirmation; `DatabaseService.runDdlScript()` runs the sequence and rolls back on failure; unit tests (7) for script structure / FK pruning / index survival; integration tests (4) for data preservation, index recreation, and rollback |
+| 2026-06-10 | JOIN: branch input mode — Y-shape two-slot visual layout as an alternative to the inline table picker; mode toggle (Inline/Branch) at the top of JOIN step cards; left slot shows the source table (read-only), right slot has the table picker + alias; SVG Y-connector with the JOIN type badge at the merge point; ON condition and column chips shared between both modes; same CTE/SQL generation as inline, no new query logic; `PipelineStore.setJoinMode()` persists mode changes without re-executing |

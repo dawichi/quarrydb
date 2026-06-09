@@ -80,35 +80,104 @@
     @if (step().type === 'JOIN') {
         <div class="p-3 flex flex-col gap-3">
 
-            <!-- Row 1: join type + table + alias -->
-            <div class="flex items-center gap-2 flex-wrap">
+            <!-- Mode toggle -->
+            <div class="flex gap-1">
                 <button
                     type="button"
-                    class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0"
-                    (click)="cycleJoinType()"
-                    title="Click to cycle: INNER → LEFT → RIGHT → FULL"
-                >{{ joinType() }}</button>
-                <span class="text-xs text-zinc-600 flex-shrink-0">JOIN</span>
-                <select
-                    class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 transition-colors"
-                    (change)="onJoinTableChange($event)"
-                >
-                    <option value="" [selected]="!joinTable()">Pick a table…</option>
-                    @for (t of availableTables(); track t.value) {
-                        <option [value]="t.value" [selected]="joinTable() === t.value">{{ t.label }}</option>
-                    }
-                </select>
-                <span class="text-xs text-zinc-600 flex-shrink-0">AS</span>
-                <input
-                    type="text"
-                    class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors font-mono"
-                    placeholder="alias"
-                    [value]="joinAlias()"
-                    (input)="onJoinAliasInput($event)"
-                />
+                    class="px-2 py-0.5 rounded text-xs transition-colors"
+                    [class]="joinMode() === 'inline' ? 'bg-zinc-700 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'"
+                    (click)="setJoinMode('inline')"
+                >Inline</button>
+                <button
+                    type="button"
+                    class="px-2 py-0.5 rounded text-xs transition-colors"
+                    [class]="joinMode() === 'branch' ? 'bg-zinc-700 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'"
+                    (click)="setJoinMode('branch')"
+                >Branch</button>
             </div>
 
-            <!-- ON condition -->
+            <!-- Inline mode: join type + table picker + alias in a row -->
+            @if (joinMode() === 'inline') {
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button
+                        type="button"
+                        class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0"
+                        (click)="cycleJoinType()"
+                        title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                    >{{ joinType() }}</button>
+                    <span class="text-xs text-zinc-600 flex-shrink-0">JOIN</span>
+                    <select
+                        class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 transition-colors"
+                        (change)="onJoinTableChange($event)"
+                    >
+                        <option value="" [selected]="!joinTable()">Pick a table…</option>
+                        @for (t of availableTables(); track t.value) {
+                            <option [value]="t.value" [selected]="joinTable() === t.value">{{ t.label }}</option>
+                        }
+                    </select>
+                    <span class="text-xs text-zinc-600 flex-shrink-0">AS</span>
+                    <input
+                        type="text"
+                        class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors font-mono"
+                        placeholder="alias"
+                        [value]="joinAlias()"
+                        (input)="onJoinAliasInput($event)"
+                    />
+                </div>
+            }
+
+            <!-- Branch mode: Y-shape two-input layout -->
+            @if (joinMode() === 'branch') {
+                <div class="flex flex-col gap-0">
+                    <!-- Two input slots -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Left slot: source (read-only) -->
+                        <div class="border border-zinc-700/60 rounded p-2 bg-zinc-950/40">
+                            <p class="text-xs text-zinc-600 mb-1">Left (source)</p>
+                            <p class="text-xs font-mono text-zinc-300 truncate">{{ pipelineStore.source()?.tableName ?? '—' }}</p>
+                        </div>
+                        <!-- Right slot: table picker + alias -->
+                        <div class="border border-zinc-700/60 rounded p-2 bg-zinc-950/40 flex flex-col gap-1.5">
+                            <p class="text-xs text-zinc-600">Right</p>
+                            <select
+                                class="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 transition-colors"
+                                (change)="onJoinTableChange($event)"
+                            >
+                                <option value="" [selected]="!joinTable()">Pick a table…</option>
+                                @for (t of availableTables(); track t.value) {
+                                    <option [value]="t.value" [selected]="joinTable() === t.value">{{ t.label }}</option>
+                                }
+                            </select>
+                            <input
+                                type="text"
+                                class="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors font-mono"
+                                placeholder="alias"
+                                [value]="joinAlias()"
+                                (input)="onJoinAliasInput($event)"
+                            />
+                        </div>
+                    </div>
+                    <!-- Y-connector -->
+                    <div class="flex flex-col items-center">
+                        <svg class="w-full" height="16" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true">
+                            <polyline points="25,0 25,8 50,8" fill="none" stroke="#52525b" stroke-width="1.5"/>
+                            <polyline points="75,0 75,8 50,8" fill="none" stroke="#52525b" stroke-width="1.5"/>
+                            <line x1="50" y1="8" x2="50" y2="16" stroke="#52525b" stroke-width="1.5"/>
+                        </svg>
+                        <button
+                            type="button"
+                            class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                            (click)="cycleJoinType()"
+                            title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                        >{{ joinType() }} JOIN</button>
+                        <svg class="w-px" height="8" aria-hidden="true">
+                            <line x1="0" y1="0" x2="0" y2="8" stroke="#52525b" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                </div>
+            }
+
+            <!-- ON condition — shared between inline and branch -->
             <div class="flex flex-col gap-2">
                 <textarea
                     #onTextarea
