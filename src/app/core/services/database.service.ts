@@ -39,6 +39,13 @@ interface PragmaIndexRow {
     seq: number
     name: string
     unique: number
+    origin: string
+}
+
+interface PragmaIndexInfoRow {
+    seqno: number
+    cid: number
+    name: string
 }
 
 interface SqliteMasterRow {
@@ -253,6 +260,11 @@ export class DatabaseService {
                 db.select<PragmaIndexRow[]>(`PRAGMA index_list("${row.name}")`),
             ])
 
+            const userIndexes = idxRows.filter((idx) => idx.origin === 'c')
+            const indexInfos = await Promise.all(
+                userIndexes.map((idx) => db.select<PragmaIndexInfoRow[]>(`PRAGMA index_info("${idx.name}")`)),
+            )
+
             tables.push({
                 name: row.name,
                 columns: columns.map((c) => ({
@@ -267,9 +279,9 @@ export class DatabaseService {
                     referencesTable: fk.table,
                     referencesColumn: fk.to,
                 })),
-                indexes: idxRows.map((idx) => ({
+                indexes: userIndexes.map((idx, i) => ({
                     name: idx.name,
-                    columns: [],
+                    columns: (indexInfos[i] ?? []).sort((a, b) => a.seqno - b.seqno).map((r) => r.name),
                     unique: idx.unique === 1,
                 })),
             })

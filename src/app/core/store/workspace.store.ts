@@ -97,6 +97,20 @@ export class WorkspaceStore {
         this.tableImpact.set(null)
     }
 
+    async createIndex(alias: string, sql: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, sql)
+        await this.reloadSchema(alias)
+    }
+
+    async dropIndex(alias: string, indexName: string): Promise<void> {
+        const schema = this.schemas().find((s) => s.alias === alias)
+        if (!schema) return
+        await this.db.runDdl(schema.path, `DROP INDEX "${indexName}"`)
+        await this.reloadSchema(alias)
+    }
+
     async dropTable(alias: string, tableName: string): Promise<void> {
         const schema = this.schemas().find((s) => s.alias === alias)
         if (!schema) return
