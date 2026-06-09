@@ -2,10 +2,11 @@ import { Component, computed, inject, input, OnInit, signal } from '@angular/cor
 import type { AggFn, Aggregation, JoinMode, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 import { WorkspaceStore } from '../../../core/store/workspace.store'
+import { SubpipelineEditorComponent } from './subpipeline-editor.component'
 
 @Component({
     selector: 'app-step-card',
-    imports: [],
+    imports: [SubpipelineEditorComponent],
     templateUrl: './step-card.component.html',
 })
 export class StepCardComponent implements OnInit {
@@ -36,6 +37,8 @@ export class StepCardComponent implements OnInit {
     protected readonly joinTable = signal('')
     protected readonly joinAlias = signal('')
     protected readonly joinOn = signal('')
+    protected readonly joinSubTable = signal('')
+    protected readonly joinSubSteps = signal<PipelineStep[]>([])
     protected readonly JOIN_TYPES: JoinType[] = ['INNER', 'LEFT', 'RIGHT', 'FULL']
     protected readonly availableTables = computed(() => {
         const srcAlias = this.pipelineStore.source()?.alias ?? ''
@@ -78,6 +81,8 @@ export class StepCardComponent implements OnInit {
             this.joinTable.set(s.table)
             this.joinAlias.set(s.alias ?? '')
             this.joinOn.set(s.on)
+            this.joinSubTable.set(s.subTable ?? '')
+            this.joinSubSteps.set(s.subSteps ?? [])
         }
     }
 
@@ -253,58 +258,52 @@ export class StepCardComponent implements OnInit {
         this.pipelineStore.setJoinMode(this.stepIndex(), mode)
     }
 
+    /** Commits the current join config signals via whichever store method matches the active mode. */
+    private commitJoinChanges(): void {
+        if (this.joinMode() === 'subpipeline') {
+            this.pipelineStore.updateSubpipelineJoin(
+                this.stepIndex(),
+                this.joinType(),
+                this.joinSubTable(),
+                this.joinSubSteps(),
+                this.joinAlias() || undefined,
+                this.joinOn(),
+            )
+        } else {
+            this.pipelineStore.updateJoinStep(
+                this.stepIndex(),
+                this.joinType(),
+                this.joinTable(),
+                this.joinAlias() || undefined,
+                this.joinOn(),
+            )
+        }
+    }
+
     protected cycleJoinType(): void {
         const next = this.JOIN_TYPES[(this.JOIN_TYPES.indexOf(this.joinType()) + 1) % this.JOIN_TYPES.length]
         this.joinType.set(next)
-        this.pipelineStore.updateJoinStep(
-            this.stepIndex(),
-            next,
-            this.joinTable(),
-            this.joinAlias() || undefined,
-            this.joinOn(),
-        )
+        this.commitJoinChanges()
     }
 
     protected onJoinTableChange(event: Event): void {
         const value = (event.target as HTMLSelectElement).value
         this.joinTable.set(value)
-        this.pipelineStore.updateJoinStep(
-            this.stepIndex(),
-            this.joinType(),
-            value,
-            this.joinAlias() || undefined,
-            this.joinOn(),
-        )
+        this.commitJoinChanges()
     }
 
     protected onJoinAliasInput(event: Event): void {
         const value = (event.target as HTMLInputElement).value
         this.joinAlias.set(value)
         if (this.debounceTimer) clearTimeout(this.debounceTimer)
-        this.debounceTimer = setTimeout(() => {
-            this.pipelineStore.updateJoinStep(
-                this.stepIndex(),
-                this.joinType(),
-                this.joinTable(),
-                value || undefined,
-                this.joinOn(),
-            )
-        }, 400)
+        this.debounceTimer = setTimeout(() => this.commitJoinChanges(), 400)
     }
 
     protected onJoinOnInput(event: Event): void {
         const value = (event.target as HTMLTextAreaElement).value
         this.joinOn.set(value)
         if (this.debounceTimer) clearTimeout(this.debounceTimer)
-        this.debounceTimer = setTimeout(() => {
-            this.pipelineStore.updateJoinStep(
-                this.stepIndex(),
-                this.joinType(),
-                this.joinTable(),
-                this.joinAlias() || undefined,
-                value,
-            )
-        }, 400)
+        this.debounceTimer = setTimeout(() => this.commitJoinChanges(), 400)
     }
 
     protected insertJoinColumn(textarea: HTMLTextAreaElement, col: string, qualify: boolean): void {
@@ -318,13 +317,17 @@ export class StepCardComponent implements OnInit {
             textarea.setSelectionRange(start + text.length, start + text.length)
             textarea.focus()
         }, 0)
-        this.pipelineStore.updateJoinStep(
-            this.stepIndex(),
-            this.joinType(),
-            this.joinTable(),
-            this.joinAlias() || undefined,
-            next,
-        )
+        this.commitJoinChanges()
+    }
+
+    protected onJoinSubTableChange(value: string): void {
+        this.joinSubTable.set(value)
+        this.commitJoinChanges()
+    }
+
+    protected onJoinSubStepsChange(value: PipelineStep[]): void {
+        this.joinSubSteps.set(value)
+        this.commitJoinChanges()
     }
 
     // ─── ORDER BY methods ─────────────────────────────────────────────────────
@@ -371,7 +374,10 @@ export class StepCardComponent implements OnInit {
         if (s.type === 'RAW_SQL') return !this.rawSql().trim()
         if (s.type === 'SELECT') return this.selectColumns().length === 0
         if (s.type === 'GROUP_BY') return this.groupByColumns().length === 0
-        if (s.type === 'JOIN') return !this.joinTable() || !this.joinOn().trim()
+        if (s.type === 'JOIN') {
+            const source = this.joinMode() === 'subpipeline' ? this.joinSubTable() : this.joinTable()
+            return !source || !this.joinOn().trim()
+        }
         return false
     }
 

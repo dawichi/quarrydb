@@ -94,6 +94,12 @@
                     [class]="joinMode() === 'branch' ? 'bg-zinc-700 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'"
                     (click)="setJoinMode('branch')"
                 >Branch</button>
+                <button
+                    type="button"
+                    class="px-2 py-0.5 rounded text-xs transition-colors"
+                    [class]="joinMode() === 'subpipeline' ? 'bg-zinc-700 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'"
+                    (click)="setJoinMode('subpipeline')"
+                >Subpipeline</button>
             </div>
 
             <!-- Inline mode: join type + table picker + alias in a row -->
@@ -177,7 +183,35 @@
                 </div>
             }
 
-            <!-- ON condition — shared between inline and branch -->
+            <!-- Subpipeline mode: nested pipeline as the right input -->
+            @if (joinMode() === 'subpipeline') {
+                <app-subpipeline-editor
+                    [subTable]="joinSubTable()"
+                    [subSteps]="joinSubSteps()"
+                    (subTableChange)="onJoinSubTableChange($event)"
+                    (subStepsChange)="onJoinSubStepsChange($event)"
+                ></app-subpipeline-editor>
+
+                <!-- Join type + alias for the subpipeline's output -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button
+                        type="button"
+                        class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0"
+                        (click)="cycleJoinType()"
+                        title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                    >{{ joinType() }}</button>
+                    <span class="text-xs text-zinc-600 flex-shrink-0">JOIN subpipeline output AS</span>
+                    <input
+                        type="text"
+                        class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors font-mono"
+                        placeholder="alias"
+                        [value]="joinAlias()"
+                        (input)="onJoinAliasInput($event)"
+                    />
+                </div>
+            }
+
+            <!-- ON condition — shared between inline, branch, and subpipeline -->
             <div class="flex flex-col gap-2">
                 <textarea
                     #onTextarea
@@ -202,8 +236,10 @@
                     </div>
                 }
 
-                <!-- Right column chips (joined table) -->
-                @if (joinTableColumns().length > 0) {
+                <!-- Right column chips (joined table / subpipeline output) -->
+                @if (joinMode() === 'subpipeline') {
+                    <p class="text-xs text-zinc-600 italic">Right side is the subpipeline output — reference its columns by alias, e.g. {{ joinAlias() || 'alias' }}.column</p>
+                } @else if (joinTableColumns().length > 0) {
                     <div class="flex flex-wrap gap-1">
                         <span class="text-xs text-zinc-600 self-center">Right:</span>
                         @for (col of joinTableColumns(); track col) {

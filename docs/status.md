@@ -43,7 +43,7 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
 | Testing — Playwright E2E | ⬜ Post-MVP |
 | JOIN: branch input mode | ✅ Done |
-| JOIN: subpipeline mode | ⬜ Post-MVP |
+| JOIN: subpipeline mode | ✅ Done |
 | Encrypted SQLite (SQLCipher) | ⬜ Post-MVP |
 | Schema management (DDL): tables, columns, indexes, views, triggers | ✅ Done |
 
@@ -53,13 +53,10 @@ See `docs/roadmap.md` for the long-term phased view (SQLite-complete → product
 multi-engine expansion). This list is the near-term, concrete slice of that.
 
 1. **Windows menu bar** — verify once a contributor tests on Windows.
-3. **JOIN: subpipeline mode** — see `docs/product-spec.md#join-modes` for the build-order
-   rationale, and `docs/post-mvp-scoping.md` for Goals/Non-goals before starting it.
-   (Branch input mode is done.)
-4. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
+2. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
    build without architectural changes; deferred until users actually request it. See
    `docs/post-mvp-scoping.md` for Goals/Non-goals.
-5. **Code signing** — Apple notarization + Windows EV certificate, see
+3. **Code signing** — Apple notarization + Windows EV certificate, see
    `docs/architecture.md#known-platform-issues`. Deliberately deferred — the project has
    no users yet, the workaround is trivial, and the source being public/open already
    signals legitimacy to the early-adopter audience that would install it first. Revisit
@@ -126,3 +123,4 @@ multiple features.
 | 2026-06-09 | DDL checkpoint 6: views & triggers — create, edit, drop; `ViewModal` and `TriggerModal` follow the same preview-before-execute pattern; edit wraps DROP + CREATE in `BEGIN/COMMIT` via `runDdlScript`; sidebar gains "+" buttons on Views/Triggers section headers and a pencil-on-hover edit button for each existing object |
 | 2026-06-09 | DDL checkpoint 5 (partial): drop column via rebuild dance — SQLite rebuild script (PRAGMA fk OFF → BEGIN → CREATE new → INSERT SELECT → DROP old → RENAME → recreate indexes → COMMIT → PRAGMA fk ON), drop button on hover for non-PK columns (hidden when only one column remains), type-the-column-name confirmation; `DatabaseService.runDdlScript()` runs the sequence and rolls back on failure; unit tests (7) for script structure / FK pruning / index survival; integration tests (4) for data preservation, index recreation, and rollback |
 | 2026-06-10 | JOIN: branch input mode — Y-shape two-slot visual layout as an alternative to the inline table picker; mode toggle (Inline/Branch) at the top of JOIN step cards; left slot shows the source table (read-only), right slot has the table picker + alias; SVG Y-connector with the JOIN type badge at the merge point; ON condition and column chips shared between both modes; same CTE/SQL generation as inline, no new query logic; `PipelineStore.setJoinMode()` persists mode changes without re-executing |
+| 2026-06-10 | JOIN: subpipeline mode — third JOIN mode alongside Inline/Branch; `app-subpipeline-editor` lets the right side of a JOIN be a small nested pipeline (source table + WHERE/SELECT/ORDER BY/GROUP BY/JOIN/RAW SQL steps, one level deep — no nested subpipelines per `docs/post-mvp-scoping.md`); `pushSubpipelineJoinCtes` compiles the nested steps into a flat, uniquely-prefixed CTE chain (`step_N_sub_1..k`) merged into the outer pipeline via the JOIN's own CTE; no live per-step preview inside the editor, only the outer JOIN step's result; 7 new unit tests in `pipeline.store.spec.ts` cover pass-through, sub-CTE chaining, multi-step chains, continuation of the outer pipeline, and `:variable` substitution in both the ON clause and sub-steps |

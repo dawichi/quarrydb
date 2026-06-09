@@ -315,6 +315,167 @@ describe('buildPipelineSql', () => {
         })
     })
 
+    // ─── JOIN: subpipeline mode ────────────────────────────────────────────────
+
+    describe('JOIN step — subpipeline mode', () => {
+        it('passes through when subTable is missing', () => {
+            const steps: PipelineStep[] = [
+                { id, type: 'JOIN', mode: 'subpipeline', joinType: 'INNER', table: '', on: 'step_1.id = o.user_id' },
+            ]
+            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
+        })
+
+        it('passes through when ON clause is missing', () => {
+            const steps: PipelineStep[] = [
+                {
+                    id,
+                    type: 'JOIN',
+                    mode: 'subpipeline',
+                    joinType: 'INNER',
+                    table: '',
+                    on: '',
+                    subTable: 'orders',
+                    subSteps: [],
+                },
+            ]
+            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
+        })
+
+        it('generates a flat sub-CTE chain with no sub-steps', () => {
+            const steps: PipelineStep[] = [
+                {
+                    id,
+                    type: 'JOIN',
+                    mode: 'subpipeline',
+                    joinType: 'INNER',
+                    table: '',
+                    alias: 'o',
+                    on: 'step_1.id = o.user_id',
+                    subTable: 'orders',
+                    subSteps: [],
+                },
+            ]
+            expect(buildPipelineSql('users', steps)).toBe(
+                [
+                    'WITH step_1 AS (SELECT * FROM "users"),',
+                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
+                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_1 AS "o" ON step_1.id = o.user_id)',
+                    'SELECT * FROM step_2',
+                ].join('\n'),
+            )
+        })
+
+        it('chains a WHERE sub-step before the join', () => {
+            const steps: PipelineStep[] = [
+                {
+                    id,
+                    type: 'JOIN',
+                    mode: 'subpipeline',
+                    joinType: 'INNER',
+                    table: '',
+                    alias: 'o',
+                    on: 'step_1.id = o.user_id',
+                    subTable: 'orders',
+                    subSteps: [{ id: 'sub1', type: 'WHERE', expression: 'amount > 100' }],
+                },
+            ]
+            expect(buildPipelineSql('users', steps)).toBe(
+                [
+                    'WITH step_1 AS (SELECT * FROM "users"),',
+                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
+                    '     step_2_sub_2 AS (SELECT * FROM step_2_sub_1 WHERE amount > 100),',
+                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_2 AS "o" ON step_1.id = o.user_id)',
+                    'SELECT * FROM step_2',
+                ].join('\n'),
+            )
+        })
+
+        it('chains multiple sub-steps (WHERE then GROUP BY)', () => {
+            const steps: PipelineStep[] = [
+                {
+                    id,
+                    type: 'JOIN',
+                    mode: 'subpipeline',
+                    joinType: 'LEFT',
+                    table: '',
+                    alias: 'o',
+                    on: 'step_1.id = o.user_id',
+                    subTable: 'orders',
+                    subSteps: [
+                        { id: 'sub1', type: 'WHERE', expression: 'amount > 100' },
+                        {
+                            id: 'sub2',
+                            type: 'GROUP_BY',
+                            groupBy: ['user_id'],
+                            aggregations: [{ fn: 'SUM', expr: 'amount', alias: 'total' }],
+                        },
+                    ],
+                },
+            ]
+            expect(buildPipelineSql('users', steps)).toBe(
+                [
+                    'WITH step_1 AS (SELECT * FROM "users"),',
+                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
+                    '     step_2_sub_2 AS (SELECT * FROM step_2_sub_1 WHERE amount > 100),',
+                    '     step_2_sub_3 AS (SELECT "user_id", SUM(amount) AS "total" FROM step_2_sub_2 GROUP BY "user_id"),',
+                    '     step_2 AS (SELECT * FROM step_1 LEFT JOIN step_2_sub_3 AS "o" ON step_1.id = o.user_id)',
+                    'SELECT * FROM step_2',
+                ].join('\n'),
+            )
+        })
+
+        it('continues the outer pipeline after a subpipeline JOIN', () => {
+            const steps: PipelineStep[] = [
+                {
+                    id: 's1',
+                    type: 'JOIN',
+                    mode: 'subpipeline',
+                    joinType: 'INNER',
+                    table: '',
+                    alias: 'o',
+                    on: 'step_1.id = o.user_id',
+                    subTable: 'orders',
+                    subSteps: [],
+                },
+                { id: 's2', type: 'WHERE', expression: 'o.user_id IS NOT NULL' },
+            ]
+            expect(buildPipelineSql('users', steps)).toBe(
+                [
+                    'WITH step_1 AS (SELECT * FROM "users"),',
+                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
+                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_1 AS "o" ON step_1.id = o.user_id),',
+                    '     step_3 AS (SELECT * FROM step_2 WHERE o.user_id IS NOT NULL)',
+                    'SELECT * FROM step_3',
+                ].join('\n'),
+            )
+        })
+
+        it('substitutes variables in both the ON clause and sub-step expressions', () => {
+            const steps: PipelineStep[] = [
+                {
+                    id,
+                    type: 'JOIN',
+                    mode: 'subpipeline',
+                    joinType: 'INNER',
+                    table: '',
+                    alias: 'o',
+                    on: 'step_1.id = o.user_id AND o.amount > :minAmount',
+                    subTable: 'orders',
+                    subSteps: [{ id: 'sub1', type: 'WHERE', expression: 'amount > :minAmount' }],
+                },
+            ]
+            expect(buildPipelineSql('users', steps, { minAmount: '100' })).toBe(
+                [
+                    'WITH step_1 AS (SELECT * FROM "users"),',
+                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
+                    '     step_2_sub_2 AS (SELECT * FROM step_2_sub_1 WHERE amount > 100),',
+                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_2 AS "o" ON step_1.id = o.user_id AND o.amount > 100)',
+                    'SELECT * FROM step_2',
+                ].join('\n'),
+            )
+        })
+    })
+
     // ─── RAW SQL ──────────────────────────────────────────────────────────────
 
     describe('RAW SQL step', () => {

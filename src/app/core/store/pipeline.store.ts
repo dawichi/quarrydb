@@ -63,7 +63,7 @@ function getStepTexts(step: PipelineStep): string[] {
         case 'GROUP_BY':
             return step.aggregations.flatMap((a) => [a.expr, a.alias])
         case 'JOIN':
-            return [step.on, step.table]
+            return [step.on, step.table, ...(step.subSteps ?? []).flatMap(getStepTexts)]
         case 'RAW_SQL':
             return [step.sql]
         default:
@@ -126,6 +126,37 @@ function buildStepCte(prev: string, step: PipelineStep, vars: Record<string, str
     }
 }
 
+/**
+ * Appends the CTE chain for a JOIN step's nested subpipeline (prefixed `${curr}_sub_N`
+ * to stay unique alongside the outer `step_N` chain), then the JOIN step's own CTE
+ * referencing the final subpipeline CTE as its right-hand side.
+ */
+function pushSubpipelineJoinCtes(
+    ctes: string[],
+    step: JoinStep,
+    prev: string,
+    curr: string,
+    vars: Record<string, string>,
+): void {
+    const subTable = step.subTable ?? ''
+    const subSteps = step.subSteps ?? []
+    if (!subTable || !step.on.trim()) {
+        ctes.push(`${curr} AS (SELECT * FROM ${prev})`)
+        return
+    }
+
+    const prefix = `${curr}_sub`
+    ctes.push(`${prefix}_1 AS (SELECT * FROM "${subTable}")`)
+    for (let j = 0; j < subSteps.length; j++) {
+        ctes.push(`${prefix}_${j + 2} AS (${buildStepCte(`${prefix}_${j + 1}`, subSteps[j], vars)})`)
+    }
+    const finalSub = `${prefix}_${subSteps.length + 1}`
+    const alias = step.alias ? ` AS "${step.alias}"` : ''
+    ctes.push(
+        `${curr} AS (SELECT * FROM ${prev} ${step.joinType} JOIN ${finalSub}${alias} ON ${substituteVars(step.on, vars)})`,
+    )
+}
+
 export function buildPipelineSql(tableName: string, steps: PipelineStep[], vars: Record<string, string> = {}): string {
     if (steps.length === 0) return `SELECT * FROM "${tableName}"`
 
@@ -133,7 +164,12 @@ export function buildPipelineSql(tableName: string, steps: PipelineStep[], vars:
     for (let i = 0; i < steps.length; i++) {
         const prev = `step_${i + 1}`
         const curr = `step_${i + 2}`
-        ctes.push(`${curr} AS (${buildStepCte(prev, steps[i], vars)})`)
+        const step = steps[i]
+        if (step.type === 'JOIN' && step.mode === 'subpipeline') {
+            pushSubpipelineJoinCtes(ctes, step, prev, curr, vars)
+        } else {
+            ctes.push(`${curr} AS (${buildStepCte(prev, step, vars)})`)
+        }
     }
     return `WITH ${ctes.join(',\n     ')}\nSELECT * FROM step_${steps.length + 1}`
 }
@@ -323,6 +359,21 @@ export class PipelineStore {
         void this.executeFrom(index)
     }
 
+    updateSubpipelineJoin(
+        index: number,
+        joinType: JoinType,
+        subTable: string,
+        subSteps: PipelineStep[],
+        alias: string | undefined,
+        on: string,
+    ): void {
+        this.pushToHistory()
+        this.steps.update((prev) =>
+            prev.map((s, i) => (i === index ? ({ ...s, joinType, subTable, subSteps, alias, on } as PipelineStep) : s)),
+        )
+        void this.executeFrom(index)
+    }
+
     setJoinMode(index: number, mode: JoinMode): void {
         this.pushToHistory()
         this.steps.update((prev) => prev.map((s, i) => (i === index ? ({ ...s, mode } as PipelineStep) : s)))
@@ -448,9 +499,12 @@ export class PipelineStore {
                 this.setResult(i, { ...EMPTY_RESULT })
                 continue
             }
-            if (step.type === 'JOIN' && (!step.table || !step.on.trim())) {
-                this.setResult(i, { ...EMPTY_RESULT })
-                continue
+            if (step.type === 'JOIN') {
+                const source = step.mode === 'subpipeline' ? step.subTable : step.table
+                if (!source || !step.on.trim()) {
+                    this.setResult(i, { ...EMPTY_RESULT })
+                    continue
+                }
             }
             if (step.type === 'GROUP_BY' && step.groupBy.length === 0) {
                 this.setResult(i, { ...EMPTY_RESULT })

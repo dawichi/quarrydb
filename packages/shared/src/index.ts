@@ -57,6 +57,10 @@ export interface JoinStep extends BaseStep {
     table: string
     alias?: string
     on: string
+    /** Subpipeline mode: source table for the nested pipeline. */
+    subTable?: string
+    /** Subpipeline mode: steps applied to `subTable` before joining. May not itself contain a subpipeline-mode JOIN. */
+    subSteps?: PipelineStep[]
 }
 
 export interface RawSqlStep extends BaseStep {

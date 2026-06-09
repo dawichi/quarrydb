@@ -1,0 +1,277 @@
+<div class="flex flex-col gap-2">
+
+    <!-- Source table picker -->
+    <div class="flex items-center gap-2">
+        <span class="text-xs text-zinc-600 flex-shrink-0">Subpipeline source</span>
+        <select
+            class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 transition-colors"
+            (change)="onSubTableChange($event)"
+        >
+            <option value="" [selected]="!localSubTable()">Pick a table…</option>
+            @for (t of availableTables(); track t.value) {
+                <option [value]="t.value" [selected]="localSubTable() === t.value">{{ t.label }}</option>
+            }
+        </select>
+    </div>
+
+    @if (localSubTable()) {
+        <!-- Sub-steps -->
+        @for (subStep of localSubSteps(); track subStep.id; let j = $index) {
+            <div class="border border-zinc-700/60 rounded bg-zinc-950/40">
+                <div class="flex items-center justify-between px-2 py-1 border-b border-zinc-700/40">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-sky-500/80">{{ subStep.type.replaceAll('_', ' ') }}</span>
+                    <button
+                        type="button"
+                        class="text-zinc-600 hover:text-zinc-300 transition-colors px-0.5"
+                        (click)="removeSubStep(j)"
+                        title="Remove step"
+                    >×</button>
+                </div>
+
+                <div class="p-2 flex flex-col gap-1.5">
+
+                    <!-- WHERE -->
+                    @if (subStep.type === 'WHERE') {
+                        <textarea
+                            #subWhereTA
+                            class="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-sky-500/50 transition-colors"
+                            rows="2"
+                            placeholder="e.g. amount > 100"
+                            [value]="subStep.expression"
+                            (input)="onSubWhereInput(j, $event)"
+                        ></textarea>
+                        @if (subTableColumns().length) {
+                            <div class="flex flex-wrap gap-1">
+                                @for (col of subTableColumns(); track col) {
+                                    <button
+                                        type="button"
+                                        class="px-1.5 py-0.5 rounded text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors font-mono"
+                                        (click)="insertSubWhereColumn(j, subWhereTA, col)"
+                                    >{{ col }}</button>
+                                }
+                            </div>
+                        }
+                    }
+
+                    <!-- RAW SQL -->
+                    @if (subStep.type === 'RAW_SQL') {
+                        <textarea
+                            class="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-sky-500/50 transition-colors"
+                            rows="3"
+                            placeholder="SELECT * FROM {src} WHERE ..."
+                            [value]="subStep.sql"
+                            (input)="onSubRawSqlInput(j, $event)"
+                        ></textarea>
+                        <p class="text-xs text-zinc-600">Use <code class="text-zinc-500 font-mono">{{ rawSqlHint }}</code> to reference the previous sub-step's output</p>
+                    }
+
+                    <!-- SELECT -->
+                    @if (subStep.type === 'SELECT') {
+                        @if (subTableColumns().length) {
+                            <div class="flex flex-wrap gap-1">
+                                @for (col of subTableColumns(); track col) {
+                                    <button
+                                        type="button"
+                                        class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
+                                        [class]="isSubSelectColumn(j, col)
+                                            ? 'bg-sky-500/20 text-sky-400 ring-1 ring-sky-500/30 hover:bg-sky-500/10'
+                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
+                                        (click)="toggleSubSelectColumn(j, col)"
+                                    >{{ col }}</button>
+                                }
+                            </div>
+                        } @else {
+                            <p class="text-xs text-zinc-600 italic">No columns found for source table</p>
+                        }
+                    }
+
+                    <!-- ORDER BY -->
+                    @if (subStep.type === 'ORDER_BY') {
+                        @if (subStep.columns.length > 0) {
+                            <div class="flex flex-col gap-1">
+                                @for (col of subStep.columns; track col.name; let k = $index) {
+                                    <div class="flex items-center gap-2 px-2 py-1 rounded bg-zinc-800 text-xs">
+                                        <span class="font-mono text-zinc-200 flex-1">{{ col.name }}</span>
+                                        <button
+                                            type="button"
+                                            class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold transition-colors"
+                                            [class]="col.direction === 'ASC'
+                                                ? 'text-sky-400 bg-sky-500/10 hover:bg-sky-500/20'
+                                                : 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'"
+                                            (click)="toggleSubSortDirection(j, k)"
+                                        >{{ col.direction }}</button>
+                                        <button
+                                            type="button"
+                                            class="text-zinc-600 hover:text-zinc-300 transition-colors px-0.5"
+                                            (click)="removeSubSortColumn(j, k)"
+                                        >×</button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (subTableColumns().length) {
+                            <div class="flex flex-wrap gap-1">
+                                @for (col of subTableColumns(); track col) {
+                                    <button
+                                        type="button"
+                                        class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
+                                        [class]="isSubSortColumn(j, col)
+                                            ? 'bg-sky-500/15 text-sky-400 cursor-default'
+                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
+                                        [disabled]="isSubSortColumn(j, col)"
+                                        (click)="addSubSortColumn(j, col)"
+                                    >{{ col }}</button>
+                                }
+                            </div>
+                        }
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-zinc-500 w-8">Limit</span>
+                            <input
+                                type="number"
+                                min="1"
+                                class="w-24 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors"
+                                placeholder="no limit"
+                                [value]="subStep.limit ?? ''"
+                                (input)="onSubLimitChange(j, $event)"
+                            />
+                        </div>
+                    }
+
+                    <!-- GROUP BY -->
+                    @if (subStep.type === 'GROUP_BY') {
+                        @if (subTableColumns().length) {
+                            <div class="flex flex-wrap gap-1">
+                                @for (col of subTableColumns(); track col) {
+                                    <button
+                                        type="button"
+                                        class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
+                                        [class]="isSubGroupByColumn(j, col)
+                                            ? 'bg-sky-500/20 text-sky-400 ring-1 ring-sky-500/30 hover:bg-sky-500/10'
+                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'"
+                                        (click)="toggleSubGroupByColumn(j, col)"
+                                    >{{ col }}</button>
+                                }
+                            </div>
+                        }
+                        @if (subStep.aggregations.length > 0) {
+                            <div class="flex flex-col gap-1">
+                                @for (agg of subStep.aggregations; track $index; let k = $index) {
+                                    <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800 text-xs">
+                                        <button
+                                            type="button"
+                                            class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0 w-14 text-center"
+                                            (click)="cycleSubAggFn(j, k)"
+                                        >{{ agg.fn }}</button>
+                                        <span class="text-zinc-600 flex-shrink-0">(</span>
+                                        <input
+                                            type="text"
+                                            class="flex-1 bg-transparent text-zinc-200 font-mono focus:outline-none placeholder-zinc-600 min-w-0"
+                                            placeholder="*"
+                                            [value]="agg.expr"
+                                            (input)="onSubAggExprInput(j, k, $event)"
+                                        />
+                                        <span class="text-zinc-600 flex-shrink-0">) AS</span>
+                                        <input
+                                            type="text"
+                                            class="w-20 bg-transparent text-zinc-400 font-mono focus:outline-none placeholder-zinc-700 border-b border-zinc-700 focus:border-sky-500/50 transition-colors"
+                                            placeholder="alias"
+                                            [value]="agg.alias"
+                                            (input)="onSubAggAliasInput(j, k, $event)"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="text-zinc-600 hover:text-zinc-300 transition-colors px-0.5 flex-shrink-0"
+                                            (click)="removeSubAggregation(j, k)"
+                                        >×</button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <button
+                            type="button"
+                            class="self-start text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                            (click)="addSubAggregation(j)"
+                        >+ Aggregation</button>
+                    }
+
+                    <!-- JOIN (inline only) -->
+                    @if (subStep.type === 'JOIN') {
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0"
+                                (click)="cycleSubJoinType(j)"
+                                title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                            >{{ subStep.joinType }}</button>
+                            <span class="text-xs text-zinc-600 flex-shrink-0">JOIN</span>
+                            <select
+                                class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 transition-colors"
+                                (change)="onSubJoinTableChange(j, $event)"
+                            >
+                                <option value="" [selected]="!subStep.table">Pick a table…</option>
+                                @for (t of availableTables(); track t.value) {
+                                    <option [value]="t.value" [selected]="subStep.table === t.value">{{ t.label }}</option>
+                                }
+                            </select>
+                            <span class="text-xs text-zinc-600 flex-shrink-0">AS</span>
+                            <input
+                                type="text"
+                                class="w-20 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 transition-colors font-mono"
+                                placeholder="alias"
+                                [value]="subStep.alias ?? ''"
+                                (input)="onSubJoinAliasInput(j, $event)"
+                            />
+                        </div>
+                        <textarea
+                            #subJoinOnTA
+                            class="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-sky-500/50 transition-colors"
+                            rows="2"
+                            placeholder="e.g. step.id = orders.user_id"
+                            [value]="subStep.on"
+                            (input)="onSubJoinOnInput(j, $event)"
+                        ></textarea>
+                        @if (subTableColumns().length) {
+                            <div class="flex flex-wrap gap-1">
+                                <span class="text-xs text-zinc-600 self-center">Left:</span>
+                                @for (col of subTableColumns(); track col) {
+                                    <button
+                                        type="button"
+                                        class="px-1.5 py-0.5 rounded text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors font-mono"
+                                        (click)="insertSubJoinColumn(j, subJoinOnTA, col, false)"
+                                    >{{ col }}</button>
+                                }
+                            </div>
+                        }
+                        @if (subStepJoinTableColumns(j).length) {
+                            <div class="flex flex-wrap gap-1">
+                                <span class="text-xs text-zinc-600 self-center">Right:</span>
+                                @for (col of subStepJoinTableColumns(j); track col) {
+                                    <button
+                                        type="button"
+                                        class="px-1.5 py-0.5 rounded text-xs bg-zinc-800 text-blue-400 hover:bg-zinc-700 hover:text-blue-200 transition-colors font-mono"
+                                        (click)="insertSubJoinColumn(j, subJoinOnTA, col, true)"
+                                    >{{ col }}</button>
+                                }
+                            </div>
+                        }
+                    }
+
+                </div>
+            </div>
+        }
+
+        <!-- Add step buttons -->
+        <div class="flex flex-wrap gap-1">
+            @for (st of STEP_TYPES; track st.type) {
+                <button
+                    type="button"
+                    class="px-1.5 py-0.5 rounded text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                    (click)="addSubStep(st.type)"
+                >+ {{ st.label }}</button>
+            }
+        </div>
+    } @else {
+        <p class="text-xs text-zinc-600 italic">Pick a source table to start building the subpipeline</p>
+    }
+
+</div>
