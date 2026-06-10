@@ -14,6 +14,8 @@ start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(
 | [roadmap.md](roadmap.md) | Long-term vision and phased checkpoints for the SQLite-first → multi-engine transition |
 | [multi-engine-architecture.md](multi-engine-architecture.md) | Provider model for evolving Quarry from a SQLite-first app into a broader database manager |
 | [mysql-provider-plan.md](mysql-provider-plan.md) | Scope, UI model, connection model, and non-goals for MySQL as Quarry's second provider |
+| [provider-contract-plan.md](provider-contract-plan.md) | Proposed TypeScript contracts for provider identity, recent items, workspace payloads, capabilities, and backend adapters |
+| [provider-refactor-checklist.md](provider-refactor-checklist.md) | File-by-file implementation checklist for moving the app from SQLite-global state to a provider-based shell |
 | [schema-management-plan.md](schema-management-plan.md) | Historical build-order plan for SQLite DDL support (create/alter/drop tables, columns, indexes, views, triggers) |
 | [post-mvp-scoping.md](post-mvp-scoping.md) | Goals/Non-goals notes for post-MVP features, written before starting them |
 

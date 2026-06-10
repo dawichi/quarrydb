@@ -222,6 +222,9 @@ The first implementation milestone should be architectural, not user-facing.
 
 Only after that should MySQL-specific connection and workspace work begin.
 
+The proposed TypeScript-facing contract for that refactor is captured in
+`docs/provider-contract-plan.md`.
+
 ## MySQL v1 Scope
 
 The goal of MySQL v1 is not "parity with every SQLite feature on day one."
@@ -272,3 +275,4 @@ The correct near-term direction is:
 - `architecture.md`
 - `product-spec.md`
 - `mysql-provider-plan.md`
+- `provider-contract-plan.md`
