@@ -5,7 +5,10 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@quarrydb/shared": ["./packages/shared/src/index.ts"]
+      "@quarrydb/shared": ["./packages/shared/src/index.ts"],
+      "@quarrydb/shared/provider": ["./packages/shared/src/provider.ts"],
+      "@quarrydb/shared/recent-item": ["./packages/shared/src/recent-item.ts"],
+      "@quarrydb/shared/session": ["./packages/shared/src/session.ts"]
     },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,

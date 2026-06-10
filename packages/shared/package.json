@@ -3,7 +3,10 @@
     "version": "0.1.0",
     "private": true,
     "exports": {
-        ".": "./src/index.ts"
+        ".": "./src/index.ts",
+        "./provider": "./src/provider.ts",
+        "./recent-item": "./src/recent-item.ts",
+        "./session": "./src/session.ts"
     },
     "types": "./src/index.ts"
 }

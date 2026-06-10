@@ -1,19 +1,21 @@
 import { Injectable, inject } from '@angular/core'
-import type { DatabaseSchema, PipelineStep } from '@quarrydb/shared'
+import type { DatabaseSchema } from '@quarrydb/shared'
+import type {
+    SqlitePipelineSessionState,
+    SqliteWorkspaceDatabase,
+    SqliteWorkspaceSelection,
+    WorkspaceTab,
+} from '@quarrydb/shared/session'
 import { PipelineStore } from '../store/pipeline.store'
 import { WorkspaceStore } from '../store/workspace.store'
 import { DatabaseService } from './database.service'
 
 interface PersistedSession {
     version: 1
-    databases: { path: string; alias: string }[]
-    activeTab: 'browse' | 'query' | 'edit'
-    selectedTable: { schemaAlias: string; tableName: string } | null
-    pipeline: {
-        source: { path: string; alias: string; tableName: string; columns: string[] } | null
-        steps: PipelineStep[]
-        variableValues: Record<string, string>
-    }
+    databases: SqliteWorkspaceDatabase[]
+    activeTab: WorkspaceTab
+    selectedTable: SqliteWorkspaceSelection | null
+    pipeline: SqlitePipelineSessionState
 }
 
 const SESSION_KEY = 'quarry_session'
