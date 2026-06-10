@@ -10,6 +10,6 @@ export const appConfig: ApplicationConfig = {
         provideBrowserGlobalErrorListeners(),
         provideZoneChangeDetection({ eventCoalescing: true }),
         provideRouter(routes),
-        { provide: SqliteWorkspaceStore, useExisting: WorkspaceStore },
+        { provide: WorkspaceStore, useExisting: SqliteWorkspaceStore },
     ],
 }
