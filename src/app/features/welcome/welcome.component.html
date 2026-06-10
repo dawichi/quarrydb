@@ -22,23 +22,28 @@
 
         <div>
             <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Recent</h2>
-            @if (recentFiles.length === 0) {
-                <p class="text-xs text-zinc-600 italic">No recent files</p>
+            @if (recentItems.length === 0) {
+                <p class="text-xs text-zinc-600 italic">No recent items</p>
             } @else {
                 <div class="flex flex-col gap-0.5">
-                    @for (file of recentFiles; track file.path) {
+                    @for (item of recentItems; track item.id) {
                         <button
                             type="button"
-                            class="group flex items-center gap-2 px-3 py-2 rounded-md text-left w-full transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="group flex items-start gap-2 px-3 py-2 rounded-md text-left w-full transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
                             [disabled]="workspaceStore.isLoading()"
-                            (click)="workspaceStore.openRecentFile(file.path)"
-                            [title]="file.path"
+                            (click)="workspaceStore.openRecentItem(item)"
+                            [title]="item.subtitle ?? item.label"
                         >
                             <!-- DB icon -->
                             <svg aria-hidden="true" class="w-3.5 h-3.5 flex-shrink-0 text-zinc-600 group-hover:text-zinc-400 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
                             </svg>
-                            <span class="text-xs text-zinc-400 group-hover:text-zinc-100 transition-colors truncate">{{ file.name }}</span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-xs text-zinc-400 group-hover:text-zinc-100 transition-colors truncate">{{ item.label }}</span>
+                                @if (item.subtitle) {
+                                    <span class="block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors truncate">{{ item.subtitle }}</span>
+                                }
+                            </span>
                         </button>
                     }
                 </div>

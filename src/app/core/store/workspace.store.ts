@@ -1,9 +1,10 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
 import type { DatabaseSchema, ForeignKey, TriggerSchema, ViewSchema, Workspace } from '@quarrydb/shared'
+import type { RecentItem } from '@quarrydb/shared/recent-item'
 import { save } from '@tauri-apps/plugin-dialog'
 import { DatabaseService, type TableImpact } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
-import { RecentFilesService } from '../services/recent-files.service'
+import { RecentItemsService } from '../services/recent-items.service'
 import { SampleDatabaseService } from '../services/sample-database.service'
 
 interface SelectedTable {
@@ -29,7 +30,7 @@ export class WorkspaceStore {
     private readonly db = inject(DatabaseService)
     private readonly sampleDb = inject(SampleDatabaseService)
     private readonly exportSvc = inject(ExportService)
-    private readonly recentFilesSvc = inject(RecentFilesService)
+    private readonly recentItemsSvc = inject(RecentItemsService)
 
     // ─── Private ──────────────────────────────────────────────────────────────
     private readonly PAGE_SIZE = 100
@@ -538,15 +539,21 @@ export class WorkspaceStore {
         this.schemas.set(schemas)
     }
 
-    async openRecentFile(path: string): Promise<void> {
+    async openRecentItem(item: RecentItem): Promise<void> {
         this.isLoading.set(true)
         this.error.set(null)
         try {
-            await this.loadFilePath(path)
+            switch (item.providerId) {
+                case 'sqlite':
+                    await this.loadFilePath(item.resource.path)
+                    break
+            }
         } catch {
             // File moved or deleted — remove from recent list and show error
-            this.recentFilesSvc.remove(path)
-            this.error.set(`File not found: ${path.split('/').pop()}`)
+            if (item.providerId === 'sqlite') {
+                this.recentItemsSvc.remove(item.id)
+                this.error.set(`File not found: ${item.resource.path.split('/').pop()}`)
+            }
         } finally {
             this.isLoading.set(false)
         }
@@ -577,6 +584,6 @@ export class WorkspaceStore {
             updatedAt: Date.now(),
         })
         this.schemas.set([schema])
-        this.recentFilesSvc.add(path)
+        this.recentItemsSvc.add(this.recentItemsSvc.createSqliteItem(path))
     }
 }
