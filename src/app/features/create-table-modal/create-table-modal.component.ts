@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import type { TableSchema } from '@quarrydb/shared'
-import { DatabaseService } from '../../core/services/database.service'
+import { SqliteDatabaseService } from '../../core/services/sqlite-database.service'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import { type ColumnDef, type ForeignKeyRef, generateCreateTableSql, makeColumn, SQL_TYPES } from './create-table.utils'
 
@@ -19,7 +19,7 @@ interface DropdownState {
 export class CreateTableModalComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly workspaceStore = inject(SqliteWorkspaceStore)
-    private readonly db = inject(DatabaseService)
+    private readonly db = inject(SqliteDatabaseService)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly tableName = signal('')

@@ -22,7 +22,7 @@ const fixtures = new Map<string, SqliteDatabase>()
 /**
  * Seeds a real in-memory SQLite database — via Node's built-in `node:sqlite`, no extra
  * dependency needed — and registers it under an app-relative path, so that
- * `FakeDatabase.load("sqlite://<path>")` resolves to it exactly like DatabaseService
+ * `FakeDatabase.load("sqlite://<path>")` resolves to it exactly like SqliteDatabaseService
  * resolves real on-disk databases. Re-seeding the same path replaces (and closes) the
  * previous instance, giving each test a clean slate.
  */
@@ -45,7 +45,7 @@ export function closeFixtureDbs(): void {
 
 /**
  * Stand-in for `@tauri-apps/plugin-sql`'s default `Database` export, backed by a real
- * SQLite engine instead of Tauri's IPC bridge. This lets DatabaseService run its actual
+ * SQLite engine instead of Tauri's IPC bridge. This lets SqliteDatabaseService run its actual
  * SQL — transactions, constraints, CTEs, pragmas — against real SQLite semantics, which
  * is what an integration test needs to be worth writing.
  */

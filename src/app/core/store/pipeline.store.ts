@@ -12,11 +12,11 @@ import type {
     SelectStep,
     SortColumn,
 } from '@quarrydb/shared'
-import { DatabaseService } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
 import type { QueryHistoryEntry } from '../services/query-history.service'
 import { QueryHistoryService } from '../services/query-history.service'
 import type { SavedQuery } from '../services/saved-queries.service'
+import { SqliteDatabaseService } from '../services/sqlite-database.service'
 
 export interface StepResultState {
     rows: Record<string, unknown>[]
@@ -179,7 +179,7 @@ export function buildPipelineSql(tableName: string, steps: PipelineStep[], vars:
 @Injectable({ providedIn: 'root' })
 export class PipelineStore {
     // ─── Injected Services ────────────────────────────────────────────────────
-    private readonly db = inject(DatabaseService)
+    private readonly db = inject(SqliteDatabaseService)
     private readonly exportSvc = inject(ExportService)
     private readonly queryHistorySvc = inject(QueryHistoryService)
 

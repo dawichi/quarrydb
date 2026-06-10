@@ -55,8 +55,7 @@ interface SqliteMasterRow {
 }
 
 @Injectable({ providedIn: 'root' })
-export class DatabaseService {
-    // ─── Public Methods ───────────────────────────────────────────────────────
+export class SqliteDatabaseService {
     async pickFile(): Promise<string | null> {
         const result = await open({
             multiple: false,
@@ -179,7 +178,6 @@ export class DatabaseService {
             const countResult = await db.select<[{ count: number }]>(`SELECT COUNT(*) as count FROM "${tableName}"`)
             const rowCount = countResult[0]?.count ?? 0
 
-            // Build FK map: otherTable → its declared FK rows
             const fkMap = new Map<string, PragmaFKRow[]>()
             for (const t of allTableNames) {
                 if (t === tableName) continue
@@ -187,7 +185,6 @@ export class DatabaseService {
                 fkMap.set(t, fks)
             }
 
-            // BFS following ON DELETE CASCADE edges to find the full domino chain
             const cascadeNodes: CascadeNode[] = []
             const visited = new Set<string>([tableName])
             const queue: Array<{ table: string; depth: number }> = [{ table: tableName, depth: 0 }]

@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DatabaseService } from '../services/database.service'
+import { SqliteDatabaseService } from '../services/sqlite-database.service'
 import type { EditOperation } from '../store/edit.store'
 import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-tauri-database'
 import { SAMPLE_SCHEMA_SQL } from './fixtures/sample-schema'
@@ -12,7 +12,7 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
 
 const FIXTURE_PATH = 'edit-mode.test.db'
 
-const db = new DatabaseService()
+const db = new SqliteDatabaseService()
 
 // Re-seed before every test so each one starts from the same known data set —
 // `applyEdits` mutates real rows, so tests can't share state.

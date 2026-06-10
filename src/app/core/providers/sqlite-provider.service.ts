@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core'
 import type { DatabaseSchema } from '@quarrydb/shared'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { SqlitePersistedSession } from '@quarrydb/shared/session'
-import { DatabaseService } from '../services/database.service'
+import { SqliteDatabaseService } from '../services/sqlite-database.service'
 import { PipelineStore } from '../store/pipeline.store'
 import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
 import type { ProviderDefinition } from './provider-definition'
@@ -13,7 +13,7 @@ export class SqliteProviderService implements ProviderDefinition<SqlitePersisted
 
     private readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
-    private readonly db = inject(DatabaseService)
+    private readonly db = inject(SqliteDatabaseService)
 
     async openFromHome(): Promise<void> {
         await this.workspaceStore.openDatabase()

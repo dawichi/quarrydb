@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import { DatabaseService } from '../services/database.service'
+import { SqliteDatabaseService } from '../services/sqlite-database.service'
 
 export interface UpdateEdit {
     kind: 'update'
@@ -23,7 +23,7 @@ export type EditOperation = UpdateEdit | DeleteEdit | InsertEdit
 
 @Injectable({ providedIn: 'root' })
 export class EditStore {
-    private readonly db = inject(DatabaseService)
+    private readonly db = inject(SqliteDatabaseService)
 
     readonly pendingEdits = signal<EditOperation[]>([])
     readonly applyError = signal<string | null>(null)

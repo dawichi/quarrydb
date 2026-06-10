@@ -1,13 +1,13 @@
 import type { PipelineStep } from '@quarrydb/shared'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { DatabaseService } from '../services/database.service'
 import { ExportService } from '../services/export.service'
+import { SqliteDatabaseService } from '../services/sqlite-database.service'
 import { buildPipelineSql } from '../store/pipeline.store'
 import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-tauri-database'
 import { SAMPLE_SCHEMA_SQL } from './fixtures/sample-schema'
 
 // Replace the Tauri SQL plugin with a real-SQLite-backed fake — see fixtures/fake-tauri-database.
-// `vi.mock` factories are hoisted above imports, so DatabaseService picks up the fake transparently.
+// `vi.mock` factories are hoisted above imports, so SqliteDatabaseService picks up the fake transparently.
 vi.mock('@tauri-apps/plugin-sql', async () => {
     const { FakeDatabase } = await import('./fixtures/fake-tauri-database')
     return { default: FakeDatabase }
@@ -15,7 +15,7 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
 
 const FIXTURE_PATH = 'pipeline-run.test.db'
 
-const db = new DatabaseService()
+const db = new SqliteDatabaseService()
 const exportSvc = new ExportService()
 
 beforeAll(() => seedFixtureDb(FIXTURE_PATH, SAMPLE_SCHEMA_SQL))

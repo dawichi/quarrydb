@@ -2,10 +2,10 @@ import { computed, Injectable, inject, signal } from '@angular/core'
 import type { DatabaseSchema, ForeignKey, TriggerSchema, ViewSchema, Workspace } from '@quarrydb/shared'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import { save } from '@tauri-apps/plugin-dialog'
-import { DatabaseService, type TableImpact } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
 import { RecentItemsService } from '../services/recent-items.service'
 import { SampleDatabaseService } from '../services/sample-database.service'
+import { SqliteDatabaseService, type TableImpact } from '../services/sqlite-database.service'
 import { WorkspaceHostStore } from './workspace-host.store'
 
 interface SelectedTable {
@@ -29,7 +29,7 @@ interface BrowseNavEntry {
 export class SqliteWorkspaceStore {
     // ─── Injected Services ────────────────────────────────────────────────────
     private readonly host = inject(WorkspaceHostStore)
-    private readonly db = inject(DatabaseService)
+    private readonly db = inject(SqliteDatabaseService)
     private readonly sampleDb = inject(SampleDatabaseService)
     private readonly exportSvc = inject(ExportService)
     private readonly recentItemsSvc = inject(RecentItemsService)

@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildDropColumnScript } from '../../features/table-settings-modal/alter-table.utils'
-import { DatabaseService } from '../services/database.service'
+import { SqliteDatabaseService } from '../services/sqlite-database.service'
 import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-tauri-database'
 
 vi.mock('@tauri-apps/plugin-sql', async () => {
@@ -27,7 +27,7 @@ INSERT INTO products (id, name, sku, price, notes) VALUES
     (3, 'Doohickey', 'DHK-003', 4.49, 'fragile');
 `
 
-const db = new DatabaseService()
+const db = new SqliteDatabaseService()
 
 beforeEach(() => seedFixtureDb(FIXTURE_PATH, SETUP_SQL))
 afterAll(() => closeFixtureDbs())
