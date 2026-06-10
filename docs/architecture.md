@@ -8,7 +8,7 @@
 | Frontend | Angular 20 + TypeScript + Signals |
 | Styling | Tailwind CSS v4 (SCSS only for animations/keyframes) |
 | State | Angular Signals (no NgRx) |
-| SQLite bridge | `tauri-plugin-sql` |
+| Current data provider | SQLite via `tauri-plugin-sql` |
 | Auto-updates | `tauri-plugin-updater` (GitHub Releases) |
 | Package manager | Bun |
 | Linter / Formatter | Biome (`bun run check`) |
@@ -27,12 +27,29 @@ quarrydb/
 │       │                 # welcome, update-check-modal, update-banner
 │       └── shared/       # cross-feature directives
 ├── src-tauri/            # Rust shell (Tauri standard location)
-│                         # No custom Rust commands — all DB access goes through tauri-plugin-sql
+│                         # Today: no custom Rust commands — SQLite access goes through tauri-plugin-sql
 ├── landing/              # Astro site for quarrydb.app
 └── packages/
     └── shared/           # Shared TypeScript types (PipelineStep & variants),
                           # imported by both the app and the landing page's interactive demo
 ```
+
+## Direction: Shared Shell, Provider-Specific Workspaces
+
+The current codebase is intentionally SQLite-first. That was the right choice for shipping
+a real product quickly. It is not the long-term architectural endpoint.
+
+Quarry is now moving toward:
+
+- a shared app shell
+- provider-aware recent items and session restore
+- provider-specific workspaces
+- capability-based reuse where it is real, not speculative
+
+That means the app should feel unified, but opening a SQLite file, a MySQL server, or a
+Redis instance should be allowed to produce meaningfully different interfaces.
+
+The provider model and refactor plan live in `docs/multi-engine-architecture.md`.
 
 ## Data Flow: Pipeline → CTE Chain → SQL
 
@@ -53,9 +70,9 @@ step type is the escape hatch: it receives the previous step as a named CTE
 (`WITH prev AS (...)`), so users can drop into arbitrary SQL without breaking the chain.
 
 Execution is live: as the user edits a step's config, the query for that step (and every
-step after it) re-runs automatically (debounced) against `tauri-plugin-sql`, and each step
-renders its own intermediate result inline. Live preview results are capped at N rows;
-the full, uncapped result set is only fetched on explicit export.
+step after it) re-runs automatically (debounced) against the current SQLite backend, and
+each step renders its own intermediate result inline. Live preview results are capped at N
+rows; the full, uncapped result set is only fetched on explicit export.
 
 If a step errors (bad SQL, missing column, etc.), every downstream step enters a "blocked"
 state and does not execute — errors propagate forward through the chain, never silently.
@@ -63,15 +80,34 @@ state and does not execute — errors propagate forward through the chain, never
 See `docs/product-spec.md` for the full breakdown of step types, JOIN modes, and the
 pipeline interaction model (drag-reorder, undo/redo, error badges, etc.).
 
-## Workspace Model
+## Current Workspace Model
 
-A **workspace** is a named collection of one or more `.db` files. Quarry uses SQLite's
+A **SQLite workspace** is a named collection of one or more `.db` files. Quarry uses SQLite's
 `ATTACH DATABASE` to make cross-file JOINs possible within a workspace — the schema browser
 shows each attached file as a collapsible section, with its ATTACH alias visible next to the
 filename (so users can see where the `alias.table` prefix in generated CTE SQL comes from).
 
 Workspaces persist to the app data folder by default (zero friction to resume), and can be
 exported as a `.quarry` config file to share or version-control.
+
+This model is SQLite-specific and should not become the app-wide definition of "workspace"
+once more providers exist. Future providers will need their own workspace bootstrap and
+navigation models.
+
+## Current SQLite-Coupled Assumptions
+
+Today, several generic-sounding paths are actually SQLite-only:
+
+- `DatabaseService` is a SQLite bridge
+- `WorkspaceStore` assumes file-backed SQLite workspaces
+- session persistence assumes the current SQLite workspace shape
+- recent items are recent SQLite files
+- the schema browser assumes SQLite tables/views/triggers
+- the query pipeline assumes SQLite dialect and source-selection rules
+- DDL flows assume SQLite-specific behavior
+
+These assumptions were correct for the first product phase. The next architectural step is
+to move them behind a provider boundary rather than treating them as universal app behavior.
 
 ## Release Pipeline & Auto-Updates
 

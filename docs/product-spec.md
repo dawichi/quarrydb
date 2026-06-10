@@ -10,11 +10,29 @@ writing raw SQL friction-heavy. Blocks do the heavy lifting; SQL stays visible a
 accessible, but secondary. Not aimed at non-technical users or raw-SQL power users, though
 both can use it comfortably.
 
+## Product Direction
+
+Quarry started as a SQLite-first tool, but the product direction is now broader:
+
+- one app for managing databases visually
+- one shared home/recent-items experience
+- provider-specific workspaces depending on what the user opens
+
+That means the app should feel cohesive at the shell/design level, while still allowing
+very different interfaces for different database families:
+
+- SQLite / MySQL / Postgres can share some relational patterns
+- Redis should look and behave like a key/value store tool
+- Mongo should look and behave like a document database tool
+
+The current shipped feature set described below is mostly the SQLite provider. Future
+providers should reuse only the parts that genuinely fit them.
+
 ## Core Feature: Visual Query Builder / Pipeline
 
-The star of the project. Each step in the pipeline is a transformation on the result set,
-with intermediate results shown live, inline, below each step — inspired by functional array
-chaining (`.filter().map()`).
+The star of the current SQLite-first product. Each step in the pipeline is a
+transformation on the result set, with intermediate results shown live, inline, below each
+step — inspired by functional array chaining (`.filter().map()`).
 
 ### Interaction model
 
@@ -68,8 +86,8 @@ pipeline produces. Nothing should happen "by magic."
 
 - **Row rendering** — hard cap + "Load more" button at the bottom; total row count shown
   prominently.
-- **Large file support** — targets large SQLite files via streaming result reads and
-  conservative memory management.
+- **Large dataset support** — currently tuned for large SQLite files via streaming result
+  reads and conservative memory management; future providers may need different strategies.
 - **Cell interactions:**
   - Click a cell → copy its value to clipboard
   - Row-end button → copy the whole row as JSON
@@ -111,10 +129,10 @@ leave someone in.
 
 ## Schema Browser (Sidebar)
 
-Multi-file aware: each `.db` file in the workspace is a collapsible section, with its
-`ATTACH` alias shown next to the filename — consistent with the file → table → columns →
-indexes nesting, and necessary so users can connect the `alias.table` prefix they see in
-generated CTE SQL back to a concrete file.
+In the current SQLite provider, the sidebar is multi-file aware: each `.db` file in the
+workspace is a collapsible section, with its `ATTACH` alias shown next to the filename —
+consistent with the file → table → columns → indexes nesting, and necessary so users can
+connect the `alias.table` prefix they see in generated CTE SQL back to a concrete file.
 
 | Info | When shown |
 |------|-----------|
@@ -124,9 +142,10 @@ generated CTE SQL back to a concrete file.
 
 ## Session Persistence
 
-On relaunch, Quarry restores the open workspace, its connected `.db` files, and every open
-query tab with its full pipeline state — including partially-built pipelines. Implemented
-via debounced (500ms) localStorage autosave.
+On relaunch, Quarry restores the last-opened workspace and its relevant UI state. Today
+that means the SQLite workspace shape: connected `.db` files and open query tabs with full
+pipeline state, including partially-built pipelines. Implemented via debounced (500ms)
+localStorage autosave.
 
 ## Export Formats
 
@@ -136,11 +155,12 @@ Markdown tables (for docs/READMEs). Always operates on the full, uncapped result
 ## First Launch Experience
 
 - **First run** (VS Code-style): left panel shows the Quarry logo, a welcome message, and a
-  "Start interactive tutorial" button; the right area offers "Open .db file" with an empty
-  workspace state.
-- **Subsequent runs**: a recent-workspaces / recently-opened-files list.
-- **Interactive tutorial**: a short, auto-advancing guided overlay that walks through the
-  core pipeline-builder flow using a bundled sample e-commerce SQLite database.
+  "Start interactive tutorial" button; the right area offers the current open actions for
+  supported providers. Today that is "Open .db file" with an empty SQLite workspace state.
+- **Subsequent runs**: a recent-items list, with provider-specific icons/metadata.
+- **Interactive tutorial**: initially SQLite-focused — a short, auto-advancing guided
+  overlay that walks through the core pipeline-builder flow using a bundled sample
+  e-commerce SQLite database.
 
 ## Visual Design
 

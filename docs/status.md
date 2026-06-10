@@ -4,8 +4,9 @@ Quick reference for where the project stands. Update this after each significant
 
 ## Current Status
 
-**Pipeline builder MVP is feature-complete.** All six step types are implemented; undo/redo
-and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates working.
+**The SQLite-first product core is feature-complete enough to start the multi-engine
+pivot.** The pipeline builder MVP is done, schema management is in place, and v0.1.x has
+shipped publicly with auto-updates working.
 
 ## Implementation Status
 
@@ -32,7 +33,7 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 | Export (CSV, JSON, SQL INSERT, Markdown table) | ✅ Done |
 | First launch experience + interactive tutorial | ✅ Done |
 | Native macOS menu bar (File, Edit, Window) | ✅ Done |
-| Windows menu bar | ⏳ Pending review (only OS-variable feature; needs testing on Windows) |
+| Windows menu bar | ✅ Done |
 | Landing page (quarrydb.app — Astro, deployed and live) | ✅ Done |
 | GitHub Releases + tauri-plugin-updater auto-update pipeline | ✅ Done |
 | Logo: Quarry Pit (app icon + landing + favicon) | ✅ Done |
@@ -49,18 +50,25 @@ and step drag-reorder are done. v0.1.x has shipped publicly with auto-updates wo
 
 ## Roadmap / Planned Next Steps
 
-See `docs/roadmap.md` for the long-term phased view (SQLite-complete → production polish →
-multi-engine expansion). This list is the near-term, concrete slice of that.
+See `docs/roadmap.md` for the long-term phased view. This list is the near-term, concrete
+slice of that.
 
-1. **Windows menu bar** — verify once a contributor tests on Windows.
-2. **Encrypted SQLite (SQLCipher)** — `rusqlite` can be swapped for a SQLCipher-enabled
-   build without architectural changes; deferred until users actually request it. See
-   `docs/post-mvp-scoping.md` for Goals/Non-goals.
-3. **Code signing** — Apple notarization + Windows EV certificate, see
-   `docs/architecture.md#known-platform-issues`. Deliberately deferred — the project has
-   no users yet, the workaround is trivial, and the source being public/open already
-   signals legitimacy to the early-adopter audience that would install it first. Revisit
-   if it gains real organic traction (e.g. >20 users).
+1. **Provider architecture pass** — define and introduce the provider model that separates
+   shared shell concerns from SQLite-specific logic. See
+   `docs/multi-engine-architecture.md`.
+2. **MySQL as the second provider** — after the provider boundary is explicit, add MySQL
+   as the first non-SQLite engine and use it to validate the architecture.
+3. **Playwright E2E** — once the provider shell settles enough, cover the core golden
+   paths with full UI tests.
+4. **Performance at scale** — especially important once provider breadth starts growing.
+
+## Intentionally Deferred
+
+1. **Encrypted SQLite (SQLCipher)** — still viable, but explicitly deferred until real
+   user demand exists. See `docs/post-mvp-scoping.md`.
+2. **Code signing** — Apple notarization + Windows EV certificate remain deferred until
+   the app has enough traction to justify the cost and operational overhead. See
+   `docs/architecture.md#known-platform-issues`.
 
 ## Testing Strategy
 
@@ -103,7 +111,7 @@ multiple features.
 | 2026-06-06 | Saved queries: named queries persisted to localStorage per table, :variable placeholder detection + amber input bar, save/load/delete from SQL panel |
 | 2026-06-07 | First launch experience: recent files list in welcome screen, interactive tutorial (4-step, auto-advancing overlay using sample e-commerce db) |
 | 2026-06-07 | Native macOS menu bar: Quarry/File/Edit/Window menus, Hard Reset in File menu clears all localStorage + reloads |
-| 2026-06-07 | Windows menu bar: pending review — only OS-variable feature |
+| 2026-06-10 | Windows menu bar verified on a real Windows PC; feature marked complete |
 | 2026-06-07 | Lint pass: 0 Biome errors, 34/34 Vitest tests passing |
 | 2026-06-07 | Landing page: Astro + Tailwind v4, interactive pipeline demo (fake e-commerce data), features grid, stack section, dummy download buttons |
 | 2026-06-07 | Auto-updates: tauri-plugin-updater + tauri-plugin-process wired up, pubkey in tauri.conf.json, in-app update banner, GitHub Actions release workflow on v* tags |
@@ -124,3 +132,5 @@ multiple features.
 | 2026-06-09 | DDL checkpoint 5 (partial): drop column via rebuild dance — SQLite rebuild script (PRAGMA fk OFF → BEGIN → CREATE new → INSERT SELECT → DROP old → RENAME → recreate indexes → COMMIT → PRAGMA fk ON), drop button on hover for non-PK columns (hidden when only one column remains), type-the-column-name confirmation; `DatabaseService.runDdlScript()` runs the sequence and rolls back on failure; unit tests (7) for script structure / FK pruning / index survival; integration tests (4) for data preservation, index recreation, and rollback |
 | 2026-06-10 | JOIN: branch input mode — Y-shape two-slot visual layout as an alternative to the inline table picker; mode toggle (Inline/Branch) at the top of JOIN step cards; left slot shows the source table (read-only), right slot has the table picker + alias; SVG Y-connector with the JOIN type badge at the merge point; ON condition and column chips shared between both modes; same CTE/SQL generation as inline, no new query logic; `PipelineStore.setJoinMode()` persists mode changes without re-executing |
 | 2026-06-10 | JOIN: subpipeline mode — third JOIN mode alongside Inline/Branch; `app-subpipeline-editor` lets the right side of a JOIN be a small nested pipeline (source table + WHERE/SELECT/ORDER BY/GROUP BY/JOIN/RAW SQL steps, one level deep — no nested subpipelines per `docs/post-mvp-scoping.md`); `pushSubpipelineJoinCtes` compiles the nested steps into a flat, uniquely-prefixed CTE chain (`step_N_sub_1..k`) merged into the outer pipeline via the JOIN's own CTE; no live per-step preview inside the editor, only the outer JOIN step's result; 7 new unit tests in `pipeline.store.spec.ts` cover pass-through, sub-CTE chaining, multi-step chains, continuation of the outer pipeline, and `:variable` substitution in both the ON clause and sub-steps |
+| 2026-06-10 | Docs pivot: Windows menu bar marked complete after real-PC verification; roadmap reordered around provider architecture + MySQL; added `docs/multi-engine-architecture.md` to define the shared-shell / provider-specific-workspace direction; SQLCipher and code signing explicitly deferred |
+| 2026-06-10 | Added `docs/mysql-provider-plan.md` to scope MySQL v1 before implementation: connection model, recent-item shape, shared relational UI reuse, phased build order, and explicit non-goals |

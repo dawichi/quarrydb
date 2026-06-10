@@ -5,60 +5,121 @@ next," this file answers "what is this project trying to become, and in what ord
 
 ## Long-Term Vision
 
-Replace the patchwork of database tools with one centralized app that has better UI/UX
-than any of them — starting with MySQL Workbench (work use) and DB Browser for SQLite
-(personal use), and potentially expanding from there.
+Quarry is evolving from a SQLite-first desktop app into a broader database manager:
 
-The path there is deliberately staged: go all-in on SQLite first — build the single best
-local SQLite tool that exists — and only then generalize to other engines. Trying to
-abstract across engines too early would compromise the thing that makes Quarry worth
-using: a UI that feels designed around how a specific engine actually works, not a
-lowest-common-denominator wrapper.
+- one local-first app
+- one consistent visual identity
+- one recent-items / home experience
+- multiple provider-specific workspaces underneath
+
+The product goal is not "one generic UI for every database." The goal is one coherent app
+that opens the right interface for the thing you opened:
+
+- SQLite file
+- MySQL server/schema
+- Redis instance
+- Postgres database
+- Mongo database
+
+See `multi-engine-architecture.md` for the architectural model behind that direction.
 
 ## Phases
 
-These are *generic checkpoints*, not dated milestones — each one is a long stretch of
-work in its own right, refined as we go. See `status.md` for the concrete, current-state
-roadmap within whichever phase is active.
+These are generic checkpoints, not dated milestones. Each one is a long stretch of work in
+its own right, refined as we go. See `status.md` for the concrete, current-state roadmap
+within whichever phase is active.
 
-### Phase 1 — SQLite-complete
+### Phase 1 — SQLite-first vertical slice
 
-The bar: nothing should force a user back to DB Browser for SQLite. That means going
-beyond "browse, query, edit rows" (already shipped) into the things a power user actually
-needs day to day:
+Build a serious local SQLite tool first, so Quarry has a real product core before trying
+to generalize.
 
-- **Schema management (DDL)** — create/alter/drop tables, columns, indexes, views,
-  triggers. See `schema-management-plan.md` — this is the current focus.
-- **JOIN: branch & subpipeline modes** — see `post-mvp-scoping.md`
-- Other SQLite-specific power tools as they prove necessary: `VACUUM` / integrity checks,
-  attaching multiple databases, full-text search (FTS5), etc. — added to this list only
-  once a real workflow needs them, not speculatively.
-- **Encrypted SQLite (SQLCipher)** — see `post-mvp-scoping.md`
+Completed / largely satisfied:
 
-### Phase 2 — Production-grade polish
+- browse/query/edit rows
+- visual pipeline builder with visible SQL
+- JOIN branch + subpipeline modes
+- schema management (tables, columns, indexes, views, triggers)
+- export, saved queries, history, tutorial, updates
 
-The things that separate "a fun side project" from "a tool I trust with my actual data
-every day":
+SQLite-specific future additions can still happen when a real workflow justifies them:
 
-- Cross-platform parity (Windows menu bar verification, etc.)
-- Full E2E coverage of golden-path flows (Playwright)
-- Performance at scale — large databases, wide tables, big result sets
-- Code signing (Apple notarization, Windows EV cert) — see
+- `VACUUM` / integrity checks
+- full-text search (FTS5)
+- other SQLite-specific power tools
+
+But SQLite perfection is no longer the gating factor for the next major architectural move.
+
+### Phase 2 — Multi-engine foundation
+
+This is now the active strategic phase.
+
+The goal is to turn the current SQLite-shaped app into a provider-based app shell without
+destroying what already works.
+
+Core work in this phase:
+
+- define a provider registry / provider contract
+- separate shell-level state from SQLite-specific state
+- introduce provider-aware recent items and session restore
+- isolate SQLite-only assumptions behind a SQLite provider boundary
+- identify which relational capabilities SQLite and MySQL can genuinely share
+
+This phase is architecture-first. It should happen before shipping MySQL connection support.
+
+### Phase 3 — MySQL as the second provider
+
+MySQL is the first expansion target because it validates the provider model while still
+living in the relational world.
+
+The initial bar is practical, not maximal:
+
+- save/open MySQL connections
+- browse schemas/tables/rows
+- run SQL queries
+- adapt shared relational UI where it fits
+- preserve Quarry's transparency and local-first UX
+
+This phase should produce the first proof that Quarry is becoming a real multi-database
+manager rather than a SQLite app with bolt-ons.
+
+### Phase 4 — Production-grade polish
+
+Important, but no longer ahead of the MySQL/provider work.
+
+- full E2E coverage of golden-path flows (Playwright)
+- performance at scale — large databases, wide tables, big result sets
+- cross-provider UX consistency where appropriate
+- code signing (Apple notarization, Windows EV cert) — see
   `architecture.md#known-platform-issues`
 
-### Phase 3 — Multi-engine expansion
+Polish continues incrementally throughout the other phases, but these items are not meant
+to block the multi-engine pivot.
 
-Once Quarry is genuinely excellent at SQLite, generalize outward — starting with MySQL
-(the most direct MySQL Workbench replacement need), then potentially Postgres, MongoDB,
-etc.
+### Phase 5 — Additional providers
 
-This phase is the one that actually changes the architecture: today everything assumes
-`tauri-plugin-sql` + SQLite (see `architecture.md`). Supporting another engine — especially
-a non-SQL one like MongoDB — means designing a real data-access abstraction layer, which
-doesn't exist yet and shouldn't be built before it's needed.
+Once the provider model and MySQL path are real, expand outward:
+
+- Postgres
+- Redis
+- MongoDB
+- others only when a real workflow justifies them
+
+The key rule is unchanged: do not abstract ahead of evidence. Add shared layers only when
+at least two providers truly need them.
+
+## Deferred Work
+
+Two previously-listed roadmap items are intentionally deprioritized:
+
+- encrypted SQLite (SQLCipher) — valid feature, but deferred until real demand exists
+- code signing / notarization — valid production work, but deferred until the app has
+  enough traction to justify the cost and operational overhead
 
 ## Related
 
 - `status.md` — current implementation status, near-term roadmap, milestone log
-- `schema-management-plan.md` — build-order plan for DDL support (current focus)
-- `post-mvp-scoping.md` — Goals/Non-goals notes for JOIN modes and SQLCipher
+- `multi-engine-architecture.md` — provider model and abstraction boundaries
+- `mysql-provider-plan.md` — MySQL v1 scope and implementation boundaries
+- `schema-management-plan.md` — historical SQLite DDL build plan
+- `post-mvp-scoping.md` — JOIN modes and SQLCipher scoping notes

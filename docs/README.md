@@ -11,8 +11,10 @@ start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(
 | [architecture.md](architecture.md) | Stack, repo layout, the pipeline → CTE → SQL data flow, workspace model, release pipeline |
 | [product-spec.md](product-spec.md) | What each feature does and why (pipeline interaction model, step types, JOIN modes, edit mode, saved queries, …) |
 | [status.md](status.md) | Current implementation status, near-term roadmap, testing strategy, milestone log |
-| [roadmap.md](roadmap.md) | Long-term vision and phased checkpoints (SQLite-complete → production polish → multi-engine expansion) |
-| [schema-management-plan.md](schema-management-plan.md) | Build-order plan for DDL support (create/alter/drop tables, columns, indexes, views, triggers) — current focus |
+| [roadmap.md](roadmap.md) | Long-term vision and phased checkpoints for the SQLite-first → multi-engine transition |
+| [multi-engine-architecture.md](multi-engine-architecture.md) | Provider model for evolving Quarry from a SQLite-first app into a broader database manager |
+| [mysql-provider-plan.md](mysql-provider-plan.md) | Scope, UI model, connection model, and non-goals for MySQL as Quarry's second provider |
+| [schema-management-plan.md](schema-management-plan.md) | Historical build-order plan for SQLite DDL support (create/alter/drop tables, columns, indexes, views, triggers) |
 | [post-mvp-scoping.md](post-mvp-scoping.md) | Goals/Non-goals notes for post-MVP features, written before starting them |
 
 ## Convention Files
