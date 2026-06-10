@@ -26,18 +26,18 @@ to:
 
 These are the main files that currently encode SQLite as the app-wide default:
 
-- [src/app/core/store/workspace.store.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/store/workspace.store.ts:1)
-  - currently owns both shell state and SQLite workspace behavior
-- [src/app/core/services/database.service.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/services/database.service.ts:1)
+- [src/app/core/store/sqlite-workspace.store.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/store/sqlite-workspace.store.ts:1)
+  - currently owns the SQLite workspace behavior; shell state has started moving into `WorkspaceHostStore`
+- [src/app/core/services/sqlite-database.service.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/services/sqlite-database.service.ts:1)
   - currently acts as the SQLite backend and file picker
 - [src/app/core/services/session.service.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/services/session.service.ts:1)
-  - persists a SQLite-only session payload
-- [src/app/core/services/recent-files.service.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/services/recent-files.service.ts:1)
-  - persists recent SQLite file paths only
+  - now persists a provider-aware session payload, but still builds the SQLite branch directly
+- [src/app/core/services/recent-items.service.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/services/recent-items.service.ts:1)
+  - now persists provider-aware recent items, with SQLite as the only active provider
 - [src/app/features/welcome/welcome.component.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/features/welcome/welcome.component.ts:1)
-  - assumes the home screen loads recent SQLite files
+  - now opens through the provider registry, but still presents a SQLite-first launcher
 - [src/app/core/services/menu.service.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/services/menu.service.ts:1)
-  - menu actions assume "open database" means SQLite file open
+  - now routes through the provider registry, but currently only `sqlite` is registered
 
 These files are not wrong. They are just the first refactor seam.
 
@@ -76,7 +76,7 @@ Purpose: remove the first obvious SQLite-global assumption from the shell.
 
 ### Current state
 
-`RecentFilesService` stores:
+The pre-refactor `RecentFilesService` stored:
 
 - file `path`
 - derived `name`
@@ -105,7 +105,7 @@ Checklist:
 
 Files affected first:
 
-- `src/app/core/services/recent-files.service.ts`
+- `src/app/core/services/recent-items.service.ts`
 - `src/app/features/welcome/welcome.component.ts`
 - welcome template
 
@@ -144,7 +144,7 @@ Checklist:
 Files affected first:
 
 - `src/app/core/services/session.service.ts`
-- `src/app/core/store/workspace.store.ts`
+- `src/app/core/store/sqlite-workspace.store.ts`
 - `src/app/core/store/pipeline.store.ts` only if the pipeline restore hook needs signature changes
 
 Important constraint:
@@ -190,11 +190,11 @@ Good first shell methods to route through the registry:
 
 ## Phase 5 — Split Shell State From SQLite Workspace State
 
-Purpose: stop making `WorkspaceStore` the universal owner of all future providers.
+Purpose: stop making the SQLite workspace store the universal owner of all future providers.
 
 ### Current state
 
-`WorkspaceStore` mixes at least three kinds of state:
+The pre-split `WorkspaceStore` mixed at least three kinds of state:
 
 - shell-ish state
   - loading
@@ -232,9 +232,10 @@ Checklist:
 
 Files affected most:
 
-- `src/app/core/store/workspace.store.ts`
+- `src/app/core/store/workspace-host.store.ts`
+- `src/app/core/store/sqlite-workspace.store.ts`
 - `src/app/layout/sidebar/*`
-- browse/edit/query feature components that currently inject `WorkspaceStore`
+- browse/edit/query feature components that currently inject `SqliteWorkspaceStore`
 
 Important warning:
 
@@ -248,7 +249,7 @@ generic backend abstraction.
 
 ### Current state
 
-`DatabaseService` currently owns:
+`SqliteDatabaseService` currently owns:
 
 - SQLite file picker
 - SQLite query execution
@@ -274,7 +275,7 @@ Checklist:
 
 Files affected most:
 
-- `src/app/core/services/database.service.ts`
+- `src/app/core/services/sqlite-database.service.ts`
 - all SQLite-facing callers
 
 Good intermediate step:
@@ -379,7 +380,7 @@ Pause and reassess if implementation starts drifting into:
 - designing Redis/Mongo contracts before SQLite provider extraction is complete
 - inventing a giant universal backend interface
 - rewriting all feature components before provider ownership is settled
-- bolting MySQL directly onto `WorkspaceStore` or `DatabaseService`
+- bolting MySQL directly onto `SqliteWorkspaceStore` or `SqliteDatabaseService`
 - mixing secrets into recent items or generic session payloads
 
 ## Success Criteria
