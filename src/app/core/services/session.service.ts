@@ -1,21 +1,20 @@
 import { Injectable, inject } from '@angular/core'
-import type { DatabaseSchema } from '@quarrydb/shared'
-import type {
-    SqlitePipelineSessionState,
-    SqliteWorkspaceDatabase,
-    SqliteWorkspaceSelection,
-    WorkspaceTab,
-} from '@quarrydb/shared/session'
+import type { DatabaseSchema, PipelineStep } from '@quarrydb/shared'
+import type { PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
 import { PipelineStore } from '../store/pipeline.store'
 import { WorkspaceStore } from '../store/workspace.store'
 import { DatabaseService } from './database.service'
 
-interface PersistedSession {
+interface LegacyPersistedSession {
     version: 1
-    databases: SqliteWorkspaceDatabase[]
-    activeTab: WorkspaceTab
-    selectedTable: SqliteWorkspaceSelection | null
-    pipeline: SqlitePipelineSessionState
+    databases: Array<{ path: string; alias: string }>
+    activeTab: 'browse' | 'query' | 'edit'
+    selectedTable: { schemaAlias: string; tableName: string } | null
+    pipeline: {
+        source: { path: string; alias: string; tableName: string; columns: string[] } | null
+        steps: PipelineStep[]
+        variableValues: Record<string, string>
+    }
 }
 
 const SESSION_KEY = 'quarry_session'
@@ -34,9 +33,14 @@ export class SessionService {
         const src = this.pipelineStore.source()
         return {
             version: 1,
-            databases: schemas.map((s) => ({ path: s.path, alias: s.alias })),
-            activeTab: this.workspaceStore.activeTab(),
-            selectedTable: this.workspaceStore.selectedTable(),
+            providerId: 'sqlite',
+            savedAt: Date.now(),
+            workspace: {
+                name: this.workspaceStore.workspace()?.name ?? schemas[0].path.split('/').pop() ?? schemas[0].path,
+                databases: schemas.map((s) => ({ path: s.path, alias: s.alias })),
+                activeTab: this.workspaceStore.activeTab(),
+                selectedTable: this.workspaceStore.selectedTable(),
+            },
             pipeline: {
                 source: src
                     ? { path: src.path, alias: src.alias, tableName: src.tableName, columns: src.columns }
@@ -68,32 +72,39 @@ export class SessionService {
         try {
             const raw = localStorage.getItem(SESSION_KEY)
             if (!raw) return
-            const parsed = JSON.parse(raw)
-            if (parsed?.version !== 1 || !Array.isArray(parsed.databases) || !parsed.databases.length) return
-            session = parsed as PersistedSession
+            const parsed = JSON.parse(raw) as unknown
+            session = this.normalizePersistedSession(parsed)
+            if (!session) return
         } catch {
             return
         }
 
+        switch (session.providerId) {
+            case 'sqlite':
+                await this.restoreSqliteSession(session)
+                break
+        }
+    }
+
+    private async restoreSqliteSession(session: SqlitePersistedSession): Promise<void> {
         // Re-load schemas from disk — verifies the files still exist at the saved paths.
         let schemas: DatabaseSchema[]
         try {
-            schemas = await Promise.all(session.databases.map((d) => this.db.loadSchema(d.path, d.alias)))
+            schemas = await Promise.all(session.workspace.databases.map((d) => this.db.loadSchema(d.path, d.alias)))
         } catch {
-            // File moved or deleted — discard the session.
+            // File moved or deleted — discard the SQLite session.
             this.clear()
             return
         }
 
-        const name = session.databases[0].path.split('/').pop() ?? session.databases[0].path
-        this.workspaceStore.restoreWorkspace(schemas, name)
+        this.workspaceStore.restoreWorkspace(schemas, session.workspace.name)
 
-        if (session.activeTab) {
-            this.workspaceStore.setActiveTab(session.activeTab)
+        if (session.workspace.activeTab) {
+            this.workspaceStore.setActiveTab(session.workspace.activeTab)
         }
 
-        if (session.selectedTable) {
-            const { schemaAlias, tableName } = session.selectedTable
+        if (session.workspace.selectedTable) {
+            const { schemaAlias, tableName } = session.workspace.selectedTable
             await this.workspaceStore.selectTable(schemaAlias, tableName)
         }
 
@@ -107,5 +118,45 @@ export class SessionService {
                 this.pipelineStore.variableValues.set(session.pipeline.variableValues)
             }
         }
+    }
+
+    private normalizePersistedSession(parsed: unknown): PersistedSession | null {
+        if (this.isSqlitePersistedSession(parsed)) {
+            return parsed
+        }
+        if (this.isLegacyPersistedSession(parsed)) {
+            return {
+                version: 1,
+                providerId: 'sqlite',
+                savedAt: Date.now(),
+                workspace: {
+                    name: parsed.databases[0].path.split('/').pop() ?? parsed.databases[0].path,
+                    databases: parsed.databases,
+                    activeTab: parsed.activeTab,
+                    selectedTable: parsed.selectedTable,
+                },
+                pipeline: parsed.pipeline,
+            }
+        }
+        return null
+    }
+
+    private isSqlitePersistedSession(parsed: unknown): parsed is SqlitePersistedSession {
+        if (!parsed || typeof parsed !== 'object') return false
+        const candidate = parsed as Partial<SqlitePersistedSession>
+        return (
+            candidate.version === 1 &&
+            candidate.providerId === 'sqlite' &&
+            !!candidate.workspace &&
+            Array.isArray(candidate.workspace.databases) &&
+            candidate.workspace.databases.length > 0 &&
+            !!candidate.pipeline
+        )
+    }
+
+    private isLegacyPersistedSession(parsed: unknown): parsed is LegacyPersistedSession {
+        if (!parsed || typeof parsed !== 'object') return false
+        const candidate = parsed as Partial<LegacyPersistedSession>
+        return candidate.version === 1 && Array.isArray(candidate.databases) && candidate.databases.length > 0
     }
 }
