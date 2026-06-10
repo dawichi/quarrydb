@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core'
-import { WorkspaceStore } from '../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import {
     type AddColumnDef,
     buildAddColumnSql,
@@ -15,7 +15,7 @@ import { buildCreateIndexSql } from './index.utils'
 })
 export class TableSettingsModalComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
-    protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly view = signal<

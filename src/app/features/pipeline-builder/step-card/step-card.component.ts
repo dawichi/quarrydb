@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinMode, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
-import { WorkspaceStore } from '../../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../../core/store/sqlite-workspace.store'
 import { SubpipelineEditorComponent } from './subpipeline-editor.component'
 
 @Component({
@@ -17,7 +17,7 @@ export class StepCardComponent implements OnInit {
 
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly pipelineStore = inject(PipelineStore)
-    protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly expression = signal('')

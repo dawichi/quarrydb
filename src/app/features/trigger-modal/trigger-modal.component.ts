@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import type { TriggerSchema } from '@quarrydb/shared'
-import { WorkspaceStore } from '../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 
 @Component({
     selector: 'app-trigger-modal',
@@ -8,7 +8,7 @@ import { WorkspaceStore } from '../../core/store/workspace.store'
 })
 export class TriggerModalComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
-    protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly mode = signal<'create' | 'edit' | 'drop'>('create')

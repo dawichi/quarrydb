@@ -5,7 +5,7 @@ import { QueryHistoryService } from '../../core/services/query-history.service'
 import type { SavedQuery } from '../../core/services/saved-queries.service'
 import { SavedQueriesService } from '../../core/services/saved-queries.service'
 import { PipelineStore } from '../../core/store/pipeline.store'
-import { WorkspaceStore } from '../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import { StepCardComponent } from './step-card/step-card.component'
 
 @Component({
@@ -17,7 +17,7 @@ import { StepCardComponent } from './step-card/step-card.component'
 export class PipelineBuilderComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly pipelineStore = inject(PipelineStore)
-    protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly savedQueriesSvc = inject(SavedQueriesService)
     private readonly queryHistorySvc = inject(QueryHistoryService)
 

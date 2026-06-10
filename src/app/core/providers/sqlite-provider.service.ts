@@ -4,14 +4,14 @@ import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { SqlitePersistedSession } from '@quarrydb/shared/session'
 import { DatabaseService } from '../services/database.service'
 import { PipelineStore } from '../store/pipeline.store'
-import { WorkspaceStore } from '../store/workspace.store'
+import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
 import type { ProviderDefinition } from './provider-definition'
 
 @Injectable({ providedIn: 'root' })
 export class SqliteProviderService implements ProviderDefinition<SqlitePersistedSession> {
     readonly id = 'sqlite' as const
 
-    private readonly workspaceStore = inject(WorkspaceStore)
+    private readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
     private readonly db = inject(DatabaseService)
 

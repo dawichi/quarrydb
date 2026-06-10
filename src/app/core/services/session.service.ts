@@ -3,7 +3,7 @@ import type { PipelineStep } from '@quarrydb/shared'
 import type { PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
 import { ProviderRegistryService } from '../providers/provider-registry.service'
 import { PipelineStore } from '../store/pipeline.store'
-import { WorkspaceStore } from '../store/workspace.store'
+import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
 
 interface LegacyPersistedSession {
     version: 1
@@ -22,7 +22,7 @@ const SESSION_KEY = 'quarry_session'
 @Injectable({ providedIn: 'root' })
 export class SessionService {
     private readonly providers = inject(ProviderRegistryService)
-    private readonly workspaceStore = inject(WorkspaceStore)
+    private readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
     private saveTimer: ReturnType<typeof setTimeout> | null = null
 

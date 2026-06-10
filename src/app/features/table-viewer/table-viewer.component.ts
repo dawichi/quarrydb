@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import type { ForeignKey } from '@quarrydb/shared'
 import type { ExportFormat } from '../../core/services/export.service'
-import { WorkspaceStore } from '../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 
 @Component({
     selector: 'app-table-viewer',
@@ -11,7 +11,7 @@ import { WorkspaceStore } from '../../core/store/workspace.store'
 })
 export class TableViewerComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
-    protected readonly store = inject(WorkspaceStore)
+    protected readonly store = inject(SqliteWorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly copiedKey = signal<string | null>(null)

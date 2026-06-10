@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import { EditStore } from '../../core/store/edit.store'
-import { WorkspaceStore } from '../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import { AutofocusDirective } from '../../shared/directives/autofocus.directive'
 
 @Component({
@@ -10,7 +10,7 @@ import { AutofocusDirective } from '../../shared/directives/autofocus.directive'
     templateUrl: './edit-mode.component.html',
 })
 export class EditModeComponent {
-    protected readonly store = inject(WorkspaceStore)
+    protected readonly store = inject(SqliteWorkspaceStore)
     protected readonly editStore = inject(EditStore)
 
     protected readonly editingCell = signal<{ rowIndex: number; col: string } | null>(null)

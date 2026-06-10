@@ -1,6 +1,6 @@
 import { effect, Injectable, inject, signal } from '@angular/core'
 import { PipelineStore } from '../store/pipeline.store'
-import { WorkspaceStore } from '../store/workspace.store'
+import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
 
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5
@@ -10,7 +10,7 @@ const STORAGE_KEY = 'quarry_tutorial_done'
 @Injectable({ providedIn: 'root' })
 export class TutorialService {
     private readonly workspaceHost = inject(WorkspaceHostStore)
-    private readonly workspaceStore = inject(WorkspaceStore)
+    private readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
 
     readonly step = signal<TutorialStep>(0)

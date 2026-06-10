@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinType, PipelineStep, SelectColumn, SortColumn, StepType } from '@quarrydb/shared'
 import { PipelineStore } from '../../../core/store/pipeline.store'
-import { WorkspaceStore } from '../../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../../core/store/sqlite-workspace.store'
 
 function createEmptyStep(type: StepType): PipelineStep {
     const id = crypto.randomUUID()
@@ -42,7 +42,7 @@ export class SubpipelineEditorComponent implements OnInit {
     readonly subStepsChange = output<PipelineStep[]>()
 
     // ─── Injected Services ────────────────────────────────────────────────────
-    protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
     protected readonly pipelineStore = inject(PipelineStore)
 
     // ─── State ────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { Component, effect, inject, OnInit, signal, untracked } from '@angular/c
 import { MenuService } from './core/services/menu.service'
 import { SessionService } from './core/services/session.service'
 import { UpdaterService } from './core/services/updater.service'
-import { WorkspaceStore } from './core/store/workspace.store'
+import { SqliteWorkspaceStore } from './core/store/sqlite-workspace.store'
 import { WorkspaceHostStore } from './core/store/workspace-host.store'
 import { CreateTableModalComponent } from './features/create-table-modal/create-table-modal.component'
 import { EditModeComponent } from './features/edit-mode/edit-mode.component'
@@ -38,7 +38,7 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
 export class AppComponent implements OnInit {
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly workspaceHost = inject(WorkspaceHostStore)
-    protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly sessionSvc = inject(SessionService)
     private readonly menuSvc = inject(MenuService)
     private readonly updaterSvc = inject(UpdaterService)

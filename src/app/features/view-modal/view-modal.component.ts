@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import type { ViewSchema } from '@quarrydb/shared'
-import { WorkspaceStore } from '../../core/store/workspace.store'
+import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 
 function extractSelectBody(fullSql: string): string {
     const match = fullSql.match(/^CREATE\s+(?:TEMP(?:ORARY)?\s+)?VIEW\s+(?:"[^"]*"|`[^`]*`|\[[^\]]*\]|\S+)\s+AS\s+/i)
@@ -13,7 +13,7 @@ function extractSelectBody(fullSql: string): string {
 })
 export class ViewModalComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
-    protected readonly workspaceStore = inject(WorkspaceStore)
+    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly mode = signal<'create' | 'edit' | 'drop'>('create')
