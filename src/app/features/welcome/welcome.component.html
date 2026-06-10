@@ -8,7 +8,7 @@
                 <button
                     type="button"
                     class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-left transition-colors w-full disabled:opacity-40 disabled:cursor-not-allowed"
-                    [disabled]="workspaceStore.isLoading()"
+                    [disabled]="workspaceHost.isLoading()"
                     (click)="startTutorial()"
                 >
                     <!-- Book icon -->
@@ -30,7 +30,7 @@
                         <button
                             type="button"
                             class="group flex items-start gap-2 px-3 py-2 rounded-md text-left w-full transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                            [disabled]="workspaceStore.isLoading()"
+                            [disabled]="workspaceHost.isLoading()"
                             (click)="reopenRecentItem(item)"
                             [title]="item.subtitle ?? item.label"
                         >
@@ -50,8 +50,8 @@
             }
         </div>
 
-        @if (workspaceStore.error()) {
-            <p class="text-xs text-red-400">{{ workspaceStore.error() }}</p>
+        @if (workspaceHost.error()) {
+            <p class="text-xs text-red-400">{{ workspaceHost.error() }}</p>
         }
     </div>
 
@@ -65,14 +65,14 @@
         <button
             type="button"
             class="flex items-center gap-2.5 px-6 py-3 rounded-lg bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-zinc-950 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            [disabled]="workspaceStore.isLoading()"
+            [disabled]="workspaceHost.isLoading()"
             (click)="openDefaultProvider()"
         >
             <!-- Folder open icon -->
             <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
             </svg>
-            @if (workspaceStore.isLoading()) {
+            @if (workspaceHost.isLoading()) {
                 Opening...
             } @else {
                 Open database file
@@ -84,7 +84,7 @@
         <button
             type="button"
             class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            [disabled]="workspaceStore.isLoading()"
+            [disabled]="workspaceHost.isLoading()"
             (click)="openSample()"
         >
             or download a sample database to try

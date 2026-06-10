@@ -1,6 +1,7 @@
 import { effect, Injectable, inject, signal } from '@angular/core'
 import { PipelineStore } from '../store/pipeline.store'
 import { WorkspaceStore } from '../store/workspace.store'
+import { WorkspaceHostStore } from '../store/workspace-host.store'
 
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5
 
@@ -8,6 +9,7 @@ const STORAGE_KEY = 'quarry_tutorial_done'
 
 @Injectable({ providedIn: 'root' })
 export class TutorialService {
+    private readonly workspaceHost = inject(WorkspaceHostStore)
     private readonly workspaceStore = inject(WorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
 
@@ -17,7 +19,7 @@ export class TutorialService {
         // Auto-advance based on user actions in the app
         effect(() => {
             const s = this.step()
-            if (s === 1 && this.workspaceStore.hasWorkspace()) this.next()
+            if (s === 1 && this.workspaceHost.hasWorkspace()) this.next()
             if (s === 2 && this.workspaceStore.selectedTable()) this.next()
             if (s === 3 && this.pipelineStore.steps().length > 0) this.next()
         })

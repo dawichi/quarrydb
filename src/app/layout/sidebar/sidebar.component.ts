@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core'
 import type { TriggerSchema, ViewSchema } from '@quarrydb/shared'
 import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
 import { WorkspaceStore } from '../../core/store/workspace.store'
+import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
 
 @Component({
     selector: 'app-sidebar',
@@ -9,6 +10,7 @@ import { WorkspaceStore } from '../../core/store/workspace.store'
 })
 export class SidebarComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
+    protected readonly workspaceHost = inject(WorkspaceHostStore)
     protected readonly workspaceStore = inject(WorkspaceStore)
     private readonly providers = inject(ProviderRegistryService)
 

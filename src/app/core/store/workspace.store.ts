@@ -6,6 +6,7 @@ import { DatabaseService, type TableImpact } from '../services/database.service'
 import { type ExportFormat, ExportService } from '../services/export.service'
 import { RecentItemsService } from '../services/recent-items.service'
 import { SampleDatabaseService } from '../services/sample-database.service'
+import { WorkspaceHostStore } from './workspace-host.store'
 
 interface SelectedTable {
     schemaAlias: string
@@ -27,6 +28,7 @@ interface BrowseNavEntry {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceStore {
     // ─── Injected Services ────────────────────────────────────────────────────
+    private readonly host = inject(WorkspaceHostStore)
     private readonly db = inject(DatabaseService)
     private readonly sampleDb = inject(SampleDatabaseService)
     private readonly exportSvc = inject(ExportService)
@@ -39,8 +41,8 @@ export class WorkspaceStore {
     // ─── State ────────────────────────────────────────────────────────────────
     readonly workspace = signal<Workspace | null>(null)
     readonly schemas = signal<DatabaseSchema[]>([])
-    readonly isLoading = signal(false)
-    readonly error = signal<string | null>(null)
+    readonly isLoading = this.host.isLoading
+    readonly error = this.host.error
 
     readonly selectedTable = signal<SelectedTable | null>(null)
     readonly tableRows = signal<Record<string, unknown>[]>([])
@@ -62,7 +64,7 @@ export class WorkspaceStore {
     readonly triggerModalTarget = signal<{ alias: string; trigger: TriggerSchema | null } | null>(null)
 
     // ─── Computed ─────────────────────────────────────────────────────────────
-    readonly hasWorkspace = computed(() => this.workspace() !== null)
+    readonly hasWorkspace = computed(() => this.host.hasWorkspace())
     readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
     readonly selectedTableFks = computed<ForeignKey[]>(() => {
         const sel = this.selectedTable()
@@ -537,6 +539,7 @@ export class WorkspaceStore {
             updatedAt: Date.now(),
         })
         this.schemas.set(schemas)
+        this.host.setWorkspaceOpen('sqlite')
     }
 
     async openRecentItem(item: RecentItem): Promise<void> {
@@ -584,6 +587,7 @@ export class WorkspaceStore {
             updatedAt: Date.now(),
         })
         this.schemas.set([schema])
+        this.host.setWorkspaceOpen('sqlite')
         this.recentItemsSvc.add(this.recentItemsSvc.createSqliteItem(path))
     }
 }
