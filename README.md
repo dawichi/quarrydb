@@ -25,7 +25,7 @@ Target audience: developers who work with SQLite data and want something faster 
 quarrydb/
 ├── src/               # Angular 20 app — the desktop UI
 ├── src-tauri/         # Tauri 2 shell — Rust backend, OS integration, SQLite bridge
-├── landing/           # Astro landing site (quarrydb.dev)
+├── landing/           # Astro landing site (quarrydb.app)
 └── packages/
     └── shared/        # Shared TypeScript types (used by app + landing demo)
 ```
@@ -45,7 +45,7 @@ Rust backend. Handles the native window, file dialogs, and the `tauri-plugin-sql
 
 ### `landing/` — Astro site
 
-Marketing and portfolio landing page for quarrydb.dev. Imports types from `packages/shared` so the interactive demo stays in sync with the real app's pipeline model.
+Marketing and portfolio landing page for quarrydb.app. Imports types from `packages/shared` so the interactive demo stays in sync with the real app's pipeline model.
 
 ### `packages/shared/` — shared types
 
