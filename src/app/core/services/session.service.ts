@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core'
-import type { DatabaseSchema, PipelineStep } from '@quarrydb/shared'
+import type { PipelineStep } from '@quarrydb/shared'
 import type { PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
+import { ProviderRegistryService } from '../providers/provider-registry.service'
 import { PipelineStore } from '../store/pipeline.store'
 import { WorkspaceStore } from '../store/workspace.store'
-import { DatabaseService } from './database.service'
 
 interface LegacyPersistedSession {
     version: 1
@@ -21,9 +21,9 @@ const SESSION_KEY = 'quarry_session'
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
+    private readonly providers = inject(ProviderRegistryService)
     private readonly workspaceStore = inject(WorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
-    private readonly db = inject(DatabaseService)
     private saveTimer: ReturnType<typeof setTimeout> | null = null
 
     // Called inside a reactive effect — reads signals so the effect tracks them.
@@ -79,44 +79,11 @@ export class SessionService {
             return
         }
 
-        switch (session.providerId) {
-            case 'sqlite':
-                await this.restoreSqliteSession(session)
-                break
-        }
-    }
-
-    private async restoreSqliteSession(session: SqlitePersistedSession): Promise<void> {
-        // Re-load schemas from disk — verifies the files still exist at the saved paths.
-        let schemas: DatabaseSchema[]
         try {
-            schemas = await Promise.all(session.workspace.databases.map((d) => this.db.loadSchema(d.path, d.alias)))
+            await this.providers.restoreSession(session)
         } catch {
-            // File moved or deleted — discard the SQLite session.
+            // Provider-local restore failed — discard the session.
             this.clear()
-            return
-        }
-
-        this.workspaceStore.restoreWorkspace(schemas, session.workspace.name)
-
-        if (session.workspace.activeTab) {
-            this.workspaceStore.setActiveTab(session.workspace.activeTab)
-        }
-
-        if (session.workspace.selectedTable) {
-            const { schemaAlias, tableName } = session.workspace.selectedTable
-            await this.workspaceStore.selectTable(schemaAlias, tableName)
-        }
-
-        if (session.pipeline?.source) {
-            const src = session.pipeline.source
-            await this.pipelineStore.openForTable(src.path, src.alias, src.tableName, src.columns)
-            if (session.pipeline.steps?.length) {
-                this.pipelineStore.restoreSteps(session.pipeline.steps)
-            }
-            if (session.pipeline.variableValues) {
-                this.pipelineStore.variableValues.set(session.pipeline.variableValues)
-            }
         }
     }
 

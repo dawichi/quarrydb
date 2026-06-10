@@ -1,4 +1,6 @@
 import { Component, inject } from '@angular/core'
+import type { RecentItem } from '@quarrydb/shared/recent-item'
+import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
 import { RecentItemsService } from '../../core/services/recent-items.service'
 import { TutorialService } from '../../core/services/tutorial.service'
 import { WorkspaceStore } from '../../core/store/workspace.store'
@@ -12,13 +14,26 @@ export class WelcomeComponent {
     protected readonly workspaceStore = inject(WorkspaceStore)
     protected readonly tutorialSvc = inject(TutorialService)
     protected readonly recentItemsSvc = inject(RecentItemsService)
+    private readonly providers = inject(ProviderRegistryService)
 
     protected get recentItems() {
         return this.recentItemsSvc.load()
     }
 
+    protected openDefaultProvider(): void {
+        void this.providers.openFromHome()
+    }
+
+    protected openSample(): void {
+        void this.providers.openSample()
+    }
+
+    protected reopenRecentItem(item: RecentItem): void {
+        void this.providers.openRecentItem(item)
+    }
+
     protected startTutorial(): void {
         this.tutorialSvc.start()
-        void this.workspaceStore.openSampleDatabase()
+        void this.providers.openSample()
     }
 }

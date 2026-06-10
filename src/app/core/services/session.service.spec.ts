@@ -1,5 +1,5 @@
 import type { DatabaseSchema } from '@quarrydb/shared'
-import type { SqlitePersistedSession } from '@quarrydb/shared/session'
+import type { PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionService } from './session.service'
 
@@ -15,25 +15,19 @@ vi.stubGlobal('localStorage', {
 
 describe('SessionService', () => {
     const variableValuesFn = vi.fn()
-    const variableValuesSet = vi.fn()
     const workspaceStore = {
         schemas: vi.fn(),
         workspace: vi.fn(),
         activeTab: vi.fn(),
         selectedTable: vi.fn(),
-        restoreWorkspace: vi.fn(),
-        setActiveTab: vi.fn(),
-        selectTable: vi.fn(),
     }
     const pipelineStore = {
         source: vi.fn(),
         steps: vi.fn(),
-        openForTable: vi.fn(),
-        restoreSteps: vi.fn(),
-        variableValues: Object.assign(variableValuesFn, { set: variableValuesSet }),
+        variableValues: variableValuesFn,
     }
-    const db = {
-        loadSchema: vi.fn(),
+    const providers = {
+        restoreSession: vi.fn(),
     }
 
     let service: SessionService
@@ -46,22 +40,15 @@ describe('SessionService', () => {
         workspaceStore.workspace.mockReset()
         workspaceStore.activeTab.mockReset()
         workspaceStore.selectedTable.mockReset()
-        workspaceStore.restoreWorkspace.mockReset()
-        workspaceStore.setActiveTab.mockReset()
-        workspaceStore.selectTable.mockReset()
-
         pipelineStore.source.mockReset()
         pipelineStore.steps.mockReset()
-        pipelineStore.openForTable.mockReset()
-        pipelineStore.restoreSteps.mockReset()
         variableValuesFn.mockReset()
-        variableValuesSet.mockReset()
-        db.loadSchema.mockReset()
+        providers.restoreSession.mockReset()
 
         service = Object.assign(Object.create(SessionService.prototype), {
+            providers,
             workspaceStore,
             pipelineStore,
-            db,
             saveTimer: null,
         }) as SessionService
     })
@@ -110,7 +97,7 @@ describe('SessionService', () => {
         expect(service.buildSession()).toBeNull()
     })
 
-    it('restores the new provider-aware SQLite session shape', async () => {
+    it('dispatches a provider-aware session to the registry on restore', async () => {
         const session: SqlitePersistedSession = {
             version: 1,
             providerId: 'sqlite',
@@ -118,37 +105,21 @@ describe('SessionService', () => {
             workspace: {
                 name: 'app.db',
                 databases: [{ path: '/tmp/app.db', alias: 'main' }],
-                activeTab: 'edit',
-                selectedTable: { schemaAlias: 'main', tableName: 'users' },
             },
             pipeline: {
-                source: {
-                    path: '/tmp/app.db',
-                    alias: 'main',
-                    tableName: 'users',
-                    columns: ['id', 'name'],
-                },
-                steps: [{ id: 's1', type: 'WHERE', expression: 'id > 1' }],
-                variableValues: { limit: '10' },
+                source: null,
+                steps: [],
+                variableValues: {},
             },
         }
         localStorage.setItem('quarry_session', JSON.stringify(session))
-        db.loadSchema.mockResolvedValue({ path: '/tmp/app.db', alias: 'main', tables: [], views: [], triggers: [] })
 
         await service.restore()
 
-        expect(workspaceStore.restoreWorkspace).toHaveBeenCalledWith(
-            [{ path: '/tmp/app.db', alias: 'main', tables: [], views: [], triggers: [] }],
-            'app.db',
-        )
-        expect(workspaceStore.setActiveTab).toHaveBeenCalledWith('edit')
-        expect(workspaceStore.selectTable).toHaveBeenCalledWith('main', 'users')
-        expect(pipelineStore.openForTable).toHaveBeenCalledWith('/tmp/app.db', 'main', 'users', ['id', 'name'])
-        expect(pipelineStore.restoreSteps).toHaveBeenCalledWith([{ id: 's1', type: 'WHERE', expression: 'id > 1' }])
-        expect(variableValuesSet).toHaveBeenCalledWith({ limit: '10' })
+        expect(providers.restoreSession).toHaveBeenCalledWith(session)
     })
 
-    it('restores a legacy SQLite session shape through the new path', async () => {
+    it('normalizes the legacy SQLite session shape before dispatch', async () => {
         vi.spyOn(Date, 'now').mockReturnValue(777)
         localStorage.setItem(
             'quarry_session',
@@ -164,19 +135,28 @@ describe('SessionService', () => {
                 },
             }),
         )
-        db.loadSchema.mockResolvedValue({ path: '/tmp/legacy.db', alias: 'main', tables: [], views: [], triggers: [] })
 
         await service.restore()
 
-        expect(workspaceStore.restoreWorkspace).toHaveBeenCalledWith(
-            [{ path: '/tmp/legacy.db', alias: 'main', tables: [], views: [], triggers: [] }],
-            'legacy.db',
-        )
-        expect(workspaceStore.setActiveTab).toHaveBeenCalledWith('browse')
-        expect(workspaceStore.selectTable).toHaveBeenCalledWith('main', 'orders')
+        expect(providers.restoreSession).toHaveBeenCalledWith({
+            version: 1,
+            providerId: 'sqlite',
+            savedAt: 777,
+            workspace: {
+                name: 'legacy.db',
+                databases: [{ path: '/tmp/legacy.db', alias: 'main' }],
+                activeTab: 'browse',
+                selectedTable: { schemaAlias: 'main', tableName: 'orders' },
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        } satisfies PersistedSession)
     })
 
-    it('clears the saved session when SQLite schemas can no longer be reloaded', async () => {
+    it('clears the saved session when provider restore fails', async () => {
         localStorage.setItem(
             'quarry_session',
             JSON.stringify({
@@ -194,7 +174,7 @@ describe('SessionService', () => {
                 },
             } satisfies SqlitePersistedSession),
         )
-        db.loadSchema.mockRejectedValue(new Error('missing'))
+        providers.restoreSession.mockRejectedValue(new Error('missing'))
 
         await service.restore()
 

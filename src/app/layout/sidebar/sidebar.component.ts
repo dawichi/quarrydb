@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core'
 import type { TriggerSchema, ViewSchema } from '@quarrydb/shared'
+import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
 import { WorkspaceStore } from '../../core/store/workspace.store'
 
 @Component({
@@ -9,6 +10,7 @@ import { WorkspaceStore } from '../../core/store/workspace.store'
 export class SidebarComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly workspaceStore = inject(WorkspaceStore)
+    private readonly providers = inject(ProviderRegistryService)
 
     // ─── State ────────────────────────────────────────────────────────────────
     private readonly expandedTables = signal<Set<string>>(new Set())
@@ -82,6 +84,10 @@ export class SidebarComponent {
     protected formatCount(count: number): string {
         if (count >= 1000) return `${(count / 1000).toFixed(1)}k`
         return String(count)
+    }
+
+    protected openDefaultProvider(): void {
+        void this.providers.openFromHome()
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────
