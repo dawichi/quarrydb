@@ -12,6 +12,23 @@ export interface ProviderLaunchAction {
     sampleLabel?: string
 }
 
+export type HomeLaunchAction =
+    | (ProviderLaunchAction & {
+          status: 'available'
+          badgeLabel?: string
+      })
+    | {
+          id: 'mysql-preview'
+          status: 'planned'
+          name: 'MySQL'
+          description: string
+          icon: 'mysql-server'
+          openLabel: 'Connect to MySQL'
+          openHint?: string
+          badgeLabel: 'Planned'
+          availabilityNote: string
+      }
+
 export interface ProviderDefinition<TSession extends PersistedSession = PersistedSession> {
     id: ProviderId
     launchAction: ProviderLaunchAction

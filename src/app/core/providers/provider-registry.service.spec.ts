@@ -34,8 +34,26 @@ describe('ProviderRegistryService', () => {
         }) as ProviderRegistryService
     })
 
-    it('exposes provider launch actions for the welcome screen', () => {
+    it('exposes provider launch actions for the shell and welcome screen', () => {
         expect(registry.getLaunchActions()).toEqual([sqliteProvider.launchAction])
+        expect(registry.getHomeLaunchActions()).toEqual([
+            {
+                ...sqliteProvider.launchAction,
+                status: 'available',
+                badgeLabel: 'SQLite',
+            },
+            {
+                id: 'mysql-preview',
+                status: 'planned',
+                name: 'MySQL',
+                description: 'Connect to a saved MySQL server profile once the second provider lands.',
+                icon: 'mysql-server',
+                openLabel: 'Connect to MySQL',
+                openHint: 'Planned provider: saved connections, browse, and raw SQL.',
+                badgeLabel: 'Planned',
+                availabilityNote: 'MySQL support is not shipped yet.',
+            },
+        ])
         expect(registry.getProviderLabel('sqlite')).toBe('SQLite')
     })
 

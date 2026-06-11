@@ -73,7 +73,12 @@
                     <section class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5 shadow-[0_20px_60px_-40px_rgba(14,165,233,0.45)]">
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex items-start gap-4">
-                                <span class="mt-0.5 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-sky-500/20 bg-sky-500/10 text-sky-400">
+                                <span
+                                    class="mt-0.5 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border text-sky-400"
+                                    [class]="action.status === 'available'
+                                        ? 'border-sky-500/20 bg-sky-500/10'
+                                        : 'border-amber-500/20 bg-amber-500/10 text-amber-300'"
+                                >
                                     @switch (action.icon) {
                                         @case ('sqlite-file') {
                                             <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -82,43 +87,68 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12.375c0 1.036 1.511 1.875 3.375 1.875S15 13.41 15 12.375m-6.75 0c0-1.035 1.511-1.875 3.375-1.875S15 11.34 15 12.375m-6.75 0v2.25c0 1.036 1.511 1.875 3.375 1.875S15 15.66 15 14.625v-2.25" />
                                             </svg>
                                         }
+                                        @case ('mysql-server') {
+                                            <svg lucideDatabase aria-hidden="true" class="w-5 h-5" [strokeWidth]="1.75"></svg>
+                                        }
                                     }
                                 </span>
                                 <div>
-                                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-500">{{ action.name }}</p>
+                                    <p
+                                        class="text-xs font-semibold uppercase tracking-[0.28em]"
+                                        [class]="action.status === 'available' ? 'text-sky-500' : 'text-amber-300'"
+                                    >
+                                        {{ action.name }}
+                                    </p>
                                     <h2 class="mt-2 text-2xl font-semibold tracking-tight text-zinc-100">{{ action.openLabel }}</h2>
                                     <p class="mt-2 max-w-xl text-sm leading-6 text-zinc-400">{{ action.description }}</p>
                                 </div>
                             </div>
-                            <span class="rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-1 text-[11px] text-sky-300">
-                                {{ action.name }}
+                            <span
+                                class="rounded-full border px-2 py-1 text-[11px]"
+                                [class]="action.status === 'available'
+                                    ? 'border-sky-500/20 bg-sky-500/10 text-sky-300'
+                                    : 'border-amber-500/20 bg-amber-500/10 text-amber-200'"
+                            >
+                                {{ action.badgeLabel }}
                             </span>
                         </div>
 
                         <div class="mt-5 flex flex-wrap items-center gap-3">
-                            <button
-                                type="button"
-                                class="flex items-center gap-2.5 rounded-lg bg-sky-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-sky-400 active:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                [disabled]="workspaceHost.isLoading()"
-                                (click)="openProvider(action.id)"
-                            >
-                                <svg lucideFolderOpen aria-hidden="true" class="w-4 h-4" [strokeWidth]="2"></svg>
-                                @if (workspaceHost.isLoading()) {
-                                    Opening...
-                                } @else {
-                                    {{ action.openLabel }}
-                                }
-                            </button>
-
-                            @if (action.sampleLabel) {
+                            @if (isAvailableAction(action)) {
                                 <button
                                     type="button"
-                                    class="rounded-lg border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                    class="flex items-center gap-2.5 rounded-lg bg-sky-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-sky-400 active:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
                                     [disabled]="workspaceHost.isLoading()"
-                                    (click)="openSample(action.id)"
+                                    (click)="openProvider(action.id)"
                                 >
-                                    {{ action.sampleLabel }}
+                                    <svg lucideFolderOpen aria-hidden="true" class="w-4 h-4" [strokeWidth]="2"></svg>
+                                    @if (workspaceHost.isLoading()) {
+                                        Opening...
+                                    } @else {
+                                        {{ action.openLabel }}
+                                    }
                                 </button>
+
+                                @if (action.sampleLabel) {
+                                    <button
+                                        type="button"
+                                        class="rounded-lg border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                        [disabled]="workspaceHost.isLoading()"
+                                        (click)="openSample(action.id)"
+                                    >
+                                        {{ action.sampleLabel }}
+                                    </button>
+                                }
+                            } @else {
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-200 opacity-80 cursor-not-allowed"
+                                    disabled
+                                >
+                                    <svg lucideDatabase aria-hidden="true" class="w-4 h-4" [strokeWidth]="2"></svg>
+                                    {{ action.openLabel }}
+                                </button>
+                                <p class="text-sm text-zinc-500">{{ action.availabilityNote }}</p>
                             }
                         </div>
 
