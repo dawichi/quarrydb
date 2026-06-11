@@ -5,8 +5,8 @@ import { SqliteProviderService } from './sqlite-provider.service'
 
 describe('SqliteProviderService', () => {
     const workspaceStore = {
-        openDatabase: vi.fn(),
-        openSampleDatabase: vi.fn(),
+        openSqliteFile: vi.fn(),
+        openSampleSqliteDatabase: vi.fn(),
         openRecentItem: vi.fn(),
         restoreWorkspace: vi.fn(),
         setActiveTab: vi.fn(),
@@ -25,8 +25,8 @@ describe('SqliteProviderService', () => {
     let provider: SqliteProviderService
 
     beforeEach(() => {
-        workspaceStore.openDatabase.mockReset()
-        workspaceStore.openSampleDatabase.mockReset()
+        workspaceStore.openSqliteFile.mockReset()
+        workspaceStore.openSampleSqliteDatabase.mockReset()
         workspaceStore.openRecentItem.mockReset()
         workspaceStore.restoreWorkspace.mockReset()
         workspaceStore.setActiveTab.mockReset()
@@ -46,13 +46,13 @@ describe('SqliteProviderService', () => {
     it('opens the default SQLite file picker from home', async () => {
         await provider.openFromHome()
 
-        expect(workspaceStore.openDatabase).toHaveBeenCalledOnce()
+        expect(workspaceStore.openSqliteFile).toHaveBeenCalledOnce()
     })
 
     it('opens the sample SQLite database flow', async () => {
         await provider.openSample()
 
-        expect(workspaceStore.openSampleDatabase).toHaveBeenCalledOnce()
+        expect(workspaceStore.openSampleSqliteDatabase).toHaveBeenCalledOnce()
     })
 
     it('reopens a SQLite recent item', async () => {

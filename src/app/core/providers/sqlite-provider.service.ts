@@ -10,17 +10,26 @@ import type { ProviderDefinition } from './provider-definition'
 @Injectable({ providedIn: 'root' })
 export class SqliteProviderService implements ProviderDefinition<SqlitePersistedSession> {
     readonly id = 'sqlite' as const
+    readonly launchAction = {
+        id: 'sqlite' as const,
+        name: 'SQLite',
+        description: 'Open a local SQLite file or start from a sample database.',
+        icon: 'sqlite-file' as const,
+        openLabel: 'Open SQLite file',
+        openHint: 'Supports .db .sqlite .sqlite3 .db3',
+        sampleLabel: 'Create sample SQLite database',
+    }
 
     private readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
     private readonly db = inject(SqliteDatabaseService)
 
     async openFromHome(): Promise<void> {
-        await this.workspaceStore.openDatabase()
+        await this.workspaceStore.openSqliteFile()
     }
 
     async openSample(): Promise<void> {
-        await this.workspaceStore.openSampleDatabase()
+        await this.workspaceStore.openSampleSqliteDatabase()
     }
 
     async openRecentItem(item: RecentItem): Promise<void> {

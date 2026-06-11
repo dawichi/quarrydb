@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core'
 import Database from '@tauri-apps/plugin-sql'
 
 @Injectable({ providedIn: 'root' })
-export class SampleDatabaseService {
+export class SqliteSampleDatabaseService {
     async generate(path: string): Promise<void> {
         const db = await Database.load(`sqlite://${path}`)
         try {

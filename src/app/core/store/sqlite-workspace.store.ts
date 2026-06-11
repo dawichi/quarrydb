@@ -4,8 +4,8 @@ import type { RecentItem } from '@quarrydb/shared/recent-item'
 import { save } from '@tauri-apps/plugin-dialog'
 import { type ExportFormat, ExportService } from '../services/export.service'
 import { RecentItemsService } from '../services/recent-items.service'
-import { SampleDatabaseService } from '../services/sample-database.service'
 import { SqliteDatabaseService, type TableImpact } from '../services/sqlite-database.service'
+import { SqliteSampleDatabaseService } from '../services/sqlite-sample-database.service'
 import { WorkspaceHostStore } from './workspace-host.store'
 
 interface SelectedTable {
@@ -30,7 +30,7 @@ export class SqliteWorkspaceStore {
     // ─── Injected Services ────────────────────────────────────────────────────
     private readonly host = inject(WorkspaceHostStore)
     private readonly db = inject(SqliteDatabaseService)
-    private readonly sampleDb = inject(SampleDatabaseService)
+    private readonly sampleDb = inject(SqliteSampleDatabaseService)
     private readonly exportSvc = inject(ExportService)
     private readonly recentItemsSvc = inject(RecentItemsService)
 
@@ -496,7 +496,7 @@ export class SqliteWorkspaceStore {
         }
     }
 
-    async openDatabase(): Promise<void> {
+    async openSqliteFile(): Promise<void> {
         this.isLoading.set(true)
         this.error.set(null)
         try {
@@ -504,13 +504,13 @@ export class SqliteWorkspaceStore {
             if (!path) return
             await this.loadFilePath(path)
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to open database')
+            this.error.set(err instanceof Error ? err.message : 'Failed to open SQLite file')
         } finally {
             this.isLoading.set(false)
         }
     }
 
-    async openSampleDatabase(): Promise<void> {
+    async openSampleSqliteDatabase(): Promise<void> {
         const filePath = await save({
             defaultPath: 'quarry-sample.db',
             filters: [{ name: 'SQLite', extensions: ['db', 'sqlite', 'sqlite3', 'db3'] }],
@@ -523,7 +523,7 @@ export class SqliteWorkspaceStore {
             await this.sampleDb.generate(filePath)
             await this.loadFilePath(filePath)
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to create sample database')
+            this.error.set(err instanceof Error ? err.message : 'Failed to create sample SQLite database')
         } finally {
             this.isLoading.set(false)
         }

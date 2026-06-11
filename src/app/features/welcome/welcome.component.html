@@ -34,11 +34,19 @@
                             (click)="reopenRecentItem(item)"
                             [title]="item.subtitle ?? item.label"
                         >
-                            <!-- DB icon -->
-                            <svg aria-hidden="true" class="w-3.5 h-3.5 flex-shrink-0 text-zinc-600 group-hover:text-zinc-400 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-                            </svg>
+                            @switch (providerAction(item.providerId).icon) {
+                                @case ('sqlite-file') {
+                                    <svg aria-hidden="true" class="mt-0.5 w-3.5 h-3.5 flex-shrink-0 text-sky-500/80 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75h6.19c.398 0 .78.158 1.06.44l3.06 3.06c.281.28.44.662.44 1.06v8.94A2.25 2.25 0 0 1 16 19.5H7.5a2.25 2.25 0 0 1-2.25-2.25V6A2.25 2.25 0 0 1 7.5 3.75Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 3.75V7.5h3.75" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12.375c0 1.036 1.511 1.875 3.375 1.875S15 13.41 15 12.375m-6.75 0c0-1.035 1.511-1.875 3.375-1.875S15 11.34 15 12.375m-6.75 0v2.25c0 1.036 1.511 1.875 3.375 1.875S15 15.66 15 14.625v-2.25" />
+                                    </svg>
+                                }
+                            }
                             <span class="min-w-0 flex-1">
+                                <span class="mb-1 inline-flex rounded-full border border-sky-500/20 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-300">
+                                    {{ providerAction(item.providerId).name }}
+                                </span>
                                 <span class="block text-xs text-zinc-400 group-hover:text-zinc-100 transition-colors truncate">{{ item.label }}</span>
                                 @if (item.subtitle) {
                                     <span class="block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors truncate">{{ item.subtitle }}</span>
@@ -55,40 +63,77 @@
         }
     </div>
 
-    <!-- Right: main CTA -->
-    <div class="flex-1 flex flex-col items-center justify-center gap-8">
+    <!-- Right: provider launchers -->
+    <div class="flex-1 flex flex-col items-center justify-center gap-8 px-6 py-10">
         <div class="text-center">
             <h1 class="text-4xl font-bold tracking-tight text-zinc-100">Quarry</h1>
-            <p class="mt-2 text-sm text-zinc-500">Visual SQLite query builder</p>
+            <p class="mt-2 text-sm text-zinc-500">Choose a provider to open a workspace</p>
         </div>
 
-        <button
-            type="button"
-            class="flex items-center gap-2.5 px-6 py-3 rounded-lg bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-zinc-950 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            [disabled]="workspaceHost.isLoading()"
-            (click)="openDefaultProvider()"
-        >
-            <!-- Folder open icon -->
-            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
-            </svg>
-            @if (workspaceHost.isLoading()) {
-                Opening...
-            } @else {
-                Open database file
-            }
-        </button>
+        <div class="w-full max-w-2xl">
+            <div class="grid gap-4">
+                @for (action of launchActions; track action.id) {
+                    <section class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5 shadow-[0_20px_60px_-40px_rgba(14,165,233,0.45)]">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-start gap-4">
+                                <span class="mt-0.5 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-sky-500/20 bg-sky-500/10 text-sky-400">
+                                    @switch (action.icon) {
+                                        @case ('sqlite-file') {
+                                            <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75h6.19c.398 0 .78.158 1.06.44l3.06 3.06c.281.28.44.662.44 1.06v8.94A2.25 2.25 0 0 1 16 19.5H7.5a2.25 2.25 0 0 1-2.25-2.25V6A2.25 2.25 0 0 1 7.5 3.75Z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 3.75V7.5h3.75" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12.375c0 1.036 1.511 1.875 3.375 1.875S15 13.41 15 12.375m-6.75 0c0-1.035 1.511-1.875 3.375-1.875S15 11.34 15 12.375m-6.75 0v2.25c0 1.036 1.511 1.875 3.375 1.875S15 15.66 15 14.625v-2.25" />
+                                            </svg>
+                                        }
+                                    }
+                                </span>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-500">{{ action.name }}</p>
+                                    <h2 class="mt-2 text-2xl font-semibold tracking-tight text-zinc-100">{{ action.openLabel }}</h2>
+                                    <p class="mt-2 max-w-xl text-sm leading-6 text-zinc-400">{{ action.description }}</p>
+                                </div>
+                            </div>
+                            <span class="rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-1 text-[11px] text-sky-300">
+                                {{ action.name }}
+                            </span>
+                        </div>
 
-        <p class="text-xs text-zinc-600">Supports .db · .sqlite · .sqlite3 · .db3</p>
+                        <div class="mt-5 flex flex-wrap items-center gap-3">
+                            <button
+                                type="button"
+                                class="flex items-center gap-2.5 rounded-lg bg-sky-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-sky-400 active:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                [disabled]="workspaceHost.isLoading()"
+                                (click)="openProvider(action.id)"
+                            >
+                                <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
+                                </svg>
+                                @if (workspaceHost.isLoading()) {
+                                    Opening...
+                                } @else {
+                                    {{ action.openLabel }}
+                                }
+                            </button>
 
-        <button
-            type="button"
-            class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            [disabled]="workspaceHost.isLoading()"
-            (click)="openSample()"
-        >
-            or download a sample database to try
-        </button>
+                            @if (action.sampleLabel) {
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                    [disabled]="workspaceHost.isLoading()"
+                                    (click)="openSample(action.id)"
+                                >
+                                    {{ action.sampleLabel }}
+                                </button>
+                            }
+                        </div>
+
+                        @if (action.openHint) {
+                            <p class="mt-4 text-xs text-zinc-600">{{ action.openHint }}</p>
+                        }
+                    </section>
+                }
+            </div>
+        </div>
     </div>
 
 </div>
