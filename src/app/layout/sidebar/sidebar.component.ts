@@ -1,4 +1,17 @@
 import { Component, inject, signal } from '@angular/core'
+import {
+    LucideBolt,
+    LucideChevronRight,
+    LucideDatabase,
+    LucideEye,
+    LucideFolderOpen,
+    LucideKeyRound,
+    LucidePencil,
+    LucidePlus,
+    LucideSettings,
+    LucideTable2,
+    LucideTriangleAlert,
+} from '@lucide/angular'
 import type { TriggerSchema, ViewSchema } from '@quarrydb/shared'
 import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
@@ -6,6 +19,19 @@ import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
 
 @Component({
     selector: 'app-sidebar',
+    imports: [
+        LucideBolt,
+        LucideChevronRight,
+        LucideDatabase,
+        LucideEye,
+        LucideFolderOpen,
+        LucideKeyRound,
+        LucidePencil,
+        LucidePlus,
+        LucideSettings,
+        LucideTable2,
+        LucideTriangleAlert,
+    ],
     templateUrl: './sidebar.component.html',
 })
 export class SidebarComponent {

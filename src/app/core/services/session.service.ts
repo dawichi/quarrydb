@@ -68,16 +68,17 @@ export class SessionService {
     }
 
     async restore(): Promise<void> {
-        let session: PersistedSession
+        let session: PersistedSession | null = null
         try {
             const raw = localStorage.getItem(SESSION_KEY)
             if (!raw) return
             const parsed = JSON.parse(raw) as unknown
             session = this.normalizePersistedSession(parsed)
-            if (!session) return
         } catch {
             return
         }
+
+        if (!session) return
 
         try {
             await this.providers.restoreSession(session)

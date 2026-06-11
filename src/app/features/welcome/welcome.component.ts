@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core'
+import { LucideBookOpen, LucideFolderOpen } from '@lucide/angular'
 import type { ProviderId } from '@quarrydb/shared/provider'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { ProviderLaunchAction } from '../../core/providers/provider-definition'
@@ -10,6 +11,7 @@ import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
 @Component({
     selector: 'app-welcome',
     host: { class: 'flex-1 min-h-0' },
+    imports: [LucideBookOpen, LucideFolderOpen],
     templateUrl: './welcome.component.html',
 })
 export class WelcomeComponent {
