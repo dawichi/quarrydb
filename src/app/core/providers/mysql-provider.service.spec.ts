@@ -19,6 +19,11 @@ describe('MysqlProviderService', () => {
         upsert: vi.fn(),
         remove: vi.fn(),
     }
+    const recentItems = {
+        add: vi.fn(),
+        createMysqlItem: vi.fn(),
+        remove: vi.fn(),
+    }
 
     let service: MysqlProviderService
 
@@ -27,10 +32,14 @@ describe('MysqlProviderService', () => {
         profiles.create.mockReset()
         profiles.upsert.mockReset()
         profiles.remove.mockReset()
+        recentItems.add.mockReset()
+        recentItems.createMysqlItem.mockReset()
+        recentItems.remove.mockReset()
 
         service = Object.assign(Object.create(MysqlProviderService.prototype), {
             homeLaunchAction,
             profiles,
+            recentItems,
         }) as MysqlProviderService
     })
 
@@ -75,6 +84,7 @@ describe('MysqlProviderService', () => {
             updatedAt: 1,
         }
         profiles.create.mockReturnValue(created)
+        recentItems.createMysqlItem.mockReturnValue({ id: 'mysql:mysql-1' })
 
         expect(service.saveDraft(draft, 1)).toEqual(created)
         expect(profiles.create).toHaveBeenCalledWith(
@@ -90,12 +100,15 @@ describe('MysqlProviderService', () => {
             1,
         )
         expect(profiles.upsert).toHaveBeenCalledWith(created)
+        expect(recentItems.createMysqlItem).toHaveBeenCalledWith(created, 1)
+        expect(recentItems.add).toHaveBeenCalledWith({ id: 'mysql:mysql-1' })
     })
 
     it('removes a saved profile by id', () => {
         service.removeProfile('mysql-1')
 
         expect(profiles.remove).toHaveBeenCalledWith('mysql-1')
+        expect(recentItems.remove).toHaveBeenCalledWith('mysql:mysql-1')
     })
 
     it('formats the subtitle using host, port, and optional database', () => {

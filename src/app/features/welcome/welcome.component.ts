@@ -11,7 +11,7 @@ import type { ProviderId } from '@quarrydb/shared/provider'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from '../../core/providers/mysql-connection-profile'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
-import type { HomeLaunchAction, ProviderLaunchAction } from '../../core/providers/provider-definition'
+import type { HomeLaunchAction } from '../../core/providers/provider-definition'
 import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
 import { RecentItemsService } from '../../core/services/recent-items.service'
 import { TutorialService } from '../../core/services/tutorial.service'
@@ -48,11 +48,8 @@ export class WelcomeComponent {
         void this.providers.openRecentItem(item)
     }
 
-    protected providerAction(providerId: ProviderId): ProviderLaunchAction {
-        return (
-            this.providers.getLaunchActions().find((action) => action.id === providerId) ??
-            this.providers.getLaunchActions()[0]
-        )
+    protected providerAction(providerId: ProviderId): HomeLaunchAction {
+        return this.providers.getProviderDisplayAction(providerId)
     }
 
     protected isAvailableAction(

@@ -61,6 +61,7 @@ describe('ProviderRegistryService', () => {
             },
         ])
         expect(registry.getProviderLabel('sqlite')).toBe('SQLite')
+        expect(registry.getProviderDisplayAction('mysql')).toEqual(mysqlProvider.homeLaunchAction)
     })
 
     it('dispatches home open actions through the selected provider', async () => {

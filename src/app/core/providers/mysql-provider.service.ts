@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core'
+import { RecentItemsService } from '../services/recent-items.service'
 import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from './mysql-connection-profile'
 import { MysqlConnectionProfilesService } from './mysql-connection-profiles.service'
 import type { HomeLaunchAction } from './provider-definition'
@@ -6,6 +7,7 @@ import type { HomeLaunchAction } from './provider-definition'
 @Injectable({ providedIn: 'root' })
 export class MysqlProviderService {
     private readonly profiles = inject(MysqlConnectionProfilesService)
+    private readonly recentItems = inject(RecentItemsService)
 
     readonly homeLaunchAction: HomeLaunchAction = {
         id: 'mysql-preview',
@@ -47,11 +49,13 @@ export class MysqlProviderService {
             now,
         )
         this.profiles.upsert(profile)
+        this.recentItems.add(this.recentItems.createMysqlItem(profile, now))
         return profile
     }
 
     removeProfile(id: string): void {
         this.profiles.remove(id)
+        this.recentItems.remove(`mysql:${id}`)
     }
 
     formatProfileSubtitle(profile: MysqlConnectionProfile): string {

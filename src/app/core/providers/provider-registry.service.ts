@@ -30,7 +30,7 @@ export class ProviderRegistryService {
     }
 
     getProviderLabel(providerId: ProviderId): string {
-        return this.getProvider(providerId).launchAction.name
+        return this.getProviderDisplayAction(providerId).name
     }
 
     getLaunchActions(): ProviderLaunchAction[] {
@@ -46,6 +46,15 @@ export class ProviderRegistryService {
             })),
             this.mysqlProvider.homeLaunchAction,
         ]
+    }
+
+    getProviderDisplayAction(providerId: ProviderId): HomeLaunchAction {
+        switch (providerId) {
+            case 'sqlite':
+                return { ...this.sqliteProvider.launchAction, status: 'available', badgeLabel: 'SQLite' }
+            case 'mysql':
+                return this.mysqlProvider.homeLaunchAction
+        }
     }
 
     private registeredProviders(): ProviderDefinition[] {
