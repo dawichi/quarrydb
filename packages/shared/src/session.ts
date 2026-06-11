@@ -45,4 +45,38 @@ export interface SqlitePersistedSession extends PersistedSessionBase {
     pipeline: SqlitePipelineSessionState
 }
 
-export type PersistedSession = SqlitePersistedSession
+export interface MysqlWorkspaceSelection {
+    schemaName: string
+    tableName: string
+}
+
+export interface MysqlWorkspaceSessionState {
+    connectionId: string
+    connectionName: string
+    host: string
+    port: number
+    defaultDatabase?: string
+    selectedTable?: MysqlWorkspaceSelection | null
+    activeTab?: WorkspaceTab
+}
+
+export interface MysqlPipelineSessionSource {
+    connectionId: string
+    schemaName: string
+    tableName: string
+    columns: string[]
+}
+
+export interface MysqlPipelineSessionState {
+    source: MysqlPipelineSessionSource | null
+    steps: PipelineStep[]
+    variableValues: Record<string, string>
+}
+
+export interface MysqlPersistedSession extends PersistedSessionBase {
+    providerId: 'mysql'
+    workspace: MysqlWorkspaceSessionState
+    pipeline: MysqlPipelineSessionState
+}
+
+export type PersistedSession = SqlitePersistedSession | MysqlPersistedSession

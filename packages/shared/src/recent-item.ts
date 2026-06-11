@@ -15,4 +15,14 @@ export interface SqliteRecentItem extends RecentItemBase {
     }
 }
 
-export type RecentItem = SqliteRecentItem
+export interface MysqlRecentItem extends RecentItemBase {
+    providerId: 'mysql'
+    resource: {
+        connectionId: string
+        host: string
+        port: number
+        defaultDatabase?: string
+    }
+}
+
+export type RecentItem = SqliteRecentItem | MysqlRecentItem

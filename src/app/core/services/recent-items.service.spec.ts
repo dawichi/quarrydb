@@ -1,5 +1,6 @@
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { MysqlConnectionProfile } from '../providers/mysql-connection-profile'
 import { RecentItemsService } from './recent-items.service'
 
 let storage = new Map<string, string>()
@@ -21,6 +22,19 @@ beforeEach(() => {
 
 function sqliteItem(path: string, openedAt = 123): RecentItem {
     return service.createSqliteItem(path, openedAt)
+}
+
+function mysqlProfile(overrides: Partial<MysqlConnectionProfile> = {}): MysqlConnectionProfile {
+    return {
+        id: 'mysql-profile-1',
+        name: 'Analytics',
+        host: 'db.internal',
+        port: 3306,
+        username: 'quarry',
+        createdAt: 1,
+        updatedAt: 1,
+        ...overrides,
+    }
 }
 
 describe('load', () => {
@@ -82,5 +96,23 @@ describe('remove', () => {
         service.remove('sqlite:/tmp/a.db')
 
         expect(service.load()).toEqual([sqliteItem('/tmp/b.db')])
+    })
+})
+
+describe('createMysqlItem', () => {
+    it('builds a provider-aware MySQL recent item from connection metadata', () => {
+        expect(service.createMysqlItem(mysqlProfile({ defaultDatabase: 'warehouse' }), 456)).toEqual({
+            id: 'mysql:mysql-profile-1',
+            providerId: 'mysql',
+            label: 'Analytics',
+            subtitle: 'db.internal:3306',
+            openedAt: 456,
+            resource: {
+                connectionId: 'mysql-profile-1',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+            },
+        })
     })
 })

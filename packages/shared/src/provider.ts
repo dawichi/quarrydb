@@ -1,4 +1,4 @@
-export type ProviderId = 'sqlite'
+export type ProviderId = 'sqlite' | 'mysql'
 
 export type ProviderKind = 'relational'
 

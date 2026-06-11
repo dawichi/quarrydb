@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
-import type { RecentItem, SqliteRecentItem } from '@quarrydb/shared/recent-item'
+import type { MysqlRecentItem, RecentItem, SqliteRecentItem } from '@quarrydb/shared/recent-item'
+import type { MysqlConnectionProfile } from '../providers/mysql-connection-profile'
 
 interface LegacyRecentFile {
     path: string
@@ -54,8 +55,28 @@ export class RecentItemsService {
         }
     }
 
+    createMysqlItem(profile: MysqlConnectionProfile, openedAt = Date.now()): MysqlRecentItem {
+        return {
+            id: this.createMysqlItemId(profile.id),
+            providerId: 'mysql',
+            label: profile.name,
+            subtitle: `${profile.host}:${profile.port}`,
+            openedAt,
+            resource: {
+                connectionId: profile.id,
+                host: profile.host,
+                port: profile.port,
+                defaultDatabase: profile.defaultDatabase,
+            },
+        }
+    }
+
     private createSqliteItemId(path: string): string {
         return `sqlite:${path}`
+    }
+
+    private createMysqlItemId(connectionId: string): string {
+        return `mysql:${connectionId}`
     }
 
     private persist(items: RecentItem[]): void {
