@@ -1,4 +1,5 @@
 import type { PipelineStep } from './index'
+import type { MysqlConnectionTarget } from './mysql-connection-target'
 import type { ProviderId } from './provider'
 
 export type WorkspaceTab = 'browse' | 'query' | 'edit'
@@ -50,12 +51,7 @@ export interface MysqlWorkspaceSelection {
     tableName: string
 }
 
-export interface MysqlWorkspaceSessionState {
-    connectionId: string
-    connectionName: string
-    host: string
-    port: number
-    defaultDatabase?: string
+export interface MysqlWorkspaceSessionState extends MysqlConnectionTarget {
     selectedTable?: MysqlWorkspaceSelection | null
     activeTab?: WorkspaceTab
 }

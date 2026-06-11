@@ -1,3 +1,5 @@
+import type { MysqlConnectionTarget } from '@quarrydb/shared/mysql-connection-target'
+
 export interface MysqlConnectionProfile {
     id: string
     name: string
@@ -19,4 +21,14 @@ export interface MysqlConnectionProfileDraft {
     defaultDatabase?: string
     color?: string
     sslMode?: 'disabled' | 'preferred' | 'required'
+}
+
+export function createMysqlConnectionTarget(profile: MysqlConnectionProfile): MysqlConnectionTarget {
+    return {
+        connectionId: profile.id,
+        connectionName: profile.name,
+        host: profile.host,
+        port: profile.port,
+        defaultDatabase: profile.defaultDatabase,
+    }
 }

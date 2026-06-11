@@ -109,6 +109,7 @@ describe('createMysqlItem', () => {
             openedAt: 456,
             resource: {
                 connectionId: 'mysql-profile-1',
+                connectionName: 'Analytics',
                 host: 'db.internal',
                 port: 3306,
                 defaultDatabase: 'warehouse',

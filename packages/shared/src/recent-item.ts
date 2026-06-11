@@ -1,3 +1,4 @@
+import type { MysqlConnectionTarget } from './mysql-connection-target'
 import type { ProviderId } from './provider'
 
 export interface RecentItemBase {
@@ -17,12 +18,7 @@ export interface SqliteRecentItem extends RecentItemBase {
 
 export interface MysqlRecentItem extends RecentItemBase {
     providerId: 'mysql'
-    resource: {
-        connectionId: string
-        host: string
-        port: number
-        defaultDatabase?: string
-    }
+    resource: MysqlConnectionTarget
 }
 
 export type RecentItem = SqliteRecentItem | MysqlRecentItem

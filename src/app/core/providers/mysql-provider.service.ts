@@ -3,7 +3,11 @@ import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
-import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from './mysql-connection-profile'
+import {
+    createMysqlConnectionTarget,
+    type MysqlConnectionProfile,
+    type MysqlConnectionProfileDraft,
+} from './mysql-connection-profile'
 import { MysqlConnectionProfilesService } from './mysql-connection-profiles.service'
 import type { HomeLaunchAction, ProviderDefinition } from './provider-definition'
 
@@ -122,11 +126,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             providerId: 'mysql',
             savedAt,
             workspace: {
-                connectionId: profile.id,
-                connectionName: profile.name,
-                host: profile.host,
-                port: profile.port,
-                defaultDatabase: profile.defaultDatabase,
+                ...createMysqlConnectionTarget(profile),
                 selectedTable: selectedTable ?? null,
                 activeTab: 'browse',
             },

@@ -170,6 +170,7 @@ describe('ProviderRegistryService', () => {
             openedAt: 1,
             resource: {
                 connectionId: 'mysql-1',
+                connectionName: 'Analytics',
                 host: 'db.internal',
                 port: 3306,
             },

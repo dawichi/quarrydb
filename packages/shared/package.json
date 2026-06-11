@@ -4,6 +4,7 @@
     "private": true,
     "exports": {
         ".": "./src/index.ts",
+        "./mysql-connection-target": "./src/mysql-connection-target.ts",
         "./provider": "./src/provider.ts",
         "./recent-item": "./src/recent-item.ts",
         "./session": "./src/session.ts"
