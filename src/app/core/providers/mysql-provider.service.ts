@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core'
+import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
 import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from './mysql-connection-profile'
 import { MysqlConnectionProfilesService } from './mysql-connection-profiles.service'
@@ -61,5 +62,31 @@ export class MysqlProviderService {
     formatProfileSubtitle(profile: MysqlConnectionProfile): string {
         const target = `${profile.host}:${profile.port}`
         return profile.defaultDatabase ? `${target} · ${profile.defaultDatabase}` : target
+    }
+
+    buildPersistedSession(
+        profile: MysqlConnectionProfile,
+        savedAt = Date.now(),
+        selectedTable?: MysqlPersistedSession['workspace']['selectedTable'],
+    ): MysqlPersistedSession {
+        return {
+            version: 1,
+            providerId: 'mysql',
+            savedAt,
+            workspace: {
+                connectionId: profile.id,
+                connectionName: profile.name,
+                host: profile.host,
+                port: profile.port,
+                defaultDatabase: profile.defaultDatabase,
+                selectedTable: selectedTable ?? null,
+                activeTab: 'browse',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        }
     }
 }

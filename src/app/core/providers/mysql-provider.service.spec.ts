@@ -137,4 +137,41 @@ describe('MysqlProviderService', () => {
             }),
         ).toBe('replica.internal:3307')
     })
+
+    it('builds a provider-aware MySQL persisted session shape', () => {
+        expect(
+            service.buildPersistedSession(
+                {
+                    id: 'mysql-1',
+                    name: 'Analytics',
+                    host: 'db.internal',
+                    port: 3306,
+                    username: 'quarry',
+                    defaultDatabase: 'warehouse',
+                    createdAt: 1,
+                    updatedAt: 1,
+                },
+                1234,
+                { schemaName: 'warehouse', tableName: 'orders' },
+            ),
+        ).toEqual({
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 1234,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+                selectedTable: { schemaName: 'warehouse', tableName: 'orders' },
+                activeTab: 'browse',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        })
+    })
 })

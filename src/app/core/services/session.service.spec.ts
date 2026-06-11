@@ -1,5 +1,5 @@
 import type { DatabaseSchema } from '@quarrydb/shared'
-import type { PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
+import type { MysqlPersistedSession, PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionService } from './session.service'
 
@@ -105,6 +105,33 @@ describe('SessionService', () => {
             workspace: {
                 name: 'app.db',
                 databases: [{ path: '/tmp/app.db', alias: 'main' }],
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        }
+        localStorage.setItem('quarry_session', JSON.stringify(session))
+
+        await service.restore()
+
+        expect(providers.restoreSession).toHaveBeenCalledWith(session)
+    })
+
+    it('dispatches a persisted MySQL session to the registry unchanged', async () => {
+        const session: MysqlPersistedSession = {
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 1234,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+                selectedTable: { schemaName: 'warehouse', tableName: 'orders' },
+                activeTab: 'browse',
             },
             pipeline: {
                 source: null,

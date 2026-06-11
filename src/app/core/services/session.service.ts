@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core'
 import type { PipelineStep } from '@quarrydb/shared'
-import type { PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
+import type { MysqlPersistedSession, PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
 import { ProviderRegistryService } from '../providers/provider-registry.service'
 import { PipelineStore } from '../store/pipeline.store'
 import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
@@ -92,6 +92,9 @@ export class SessionService {
         if (this.isSqlitePersistedSession(parsed)) {
             return parsed
         }
+        if (this.isMysqlPersistedSession(parsed)) {
+            return parsed
+        }
         if (this.isLegacyPersistedSession(parsed)) {
             return {
                 version: 1,
@@ -118,6 +121,21 @@ export class SessionService {
             !!candidate.workspace &&
             Array.isArray(candidate.workspace.databases) &&
             candidate.workspace.databases.length > 0 &&
+            !!candidate.pipeline
+        )
+    }
+
+    private isMysqlPersistedSession(parsed: unknown): parsed is MysqlPersistedSession {
+        if (!parsed || typeof parsed !== 'object') return false
+        const candidate = parsed as Partial<MysqlPersistedSession>
+        return (
+            candidate.version === 1 &&
+            candidate.providerId === 'mysql' &&
+            !!candidate.workspace &&
+            typeof candidate.workspace.connectionId === 'string' &&
+            typeof candidate.workspace.connectionName === 'string' &&
+            typeof candidate.workspace.host === 'string' &&
+            typeof candidate.workspace.port === 'number' &&
             !!candidate.pipeline
         )
     }
