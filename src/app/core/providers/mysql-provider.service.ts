@@ -22,6 +22,12 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         openLabel: 'Connect to MySQL',
         openHint: 'Saved profile flow is in progress.',
     }
+    readonly availability = {
+        canOpenFromHome: false,
+        canOpenRecentItems: false,
+        canRestoreSession: false,
+        unavailableMessage: 'Saved MySQL profiles are local metadata only until the provider backend lands.',
+    }
 
     readonly homeLaunchAction: HomeLaunchAction = {
         id: 'mysql-preview',

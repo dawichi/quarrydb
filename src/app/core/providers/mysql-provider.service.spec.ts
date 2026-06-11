@@ -52,6 +52,12 @@ describe('MysqlProviderService', () => {
         service = Object.assign(Object.create(MysqlProviderService.prototype), {
             id: 'mysql',
             launchAction,
+            availability: {
+                canOpenFromHome: false,
+                canOpenRecentItems: false,
+                canRestoreSession: false,
+                unavailableMessage: 'Saved MySQL profiles are local metadata only until the provider backend lands.',
+            },
             host,
             homeLaunchAction,
             profiles,
@@ -62,6 +68,12 @@ describe('MysqlProviderService', () => {
     it('exposes a registered MySQL provider definition', () => {
         expect(service.id).toBe('mysql')
         expect(service.launchAction).toEqual(launchAction)
+        expect(service.availability).toEqual({
+            canOpenFromHome: false,
+            canOpenRecentItems: false,
+            canRestoreSession: false,
+            unavailableMessage: 'Saved MySQL profiles are local metadata only until the provider backend lands.',
+        })
     })
 
     it('exposes a planned home launcher action', () => {

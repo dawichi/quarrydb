@@ -27,9 +27,9 @@
                         <button
                             type="button"
                             class="group flex items-start gap-2 px-3 py-2 rounded-md text-left w-full transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                            [disabled]="workspaceHost.isLoading()"
+                            [disabled]="workspaceHost.isLoading() || !canReopenRecentItem(item)"
                             (click)="reopenRecentItem(item)"
-                            [title]="item.subtitle ?? item.label"
+                            [title]="recentItemAvailabilityNote(item) ?? item.subtitle ?? item.label"
                         >
                             @switch (providerAction(item.providerId).icon) {
                                 @case ('sqlite-file') {
@@ -47,6 +47,9 @@
                                 <span class="block text-xs text-zinc-400 group-hover:text-zinc-100 transition-colors truncate">{{ item.label }}</span>
                                 @if (item.subtitle) {
                                     <span class="block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors truncate">{{ item.subtitle }}</span>
+                                }
+                                @if (recentItemAvailabilityNote(item); as availabilityNote) {
+                                    <span class="block text-[11px] text-amber-300/80 truncate">{{ availabilityNote }}</span>
                                 }
                             </span>
                         </button>

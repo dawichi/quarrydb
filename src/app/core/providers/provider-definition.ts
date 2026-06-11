@@ -29,9 +29,17 @@ export type HomeLaunchAction =
           availabilityNote: string
       }
 
+export interface ProviderAvailability {
+    canOpenFromHome: boolean
+    canOpenRecentItems: boolean
+    canRestoreSession: boolean
+    unavailableMessage?: string
+}
+
 export interface ProviderDefinition<TSession extends PersistedSession = PersistedSession> {
     id: ProviderId
     launchAction: ProviderLaunchAction
+    availability: ProviderAvailability
     openFromHome(): Promise<void>
     openSample(): Promise<void>
     openRecentItem(item: RecentItem): Promise<void>

@@ -45,11 +45,20 @@ export class WelcomeComponent {
     }
 
     protected reopenRecentItem(item: RecentItem): void {
+        if (!this.canReopenRecentItem(item)) return
         void this.providers.openRecentItem(item)
     }
 
     protected providerAction(providerId: ProviderId): HomeLaunchAction {
         return this.providers.getProviderDisplayAction(providerId)
+    }
+
+    protected canReopenRecentItem(item: RecentItem): boolean {
+        return this.providers.canOpenRecentItem(item.providerId)
+    }
+
+    protected recentItemAvailabilityNote(item: RecentItem): string | null {
+        return this.providers.getUnavailableMessage(item.providerId)
     }
 
     protected isAvailableAction(

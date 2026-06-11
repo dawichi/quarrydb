@@ -33,6 +33,18 @@ export class ProviderRegistryService {
         return this.getProviderDisplayAction(providerId).name
     }
 
+    canOpenRecentItem(providerId: ProviderId): boolean {
+        return this.getProvider(providerId).availability.canOpenRecentItems
+    }
+
+    canRestoreSession(providerId: ProviderId): boolean {
+        return this.getProvider(providerId).availability.canRestoreSession
+    }
+
+    getUnavailableMessage(providerId: ProviderId): string | null {
+        return this.getProvider(providerId).availability.unavailableMessage ?? null
+    }
+
     getLaunchActions(): ProviderLaunchAction[] {
         return this.availableLaunchProviders().map((provider) => provider.launchAction)
     }

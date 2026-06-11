@@ -27,6 +27,7 @@ describe('SessionService', () => {
         variableValues: variableValuesFn,
     }
     const providers = {
+        canRestoreSession: vi.fn(),
         restoreSession: vi.fn(),
     }
 
@@ -43,7 +44,9 @@ describe('SessionService', () => {
         pipelineStore.source.mockReset()
         pipelineStore.steps.mockReset()
         variableValuesFn.mockReset()
+        providers.canRestoreSession.mockReset()
         providers.restoreSession.mockReset()
+        providers.canRestoreSession.mockReturnValue(true)
 
         service = Object.assign(Object.create(SessionService.prototype), {
             providers,
@@ -144,6 +147,34 @@ describe('SessionService', () => {
         await service.restore()
 
         expect(providers.restoreSession).toHaveBeenCalledWith(session)
+    })
+
+    it('clears unsupported provider sessions before restore dispatch', async () => {
+        const session: MysqlPersistedSession = {
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 1234,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                activeTab: 'browse',
+                selectedTable: null,
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        }
+        localStorage.setItem('quarry_session', JSON.stringify(session))
+        providers.canRestoreSession.mockReturnValue(false)
+
+        await service.restore()
+
+        expect(providers.restoreSession).not.toHaveBeenCalled()
+        expect(localStorage.getItem('quarry_session')).toBeNull()
     })
 
     it('normalizes the legacy SQLite session shape before dispatch', async () => {

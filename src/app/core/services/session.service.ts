@@ -79,6 +79,10 @@ export class SessionService {
         }
 
         if (!session) return
+        if (!this.providers.canRestoreSession(session.providerId)) {
+            this.clear()
+            return
+        }
 
         try {
             await this.providers.restoreSession(session)

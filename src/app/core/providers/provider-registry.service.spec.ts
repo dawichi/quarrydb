@@ -15,6 +15,11 @@ describe('ProviderRegistryService', () => {
             openHint: 'Supports .db',
             sampleLabel: 'Create sample SQLite database',
         } satisfies ProviderLaunchAction,
+        availability: {
+            canOpenFromHome: true,
+            canOpenRecentItems: true,
+            canRestoreSession: true,
+        },
         openFromHome: vi.fn(),
         openSample: vi.fn(),
         openRecentItem: vi.fn(),
@@ -29,6 +34,12 @@ describe('ProviderRegistryService', () => {
             icon: 'mysql-server' as const,
             openLabel: 'Connect to MySQL' as const,
             openHint: 'Saved profile flow is in progress.',
+        },
+        availability: {
+            canOpenFromHome: false,
+            canOpenRecentItems: false,
+            canRestoreSession: false,
+            unavailableMessage: 'Saved MySQL profiles are local metadata only until the provider backend lands.',
         },
         homeLaunchAction: {
             id: 'mysql-preview' as const,
@@ -79,6 +90,14 @@ describe('ProviderRegistryService', () => {
         ])
         expect(registry.getProviderLabel('sqlite')).toBe('SQLite')
         expect(registry.getProviderDisplayAction('mysql')).toEqual(mysqlProvider.homeLaunchAction)
+        expect(registry.canOpenRecentItem('sqlite')).toBe(true)
+        expect(registry.canOpenRecentItem('mysql')).toBe(false)
+        expect(registry.canRestoreSession('sqlite')).toBe(true)
+        expect(registry.canRestoreSession('mysql')).toBe(false)
+        expect(registry.getUnavailableMessage('sqlite')).toBeNull()
+        expect(registry.getUnavailableMessage('mysql')).toBe(
+            'Saved MySQL profiles are local metadata only until the provider backend lands.',
+        )
     })
 
     it('dispatches home open actions through the selected provider', async () => {

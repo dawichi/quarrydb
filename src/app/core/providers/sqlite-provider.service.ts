@@ -19,6 +19,11 @@ export class SqliteProviderService implements ProviderDefinition<SqlitePersisted
         openHint: 'Supports .db .sqlite .sqlite3 .db3',
         sampleLabel: 'Create sample SQLite database',
     }
+    readonly availability = {
+        canOpenFromHome: true,
+        canOpenRecentItems: true,
+        canRestoreSession: true,
+    }
 
     private readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly pipelineStore = inject(PipelineStore)
