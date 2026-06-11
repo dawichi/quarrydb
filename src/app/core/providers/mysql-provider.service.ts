@@ -1,9 +1,12 @@
-import { Injectable } from '@angular/core'
-import type { MysqlConnectionProfileDraft } from './mysql-connection-profile'
+import { Injectable, inject } from '@angular/core'
+import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from './mysql-connection-profile'
+import { MysqlConnectionProfilesService } from './mysql-connection-profiles.service'
 import type { HomeLaunchAction } from './provider-definition'
 
 @Injectable({ providedIn: 'root' })
 export class MysqlProviderService {
+    private readonly profiles = inject(MysqlConnectionProfilesService)
+
     readonly homeLaunchAction: HomeLaunchAction = {
         id: 'mysql-preview',
         status: 'planned',
@@ -24,5 +27,35 @@ export class MysqlProviderService {
             username: '',
             sslMode: 'preferred',
         }
+    }
+
+    loadProfiles(): MysqlConnectionProfile[] {
+        return this.profiles.load()
+    }
+
+    saveDraft(draft: MysqlConnectionProfileDraft, now = Date.now()): MysqlConnectionProfile {
+        const profile = this.profiles.create(
+            {
+                name: draft.name.trim(),
+                host: draft.host.trim(),
+                port: draft.port,
+                username: draft.username.trim(),
+                defaultDatabase: draft.defaultDatabase?.trim() || undefined,
+                color: draft.color,
+                sslMode: draft.sslMode,
+            },
+            now,
+        )
+        this.profiles.upsert(profile)
+        return profile
+    }
+
+    removeProfile(id: string): void {
+        this.profiles.remove(id)
+    }
+
+    formatProfileSubtitle(profile: MysqlConnectionProfile): string {
+        const target = `${profile.host}:${profile.port}`
+        return profile.defaultDatabase ? `${target} · ${profile.defaultDatabase}` : target
     }
 }

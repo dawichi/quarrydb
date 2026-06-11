@@ -140,15 +140,114 @@
                                     </button>
                                 }
                             } @else {
-                                <button
-                                    type="button"
-                                    class="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-200 opacity-80 cursor-not-allowed"
-                                    disabled
-                                >
-                                    <svg lucideDatabase aria-hidden="true" class="w-4 h-4" [strokeWidth]="2"></svg>
-                                    {{ action.openLabel }}
-                                </button>
-                                <p class="text-sm text-zinc-500">{{ action.availabilityNote }}</p>
+                                <div class="flex flex-col gap-4 w-full">
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <button
+                                            type="button"
+                                            class="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-200 opacity-80 cursor-not-allowed"
+                                            disabled
+                                        >
+                                            <svg lucideDatabase aria-hidden="true" class="w-4 h-4" [strokeWidth]="2"></svg>
+                                            {{ action.openLabel }}
+                                        </button>
+                                        <p class="text-sm text-zinc-500">{{ action.availabilityNote }}</p>
+                                    </div>
+
+                                    @if (action.id === 'mysql-preview') {
+                                        <div class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+                                            <div class="flex items-center gap-2">
+                                                <svg lucideServer aria-hidden="true" class="w-4 h-4 text-zinc-500" [strokeWidth]="1.8"></svg>
+                                                <h3 class="text-sm font-medium text-zinc-200">Saved connection profiles</h3>
+                                            </div>
+
+                                            <div class="mt-4 grid gap-3 md:grid-cols-2">
+                                                <label class="flex flex-col gap-1">
+                                                    <span class="text-xs uppercase tracking-wide text-zinc-500">Connection name</span>
+                                                    <input
+                                                        class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
+                                                        [value]="mysqlDraft().name"
+                                                        (input)="updateMysqlDraft('name', $any($event.target).value)"
+                                                        placeholder="Analytics"
+                                                    />
+                                                </label>
+                                                <label class="flex flex-col gap-1">
+                                                    <span class="text-xs uppercase tracking-wide text-zinc-500">Host</span>
+                                                    <input
+                                                        class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
+                                                        [value]="mysqlDraft().host"
+                                                        (input)="updateMysqlDraft('host', $any($event.target).value)"
+                                                        placeholder="localhost"
+                                                    />
+                                                </label>
+                                                <label class="flex flex-col gap-1">
+                                                    <span class="text-xs uppercase tracking-wide text-zinc-500">Port</span>
+                                                    <input
+                                                        class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
+                                                        type="number"
+                                                        min="1"
+                                                        [value]="mysqlDraft().port"
+                                                        (input)="updateMysqlDraft('port', parseMysqlPort($any($event.target).value))"
+                                                        placeholder="3306"
+                                                    />
+                                                </label>
+                                                <label class="flex flex-col gap-1">
+                                                    <span class="text-xs uppercase tracking-wide text-zinc-500">Username</span>
+                                                    <input
+                                                        class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
+                                                        [value]="mysqlDraft().username"
+                                                        (input)="updateMysqlDraft('username', $any($event.target).value)"
+                                                        placeholder="quarry"
+                                                    />
+                                                </label>
+                                                <label class="flex flex-col gap-1 md:col-span-2">
+                                                    <span class="text-xs uppercase tracking-wide text-zinc-500">Default database</span>
+                                                    <input
+                                                        class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
+                                                        [value]="mysqlDraft().defaultDatabase ?? ''"
+                                                        (input)="updateMysqlDraft('defaultDatabase', $any($event.target).value)"
+                                                        placeholder="warehouse"
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            <div class="mt-4 flex items-center gap-3">
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-sky-400 active:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                                    [disabled]="!canSaveMysqlDraft()"
+                                                    (click)="saveMysqlDraft()"
+                                                >
+                                                    <svg lucideCirclePlus aria-hidden="true" class="w-4 h-4" [strokeWidth]="1.8"></svg>
+                                                    Save profile
+                                                </button>
+                                                <p class="text-xs text-zinc-500">Profiles are local metadata only for now. They do not connect yet.</p>
+                                            </div>
+
+                                            @if (mysqlProfiles().length === 0) {
+                                                <p class="mt-4 text-sm text-zinc-600">No saved MySQL profiles yet.</p>
+                                            } @else {
+                                                <div class="mt-4 flex flex-col gap-2">
+                                                    @for (profile of mysqlProfiles(); track profile.id) {
+                                                        <div class="flex items-start justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-2">
+                                                            <span class="min-w-0">
+                                                                <span class="block truncate text-sm font-medium text-zinc-100">{{ profile.name }}</span>
+                                                                <span class="block truncate text-xs text-zinc-500">{{ mysqlProfileSubtitle(profile) }}</span>
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-red-300"
+                                                                title="Delete profile"
+                                                                (click)="removeMysqlProfile(profile.id)"
+                                                            >
+                                                                <svg lucideTrash2 aria-hidden="true" class="w-4 h-4" [strokeWidth]="1.8"></svg>
+                                                            </button>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
                             }
                         </div>
 
