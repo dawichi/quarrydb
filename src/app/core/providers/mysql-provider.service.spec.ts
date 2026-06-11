@@ -2,6 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MysqlProviderService } from './mysql-provider.service'
 
 describe('MysqlProviderService', () => {
+    const launchAction = {
+        id: 'mysql' as const,
+        name: 'MySQL',
+        description: 'Connect to a saved MySQL server profile once the second provider lands.',
+        icon: 'mysql-server' as const,
+        openLabel: 'Connect to MySQL' as const,
+        openHint: 'Saved profile flow is in progress.',
+    }
     const homeLaunchAction = {
         id: 'mysql-preview' as const,
         status: 'planned' as const,
@@ -19,6 +27,10 @@ describe('MysqlProviderService', () => {
         upsert: vi.fn(),
         remove: vi.fn(),
     }
+    const errorSet = vi.fn()
+    const host = {
+        error: { set: errorSet },
+    }
     const recentItems = {
         add: vi.fn(),
         createMysqlItem: vi.fn(),
@@ -32,15 +44,24 @@ describe('MysqlProviderService', () => {
         profiles.create.mockReset()
         profiles.upsert.mockReset()
         profiles.remove.mockReset()
+        errorSet.mockReset()
         recentItems.add.mockReset()
         recentItems.createMysqlItem.mockReset()
         recentItems.remove.mockReset()
 
         service = Object.assign(Object.create(MysqlProviderService.prototype), {
+            id: 'mysql',
+            launchAction,
+            host,
             homeLaunchAction,
             profiles,
             recentItems,
         }) as MysqlProviderService
+    })
+
+    it('exposes a registered MySQL provider definition', () => {
+        expect(service.id).toBe('mysql')
+        expect(service.launchAction).toEqual(launchAction)
     })
 
     it('exposes a planned home launcher action', () => {
@@ -173,5 +194,45 @@ describe('MysqlProviderService', () => {
                 variableValues: {},
             },
         })
+    })
+
+    it('fails shell entrypoints with a consistent unavailable error', async () => {
+        await expect(service.openFromHome()).rejects.toThrow('MySQL provider is not available yet')
+        await expect(service.openSample()).rejects.toThrow('MySQL provider is not available yet')
+        await expect(
+            service.openRecentItem({
+                id: 'mysql:mysql-1',
+                providerId: 'mysql',
+                label: 'Analytics',
+                openedAt: 1,
+                resource: {
+                    connectionId: 'mysql-1',
+                    host: 'db.internal',
+                    port: 3306,
+                },
+            }),
+        ).rejects.toThrow('MySQL provider is not available yet')
+        await expect(
+            service.restoreSession({
+                version: 1,
+                providerId: 'mysql',
+                savedAt: 1,
+                workspace: {
+                    connectionId: 'mysql-1',
+                    connectionName: 'Analytics',
+                    host: 'db.internal',
+                    port: 3306,
+                    selectedTable: null,
+                    activeTab: 'browse',
+                },
+                pipeline: {
+                    source: null,
+                    steps: [],
+                    variableValues: {},
+                },
+            }),
+        ).rejects.toThrow('MySQL provider is not available yet')
+
+        expect(errorSet).toHaveBeenCalledWith('MySQL provider is not available yet')
     })
 })

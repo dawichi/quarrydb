@@ -6,7 +6,7 @@ export interface ProviderLaunchAction {
     id: ProviderId
     name: string
     description: string
-    icon: 'sqlite-file'
+    icon: 'sqlite-file' | 'mysql-server'
     openLabel: string
     openHint?: string
     sampleLabel?: string

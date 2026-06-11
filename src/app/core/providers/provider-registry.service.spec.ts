@@ -21,6 +21,15 @@ describe('ProviderRegistryService', () => {
         restoreSession: vi.fn(),
     }
     const mysqlProvider = {
+        id: 'mysql' as const,
+        launchAction: {
+            id: 'mysql' as const,
+            name: 'MySQL',
+            description: 'Connect to a saved MySQL server profile once the second provider lands.',
+            icon: 'mysql-server' as const,
+            openLabel: 'Connect to MySQL' as const,
+            openHint: 'Saved profile flow is in progress.',
+        },
         homeLaunchAction: {
             id: 'mysql-preview' as const,
             status: 'planned' as const,
@@ -32,6 +41,10 @@ describe('ProviderRegistryService', () => {
             badgeLabel: 'Planned' as const,
             availabilityNote: 'MySQL support is not shipped yet.',
         },
+        openFromHome: vi.fn(),
+        openSample: vi.fn(),
+        openRecentItem: vi.fn(),
+        restoreSession: vi.fn(),
     }
 
     let registry: ProviderRegistryService
@@ -41,6 +54,10 @@ describe('ProviderRegistryService', () => {
         sqliteProvider.openSample.mockReset()
         sqliteProvider.openRecentItem.mockReset()
         sqliteProvider.restoreSession.mockReset()
+        mysqlProvider.openFromHome.mockReset()
+        mysqlProvider.openSample.mockReset()
+        mysqlProvider.openRecentItem.mockReset()
+        mysqlProvider.restoreSession.mockReset()
 
         registry = Object.assign(Object.create(ProviderRegistryService.prototype), {
             mysqlProvider,
@@ -109,5 +126,48 @@ describe('ProviderRegistryService', () => {
         await registry.restoreSession(session)
 
         expect(sqliteProvider.restoreSession).toHaveBeenCalledWith(session)
+    })
+
+    it('dispatches MySQL recent items through their provider id', async () => {
+        const item = {
+            id: 'mysql:mysql-1',
+            providerId: 'mysql' as const,
+            label: 'Analytics',
+            openedAt: 1,
+            resource: {
+                connectionId: 'mysql-1',
+                host: 'db.internal',
+                port: 3306,
+            },
+        }
+
+        await registry.openRecentItem(item)
+
+        expect(mysqlProvider.openRecentItem).toHaveBeenCalledWith(item)
+    })
+
+    it('dispatches MySQL persisted sessions through their provider id', async () => {
+        const session: PersistedSession = {
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 1,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                selectedTable: null,
+                activeTab: 'browse',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        }
+
+        await registry.restoreSession(session)
+
+        expect(mysqlProvider.restoreSession).toHaveBeenCalledWith(session)
     })
 })

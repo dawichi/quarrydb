@@ -1,14 +1,27 @@
 import { Injectable, inject } from '@angular/core'
+import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
+import { WorkspaceHostStore } from '../store/workspace-host.store'
 import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from './mysql-connection-profile'
 import { MysqlConnectionProfilesService } from './mysql-connection-profiles.service'
-import type { HomeLaunchAction } from './provider-definition'
+import type { HomeLaunchAction, ProviderDefinition } from './provider-definition'
 
 @Injectable({ providedIn: 'root' })
-export class MysqlProviderService {
+export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSession> {
     private readonly profiles = inject(MysqlConnectionProfilesService)
     private readonly recentItems = inject(RecentItemsService)
+    private readonly host = inject(WorkspaceHostStore)
+
+    readonly id = 'mysql' as const
+    readonly launchAction = {
+        id: 'mysql' as const,
+        name: 'MySQL',
+        description: 'Connect to a saved MySQL server profile once the second provider lands.',
+        icon: 'mysql-server' as const,
+        openLabel: 'Connect to MySQL',
+        openHint: 'Saved profile flow is in progress.',
+    }
 
     readonly homeLaunchAction: HomeLaunchAction = {
         id: 'mysql-preview',
@@ -30,6 +43,28 @@ export class MysqlProviderService {
             username: '',
             sslMode: 'preferred',
         }
+    }
+
+    async openFromHome(): Promise<void> {
+        throw this.notAvailableYet()
+    }
+
+    async openSample(): Promise<void> {
+        throw this.notAvailableYet()
+    }
+
+    async openRecentItem(item: RecentItem): Promise<void> {
+        if (item.providerId !== 'mysql') {
+            throw new Error(`MySQL provider cannot open recent item for provider ${item.providerId}`)
+        }
+        throw this.notAvailableYet()
+    }
+
+    async restoreSession(session: MysqlPersistedSession): Promise<void> {
+        if (session.providerId !== 'mysql') {
+            throw new Error(`MySQL provider cannot restore session for provider ${session.providerId}`)
+        }
+        throw this.notAvailableYet()
     }
 
     loadProfiles(): MysqlConnectionProfile[] {
@@ -88,5 +123,11 @@ export class MysqlProviderService {
                 variableValues: {},
             },
         }
+    }
+
+    private notAvailableYet(): Error {
+        const error = new Error('MySQL provider is not available yet')
+        this.host.error.set(error.message)
+        return error
     }
 }

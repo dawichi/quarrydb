@@ -34,7 +34,7 @@ export class ProviderRegistryService {
     }
 
     getLaunchActions(): ProviderLaunchAction[] {
-        return this.registeredProviders().map((provider) => provider.launchAction)
+        return this.availableLaunchProviders().map((provider) => provider.launchAction)
     }
 
     getHomeLaunchActions(): HomeLaunchAction[] {
@@ -58,6 +58,10 @@ export class ProviderRegistryService {
     }
 
     private registeredProviders(): ProviderDefinition[] {
+        return [this.sqliteProvider, this.mysqlProvider]
+    }
+
+    private availableLaunchProviders(): ProviderDefinition[] {
         return [this.sqliteProvider]
     }
 
