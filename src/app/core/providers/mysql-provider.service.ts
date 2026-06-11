@@ -1,21 +1,34 @@
-import { Injectable, inject } from '@angular/core'
+import { Injectable, inject, signal } from '@angular/core'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
+import type { MysqlConnectionSession, MysqlSchemaSummary } from './mysql-backend-adapter'
+import { MysqlBackendAdapterService } from './mysql-backend-adapter.service'
+import { createMysqlConnectRequest, type MysqlConnectRequest } from './mysql-connect-request'
 import {
     createMysqlConnectionTarget,
     type MysqlConnectionProfile,
     type MysqlConnectionProfileDraft,
 } from './mysql-connection-profile'
 import { MysqlConnectionProfilesService } from './mysql-connection-profiles.service'
+import {
+    createMysqlWorkspaceDraft,
+    createMysqlWorkspaceDraftFromRecentItem,
+    createMysqlWorkspaceDraftFromSession,
+    type MysqlWorkspaceDraft,
+} from './mysql-workspace-draft'
 import type { HomeLaunchAction, ProviderDefinition } from './provider-definition'
 
 @Injectable({ providedIn: 'root' })
 export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSession> {
+    private readonly backend = inject(MysqlBackendAdapterService)
     private readonly profiles = inject(MysqlConnectionProfilesService)
     private readonly recentItems = inject(RecentItemsService)
     private readonly host = inject(WorkspaceHostStore)
+    readonly workspaceDraft = signal<MysqlWorkspaceDraft | null>(null)
+    readonly connectionSession = signal<MysqlConnectionSession | null>(null)
+    readonly schemaSummaries = signal<MysqlSchemaSummary[] | null>(null)
 
     readonly id = 'mysql' as const
     readonly kind = 'relational' as const
@@ -35,9 +48,9 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     }
     readonly availability = {
         canOpenFromHome: false,
-        canOpenRecentItems: false,
+        canOpenRecentItems: true,
         canRestoreSession: false,
-        unavailableMessage: 'Saved MySQL profiles are local metadata only until the provider backend lands.',
+        unavailableMessage: 'MySQL preview currently supports connection testing and schema listing only.',
     }
 
     readonly homeLaunchAction: HomeLaunchAction = {
@@ -58,12 +71,13 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             host: 'localhost',
             port: 3306,
             username: '',
+            password: '',
             sslMode: 'preferred',
         }
     }
 
     async openFromHome(): Promise<void> {
-        throw this.notAvailableYet()
+        await this.connectWorkspaceDraft()
     }
 
     async openSample(): Promise<void> {
@@ -71,17 +85,16 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     }
 
     async openRecentItem(item: RecentItem): Promise<void> {
-        if (item.providerId !== 'mysql') {
-            throw new Error(`MySQL provider cannot open recent item for provider ${item.providerId}`)
-        }
-        throw this.notAvailableYet()
+        this.previewRecentItem(item)
+        await this.connectWorkspaceDraft()
     }
 
     async restoreSession(session: MysqlPersistedSession): Promise<void> {
         if (session.providerId !== 'mysql') {
             throw new Error(`MySQL provider cannot restore session for provider ${session.providerId}`)
         }
-        throw this.notAvailableYet()
+        this.workspaceDraft.set(createMysqlWorkspaceDraftFromSession(session))
+        await this.connectWorkspaceDraft()
     }
 
     loadProfiles(): MysqlConnectionProfile[] {
@@ -95,6 +108,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
                 host: draft.host.trim(),
                 port: draft.port,
                 username: draft.username.trim(),
+                password: draft.password.trim(),
                 defaultDatabase: draft.defaultDatabase?.trim() || undefined,
                 color: draft.color,
                 sslMode: draft.sslMode,
@@ -103,17 +117,77 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         )
         this.profiles.upsert(profile)
         this.recentItems.add(this.recentItems.createMysqlItem(profile, now))
+        this.workspaceDraft.set(this.createWorkspaceDraftFromProfile(profile))
         return profile
     }
 
     removeProfile(id: string): void {
         this.profiles.remove(id)
         this.recentItems.remove(`mysql:${id}`)
+        if (this.workspaceDraft()?.target.connectionId === id) {
+            this.workspaceDraft.set(null)
+        }
+        if (this.connectionSession()?.target.connectionId === id) {
+            this.connectionSession.set(null)
+            this.schemaSummaries.set(null)
+        }
     }
 
     formatProfileSubtitle(profile: MysqlConnectionProfile): string {
         const target = `${profile.host}:${profile.port}`
         return profile.defaultDatabase ? `${target} · ${profile.defaultDatabase}` : target
+    }
+
+    selectProfile(id: string): boolean {
+        const profile = this.profiles.find(id)
+        if (!profile) return false
+        this.workspaceDraft.set(this.createWorkspaceDraftFromProfile(profile))
+        return true
+    }
+
+    clearWorkspaceDraft(): void {
+        this.workspaceDraft.set(null)
+        this.connectionSession.set(null)
+        this.schemaSummaries.set(null)
+    }
+
+    buildConnectRequestFromWorkspaceDraft(): MysqlConnectRequest | null {
+        const draft = this.workspaceDraft()
+        if (!draft) return null
+
+        const profile = this.profiles.find(draft.target.connectionId)
+        if (!profile) return null
+
+        return createMysqlConnectRequest(profile, draft.source)
+    }
+
+    async connectWorkspaceDraft(): Promise<void> {
+        const request = this.buildConnectRequestFromWorkspaceDraft()
+        if (!request) {
+            throw this.notAvailableYet('MySQL connect target is not ready yet')
+        }
+
+        this.host.isLoading.set(true)
+        this.host.error.set(null)
+        this.connectionSession.set(null)
+        this.schemaSummaries.set(null)
+        try {
+            const session = await this.backend.connect(request)
+            this.connectionSession.set(session)
+            this.schemaSummaries.set(await this.backend.listSchemas(session))
+        } catch (error) {
+            throw this.notAvailableYet(error instanceof Error ? error.message : undefined)
+        } finally {
+            this.host.isLoading.set(false)
+        }
+    }
+
+    previewRecentItem(item: RecentItem): boolean {
+        if (item.providerId !== 'mysql') {
+            throw new Error(`MySQL provider cannot preview recent item for provider ${item.providerId}`)
+        }
+        this.workspaceDraft.set(createMysqlWorkspaceDraftFromRecentItem(item))
+        return true
     }
 
     buildPersistedSession(
@@ -138,9 +212,13 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         }
     }
 
-    private notAvailableYet(): Error {
-        const error = new Error('MySQL provider is not available yet')
+    private notAvailableYet(message = 'MySQL provider is not available yet'): Error {
+        const error = new Error(message)
         this.host.error.set(error.message)
         return error
+    }
+
+    private createWorkspaceDraftFromProfile(profile: MysqlConnectionProfile) {
+        return createMysqlWorkspaceDraft(createMysqlConnectionTarget(profile), 'saved_profile')
     }
 }

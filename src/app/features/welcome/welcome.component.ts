@@ -9,8 +9,11 @@ import {
 } from '@lucide/angular'
 import type { ProviderCapability, ProviderId } from '@quarrydb/shared/provider'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
+import type { MysqlConnectionSession, MysqlSchemaSummary } from '../../core/providers/mysql-backend-adapter'
+import type { MysqlConnectRequest } from '../../core/providers/mysql-connect-request'
 import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from '../../core/providers/mysql-connection-profile'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
+import type { MysqlWorkspaceDraft } from '../../core/providers/mysql-workspace-draft'
 import { type HomeLaunchAction, PROVIDER_CAPABILITY_LABELS } from '../../core/providers/provider-definition'
 import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
 import { RecentItemsService } from '../../core/services/recent-items.service'
@@ -31,6 +34,9 @@ export class WelcomeComponent {
     private readonly providers = inject(ProviderRegistryService)
     protected readonly launchActions = this.providers.getHomeLaunchActions()
     protected readonly mysqlDraft = signal<MysqlConnectionProfileDraft>(this.mysqlProvider.createDraft())
+    protected readonly mysqlWorkspaceDraft = this.mysqlProvider.workspaceDraft
+    protected readonly mysqlConnectionSession = this.mysqlProvider.connectionSession
+    protected readonly mysqlSchemaSummaries = this.mysqlProvider.schemaSummaries
 
     protected get recentItems() {
         return this.recentItemsSvc.load()
@@ -45,7 +51,12 @@ export class WelcomeComponent {
     }
 
     protected reopenRecentItem(item: RecentItem): void {
-        if (!this.canReopenRecentItem(item)) return
+        if (!this.canReopenRecentItem(item)) {
+            if (item.providerId === 'mysql') {
+                this.mysqlProvider.previewRecentItem(item)
+            }
+            return
+        }
         void this.providers.openRecentItem(item)
     }
 
@@ -93,7 +104,13 @@ export class WelcomeComponent {
 
     protected canSaveMysqlDraft(): boolean {
         const draft = this.mysqlDraft()
-        return !!draft.name.trim() && !!draft.host.trim() && !!draft.username.trim() && draft.port > 0
+        return (
+            !!draft.name.trim() &&
+            !!draft.host.trim() &&
+            !!draft.username.trim() &&
+            !!draft.defaultDatabase?.trim() &&
+            draft.port > 0
+        )
     }
 
     protected saveMysqlDraft(): void {
@@ -106,8 +123,43 @@ export class WelcomeComponent {
         this.mysqlProvider.removeProfile(id)
     }
 
+    protected useMysqlProfile(id: string): void {
+        this.mysqlProvider.selectProfile(id)
+    }
+
+    protected clearMysqlWorkspaceDraft(): void {
+        this.mysqlProvider.clearWorkspaceDraft()
+    }
+
+    protected connectMysqlDraft(): void {
+        void this.mysqlProvider.connectWorkspaceDraft()
+    }
+
     protected mysqlProfileSubtitle(profile: MysqlConnectionProfile): string {
         return this.mysqlProvider.formatProfileSubtitle(profile)
+    }
+
+    protected mysqlWorkspaceDraftSourceLabel(draft: MysqlWorkspaceDraft): string {
+        switch (draft.source) {
+            case 'saved_profile':
+                return 'Saved profile'
+            case 'recent_item':
+                return 'Recent item'
+            case 'session_restore':
+                return 'Session restore'
+        }
+    }
+
+    protected mysqlConnectRequest(): MysqlConnectRequest | null {
+        return this.mysqlProvider.buildConnectRequestFromWorkspaceDraft()
+    }
+
+    protected mysqlConnectionSessionLabel(session: MysqlConnectionSession): string {
+        return `${session.target.host}:${session.target.port}`
+    }
+
+    protected mysqlDefaultSchemaName(schemas: MysqlSchemaSummary[]): string | null {
+        return schemas.find((schema) => schema.isDefault)?.name ?? null
     }
 
     protected startTutorial(): void {

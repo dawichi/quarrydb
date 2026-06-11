@@ -41,6 +41,19 @@ These are the main files that currently encode SQLite as the app-wide default:
 
 These files are not wrong. They are just the first refactor seam.
 
+## Current Progress Snapshot
+
+As of 2026-06-11, the original refactor goal is largely complete for the SQLite path and
+the first real MySQL preview path now exists:
+
+- shared provider, recent-item, session, capability, and MySQL connection-target types are in place
+- shell entrypoints route through `ProviderRegistryService`
+- SQLite runs behind explicit `SqliteProviderService` + `SqliteDatabaseService`
+- welcome/home renders provider-owned launcher metadata and recent-item visuals
+- MySQL owns saved connection profiles, recent-item/session shapes, a workspace draft, and a backend-facing connect request
+- `MysqlBackendAdapterService` now performs a real `tauri-plugin-sql` MySQL connection attempt and schema-name listing
+- MySQL is still a preview flow, not a full Quarry workspace: connection testing + schema bootstrap work, but sidebar/browse/query integration is still pending
+
 ## Refactor Principles
 
 1. Do not break the current SQLite UX while introducing the provider shell.

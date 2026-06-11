@@ -118,6 +118,14 @@ Do not over-design this before implementation, but the intended direction is:
 If secure OS-backed secret storage is not part of v1, the fallback behavior and tradeoff
 must be explicit before shipping.
 
+Current preview status:
+
+- Quarry's current MySQL preview stores the password locally with the saved connection
+  profile so the real connection flow can be exercised end-to-end during development.
+- Recent items and persisted sessions still do not carry raw credentials.
+- Replacing local password storage with a more deliberate secret-storage approach remains
+  required before treating the provider as production-ready.
+
 ## Workspace Model
 
 MySQL v1 needs a different workspace shape from SQLite.

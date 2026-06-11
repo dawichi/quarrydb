@@ -27,7 +27,7 @@
                         <button
                             type="button"
                             class="group flex items-start gap-2 px-3 py-2 rounded-md text-left w-full transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                            [disabled]="workspaceHost.isLoading() || !canReopenRecentItem(item)"
+                            [disabled]="workspaceHost.isLoading()"
                             (click)="reopenRecentItem(item)"
                             [title]="recentItemAvailabilityNote(item) ?? item.subtitle ?? item.label"
                         >
@@ -214,6 +214,16 @@
                                                         placeholder="quarry"
                                                     />
                                                 </label>
+                                                <label class="flex flex-col gap-1">
+                                                    <span class="text-xs uppercase tracking-wide text-zinc-500">Password</span>
+                                                    <input
+                                                        class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
+                                                        type="password"
+                                                        [value]="mysqlDraft().password"
+                                                        (input)="updateMysqlDraft('password', $any($event.target).value)"
+                                                        placeholder="Optional"
+                                                    />
+                                                </label>
                                                 <label class="flex flex-col gap-1 md:col-span-2">
                                                     <span class="text-xs uppercase tracking-wide text-zinc-500">Default database</span>
                                                     <input
@@ -235,7 +245,9 @@
                                                     <svg lucideCirclePlus aria-hidden="true" class="w-4 h-4" [strokeWidth]="1.8"></svg>
                                                     Save profile
                                                 </button>
-                                                <p class="text-xs text-zinc-500">Profiles are local metadata only for now. They do not connect yet.</p>
+                                                <p class="text-xs text-zinc-500">
+                                                    Passwords are currently stored locally with the saved MySQL profile so the preview connection flow can be tested.
+                                                </p>
                                             </div>
 
                                             @if (mysqlProfiles().length === 0) {
@@ -248,15 +260,129 @@
                                                                 <span class="block truncate text-sm font-medium text-zinc-100">{{ profile.name }}</span>
                                                                 <span class="block truncate text-xs text-zinc-500">{{ mysqlProfileSubtitle(profile) }}</span>
                                                             </span>
+                                                            <span class="flex items-center gap-1">
+                                                                <button
+                                                                    type="button"
+                                                                    class="rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
+                                                                    (click)="useMysqlProfile(profile.id)"
+                                                                >
+                                                                    Use profile
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-red-300"
+                                                                    title="Delete profile"
+                                                                    (click)="removeMysqlProfile(profile.id)"
+                                                                >
+                                                                    <svg lucideTrash2 aria-hidden="true" class="w-4 h-4" [strokeWidth]="1.8"></svg>
+                                                                </button>
+                                                            </span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+
+                                            @if (mysqlWorkspaceDraft(); as draft) {
+                                                <div class="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                                                    <div class="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300">
+                                                                Pending connection target
+                                                            </p>
+                                                            <h4 class="mt-2 text-sm font-medium text-zinc-100">{{ draft.target.connectionName }}</h4>
+                                                            <p class="mt-1 text-xs text-zinc-400">
+                                                                {{ draft.target.host }}:{{ draft.target.port }}
+                                                                @if (draft.target.defaultDatabase) {
+                                                                    · {{ draft.target.defaultDatabase }}
+                                                                }
+                                                            </p>
+                                                            <p class="mt-2 text-xs text-zinc-500">
+                                                                Source: {{ mysqlWorkspaceDraftSourceLabel(draft) }} · Tab: {{ draft.activeTab }}
+                                                            </p>
+                                                            @if (draft.selectedTable) {
+                                                                <p class="mt-1 text-xs text-zinc-500">
+                                                                    Last table: {{ draft.selectedTable.schemaName }}.{{ draft.selectedTable.tableName }}
+                                                                </p>
+                                                            }
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            class="rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
+                                                            (click)="clearMysqlWorkspaceDraft()"
+                                                        >
+                                                            Clear
+                                                        </button>
+                                                    </div>
+                                                    <p class="mt-3 text-xs text-amber-200/80">
+                                                        This draft is the future MySQL open target. The current preview can already test a real MySQL connection and list schemas.
+                                                    </p>
+
+                                                    @if (mysqlConnectRequest(); as request) {
+                                                        <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+                                                            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">
+                                                                Future connect request
+                                                            </p>
+                                                            <div class="mt-3 grid gap-2 text-xs text-zinc-400 md:grid-cols-2">
+                                                                <span>Profile: {{ request.target.connectionName }}</span>
+                                                                <span>User: {{ request.username }}</span>
+                                                                <span>Host: {{ request.target.host }}:{{ request.target.port }}</span>
+                                                                <span>SSL: {{ request.sslMode ?? 'default' }}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mt-4 flex items-center gap-3">
                                                             <button
                                                                 type="button"
-                                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-red-300"
-                                                                title="Delete profile"
-                                                                (click)="removeMysqlProfile(profile.id)"
+                                                                class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-400 active:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                                                [disabled]="workspaceHost.isLoading()"
+                                                                (click)="connectMysqlDraft()"
                                                             >
-                                                                <svg lucideTrash2 aria-hidden="true" class="w-4 h-4" [strokeWidth]="1.8"></svg>
+                                                                @if (workspaceHost.isLoading()) {
+                                                                    Connecting...
+                                                                } @else {
+                                                                    Test MySQL connection
+                                                                }
                                                             </button>
+                                                            <p class="text-xs text-zinc-500">
+                                                                This runs a real plugin-sql MySQL connection attempt and then loads schema names.
+                                                            </p>
                                                         </div>
+
+                                                        @if (mysqlConnectionSession(); as session) {
+                                                            <div class="mt-4 rounded-lg border border-sky-500/20 bg-sky-500/5 p-3">
+                                                                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300">
+                                                                    Provisional session
+                                                                </p>
+                                                                <div class="mt-3 grid gap-2 text-xs text-zinc-300 md:grid-cols-2">
+                                                                    <span>Connection: {{ session.target.connectionName }}</span>
+                                                                    <span>Endpoint: {{ mysqlConnectionSessionLabel(session) }}</span>
+                                                                    <span>Source: {{ mysqlWorkspaceDraftSourceLabel(draft) }}</span>
+                                                                    <span>Connected at: {{ session.connectedAt }}</span>
+                                                                </div>
+
+                                                                @if (mysqlSchemaSummaries(); as schemas) {
+                                                                    <div class="mt-3 rounded-md border border-zinc-800 bg-zinc-950/70 p-3">
+                                                                        <p class="text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                                                                            Schema bootstrap
+                                                                        </p>
+                                                                        <p class="mt-2 text-xs text-zinc-300">
+                                                                            Loaded {{ schemas.length }} schema{{ schemas.length === 1 ? '' : 's' }}
+                                                                            @if (mysqlDefaultSchemaName(schemas); as defaultSchema) {
+                                                                                · default {{ defaultSchema }}
+                                                                            }
+                                                                        </p>
+                                                                    </div>
+                                                                } @else {
+                                                                    <p class="mt-3 text-xs text-sky-100/70">
+                                                                        Session handle exists, but schema bootstrap is still pending adapter implementation.
+                                                                    </p>
+                                                                }
+                                                            </div>
+                                                        }
+                                                    } @else {
+                                                        <p class="mt-4 text-xs text-amber-200/80">
+                                                            The saved profile backing this draft no longer exists, so a connect request cannot be built yet.
+                                                        </p>
                                                     }
                                                 </div>
                                             }

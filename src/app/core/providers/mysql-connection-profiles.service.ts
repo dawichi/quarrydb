@@ -26,6 +26,7 @@ export class MysqlConnectionProfilesService {
             host: draft.host,
             port: draft.port,
             username: draft.username,
+            password: draft.password || undefined,
             defaultDatabase: draft.defaultDatabase,
             color: draft.color,
             sslMode: draft.sslMode,
