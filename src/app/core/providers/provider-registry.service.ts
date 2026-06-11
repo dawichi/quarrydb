@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core'
-import type { ProviderId } from '@quarrydb/shared/provider'
+import type { ProviderCapability, ProviderId } from '@quarrydb/shared/provider'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { PersistedSession } from '@quarrydb/shared/session'
 import { MysqlProviderService } from './mysql-provider.service'
@@ -43,6 +43,10 @@ export class ProviderRegistryService {
 
     getUnavailableMessage(providerId: ProviderId): string | null {
         return this.getProvider(providerId).availability.unavailableMessage ?? null
+    }
+
+    getCapabilities(providerId: ProviderId): ProviderCapability[] {
+        return [...this.getProvider(providerId).capabilities]
     }
 
     getLaunchActions(): ProviderLaunchAction[] {

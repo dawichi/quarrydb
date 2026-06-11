@@ -10,6 +10,17 @@ import type { ProviderDefinition } from './provider-definition'
 @Injectable({ providedIn: 'root' })
 export class SqliteProviderService implements ProviderDefinition<SqlitePersistedSession> {
     readonly id = 'sqlite' as const
+    readonly kind = 'relational' as const
+    readonly capabilities = [
+        'recent_items',
+        'relational_schema_browser',
+        'sql_query_runner',
+        'visual_sql_pipeline',
+        'row_editor',
+        'ddl_manager',
+        'query_history',
+        'export_results',
+    ] as const
     readonly launchAction = {
         id: 'sqlite' as const,
         name: 'SQLite',

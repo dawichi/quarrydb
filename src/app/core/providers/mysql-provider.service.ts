@@ -14,6 +14,13 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     private readonly host = inject(WorkspaceHostStore)
 
     readonly id = 'mysql' as const
+    readonly kind = 'relational' as const
+    readonly capabilities = [
+        'recent_items',
+        'server_connection',
+        'relational_schema_browser',
+        'sql_query_runner',
+    ] as const
     readonly launchAction = {
         id: 'mysql' as const,
         name: 'MySQL',

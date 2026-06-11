@@ -7,11 +7,11 @@ import {
     LucideServer,
     LucideTrash2,
 } from '@lucide/angular'
-import type { ProviderId } from '@quarrydb/shared/provider'
+import type { ProviderCapability, ProviderId } from '@quarrydb/shared/provider'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlConnectionProfile, MysqlConnectionProfileDraft } from '../../core/providers/mysql-connection-profile'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
-import type { HomeLaunchAction } from '../../core/providers/provider-definition'
+import { type HomeLaunchAction, PROVIDER_CAPABILITY_LABELS } from '../../core/providers/provider-definition'
 import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
 import { RecentItemsService } from '../../core/services/recent-items.service'
 import { TutorialService } from '../../core/services/tutorial.service'
@@ -51,6 +51,14 @@ export class WelcomeComponent {
 
     protected providerAction(providerId: ProviderId): HomeLaunchAction {
         return this.providers.getProviderDisplayAction(providerId)
+    }
+
+    protected providerCapabilitiesForAction(action: HomeLaunchAction): ProviderCapability[] {
+        return this.providers.getCapabilities(this.providerIdForAction(action))
+    }
+
+    protected providerCapabilityLabel(capability: ProviderCapability): string {
+        return PROVIDER_CAPABILITY_LABELS[capability]
     }
 
     protected canReopenRecentItem(item: RecentItem): boolean {
@@ -105,5 +113,9 @@ export class WelcomeComponent {
     protected startTutorial(): void {
         this.tutorialSvc.start()
         void this.providers.openSample(this.providers.defaultProviderId)
+    }
+
+    private providerIdForAction(action: HomeLaunchAction): ProviderId {
+        return action.id === 'mysql-preview' ? 'mysql' : action.id
     }
 }

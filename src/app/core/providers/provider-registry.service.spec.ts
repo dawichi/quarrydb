@@ -6,6 +6,17 @@ import { ProviderRegistryService } from './provider-registry.service'
 describe('ProviderRegistryService', () => {
     const sqliteProvider = {
         id: 'sqlite' as const,
+        kind: 'relational' as const,
+        capabilities: [
+            'recent_items',
+            'relational_schema_browser',
+            'sql_query_runner',
+            'visual_sql_pipeline',
+            'row_editor',
+            'ddl_manager',
+            'query_history',
+            'export_results',
+        ] as const,
         launchAction: {
             id: 'sqlite' as const,
             name: 'SQLite',
@@ -27,6 +38,8 @@ describe('ProviderRegistryService', () => {
     }
     const mysqlProvider = {
         id: 'mysql' as const,
+        kind: 'relational' as const,
+        capabilities: ['recent_items', 'server_connection', 'relational_schema_browser', 'sql_query_runner'] as const,
         launchAction: {
             id: 'mysql' as const,
             name: 'MySQL',
@@ -95,6 +108,8 @@ describe('ProviderRegistryService', () => {
         expect(registry.canRestoreSession('sqlite')).toBe(true)
         expect(registry.canRestoreSession('mysql')).toBe(false)
         expect(registry.getUnavailableMessage('sqlite')).toBeNull()
+        expect(registry.getCapabilities('sqlite')).toEqual(sqliteProvider.capabilities)
+        expect(registry.getCapabilities('mysql')).toEqual(mysqlProvider.capabilities)
         expect(registry.getUnavailableMessage('mysql')).toBe(
             'Saved MySQL profiles are local metadata only until the provider backend lands.',
         )

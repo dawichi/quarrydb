@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MysqlProviderService } from './mysql-provider.service'
 
 describe('MysqlProviderService', () => {
+    const capabilities = ['recent_items', 'server_connection', 'relational_schema_browser', 'sql_query_runner'] as const
     const launchAction = {
         id: 'mysql' as const,
         name: 'MySQL',
@@ -51,6 +52,8 @@ describe('MysqlProviderService', () => {
 
         service = Object.assign(Object.create(MysqlProviderService.prototype), {
             id: 'mysql',
+            kind: 'relational',
+            capabilities,
             launchAction,
             availability: {
                 canOpenFromHome: false,
@@ -67,6 +70,8 @@ describe('MysqlProviderService', () => {
 
     it('exposes a registered MySQL provider definition', () => {
         expect(service.id).toBe('mysql')
+        expect(service.kind).toBe('relational')
+        expect(service.capabilities).toEqual(capabilities)
         expect(service.launchAction).toEqual(launchAction)
         expect(service.availability).toEqual({
             canOpenFromHome: false,
