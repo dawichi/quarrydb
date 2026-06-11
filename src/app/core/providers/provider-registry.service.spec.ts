@@ -20,6 +20,19 @@ describe('ProviderRegistryService', () => {
         openRecentItem: vi.fn(),
         restoreSession: vi.fn(),
     }
+    const mysqlProvider = {
+        homeLaunchAction: {
+            id: 'mysql-preview' as const,
+            status: 'planned' as const,
+            name: 'MySQL',
+            description: 'Connect to a saved MySQL server profile once the second provider lands.',
+            icon: 'mysql-server' as const,
+            openLabel: 'Connect to MySQL' as const,
+            openHint: 'Planned provider: saved connections, browse, and raw SQL.',
+            badgeLabel: 'Planned' as const,
+            availabilityNote: 'MySQL support is not shipped yet.',
+        },
+    }
 
     let registry: ProviderRegistryService
 
@@ -30,6 +43,7 @@ describe('ProviderRegistryService', () => {
         sqliteProvider.restoreSession.mockReset()
 
         registry = Object.assign(Object.create(ProviderRegistryService.prototype), {
+            mysqlProvider,
             sqliteProvider,
         }) as ProviderRegistryService
     })
@@ -43,15 +57,7 @@ describe('ProviderRegistryService', () => {
                 badgeLabel: 'SQLite',
             },
             {
-                id: 'mysql-preview',
-                status: 'planned',
-                name: 'MySQL',
-                description: 'Connect to a saved MySQL server profile once the second provider lands.',
-                icon: 'mysql-server',
-                openLabel: 'Connect to MySQL',
-                openHint: 'Planned provider: saved connections, browse, and raw SQL.',
-                badgeLabel: 'Planned',
-                availabilityNote: 'MySQL support is not shipped yet.',
+                ...mysqlProvider.homeLaunchAction,
             },
         ])
         expect(registry.getProviderLabel('sqlite')).toBe('SQLite')

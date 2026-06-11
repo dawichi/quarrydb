@@ -2,11 +2,13 @@ import { Injectable, inject } from '@angular/core'
 import type { ProviderId } from '@quarrydb/shared/provider'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { PersistedSession } from '@quarrydb/shared/session'
+import { MysqlProviderService } from './mysql-provider.service'
 import type { HomeLaunchAction, ProviderDefinition, ProviderLaunchAction } from './provider-definition'
 import { SqliteProviderService } from './sqlite-provider.service'
 
 @Injectable({ providedIn: 'root' })
 export class ProviderRegistryService {
+    private readonly mysqlProvider = inject(MysqlProviderService)
     private readonly sqliteProvider = inject(SqliteProviderService)
 
     readonly defaultProviderId: ProviderId = 'sqlite'
@@ -42,17 +44,7 @@ export class ProviderRegistryService {
                 status: 'available' as const,
                 badgeLabel: action.name,
             })),
-            {
-                id: 'mysql-preview',
-                status: 'planned',
-                name: 'MySQL',
-                description: 'Connect to a saved MySQL server profile once the second provider lands.',
-                icon: 'mysql-server',
-                openLabel: 'Connect to MySQL',
-                openHint: 'Planned provider: saved connections, browse, and raw SQL.',
-                badgeLabel: 'Planned',
-                availabilityNote: 'MySQL support is not shipped yet.',
-            },
+            this.mysqlProvider.homeLaunchAction,
         ]
     }
 
