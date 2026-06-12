@@ -1,0 +1,24 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: quarry-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: quarry
+      MYSQL_DATABASE: quarry_demo
+    ports:
+      - "3306:3306"
+
+  postgres:
+    image: postgres:16
+    container_name: quarry-postgres
+    environment:
+      POSTGRES_PASSWORD: quarry
+      POSTGRES_DB: quarry_demo
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    container_name: quarry-redis
+    ports:
+      - "6379:6379"

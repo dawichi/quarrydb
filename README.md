@@ -74,6 +74,17 @@ The Angular dev server alone (no native window, useful for UI work):
 bun run start
 ```
 
+Optional local server databases for manual provider testing:
+
+```bash
+bun run dev:services:up
+```
+
+This starts disposable local MySQL, Postgres, and Redis containers via
+[`docker-compose.local-test-services.yml`](docker-compose.local-test-services.yml). Full
+connection details and teardown commands are in
+[`docs/local-test-services.md`](docs/local-test-services.md).
+
 ---
 
 ## Running the tests
