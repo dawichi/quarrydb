@@ -121,5 +121,7 @@ Two previously-listed roadmap items are intentionally deprioritized:
 - `status.md` — current implementation status, near-term roadmap, milestone log
 - `multi-engine-architecture.md` — provider model and abstraction boundaries
 - `mysql-provider-plan.md` — MySQL v1 scope and implementation boundaries
+- `docker-sample-databases-plan.md` — "Try with Docker" sample database scoping, shared
+  across server-based providers
 - `schema-management-plan.md` — historical SQLite DDL build plan
 - `post-mvp-scoping.md` — JOIN modes and SQLCipher scoping notes
