@@ -30,6 +30,12 @@ describe('SessionService', () => {
         canRestoreSession: vi.fn(),
         restoreSession: vi.fn(),
     }
+    const workspaceHost = {
+        activeProviderId: vi.fn(),
+    }
+    const mysqlProvider = {
+        buildActiveSession: vi.fn(),
+    }
 
     let service: SessionService
 
@@ -46,11 +52,16 @@ describe('SessionService', () => {
         variableValuesFn.mockReset()
         providers.canRestoreSession.mockReset()
         providers.restoreSession.mockReset()
+        workspaceHost.activeProviderId.mockReset()
+        mysqlProvider.buildActiveSession.mockReset()
         providers.canRestoreSession.mockReturnValue(true)
+        workspaceHost.activeProviderId.mockReturnValue('sqlite')
 
         service = Object.assign(Object.create(SessionService.prototype), {
             providers,
+            workspaceHost,
             workspaceStore,
+            mysqlProvider,
             pipelineStore,
             saveTimer: null,
         }) as SessionService
@@ -98,6 +109,47 @@ describe('SessionService', () => {
         workspaceStore.schemas.mockReturnValue([])
 
         expect(service.buildSession()).toBeNull()
+    })
+
+    it('builds a provider-aware MySQL session when the MySQL workspace is active', () => {
+        workspaceHost.activeProviderId.mockReturnValue('mysql')
+        mysqlProvider.buildActiveSession.mockReturnValue({
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 1234,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                selectedTable: null,
+                activeTab: 'query',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        })
+
+        expect(service.buildSession()).toEqual({
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 1234,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                selectedTable: null,
+                activeTab: 'query',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        })
     })
 
     it('dispatches a provider-aware session to the registry on restore', async () => {

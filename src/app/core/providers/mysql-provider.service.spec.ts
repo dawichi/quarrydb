@@ -35,10 +35,17 @@ describe('MysqlProviderService', () => {
     const host = {
         error: { set: errorSet },
         isLoading: { set: loadingSet },
+        setWorkspaceOpen: vi.fn(),
     }
     const backend = {
         connect: vi.fn(),
         listSchemas: vi.fn(),
+    }
+    const workspace = {
+        openWorkspace: vi.fn(),
+        clear: vi.fn(),
+        selectedTable: vi.fn(),
+        activeTab: vi.fn(),
     }
     const recentItems = {
         add: vi.fn(),
@@ -61,6 +68,11 @@ describe('MysqlProviderService', () => {
         recentItems.add.mockReset()
         recentItems.createMysqlItem.mockReset()
         recentItems.remove.mockReset()
+        host.setWorkspaceOpen.mockReset()
+        workspace.openWorkspace.mockReset()
+        workspace.clear.mockReset()
+        workspace.selectedTable.mockReset()
+        workspace.activeTab.mockReset()
 
         service = Object.assign(Object.create(MysqlProviderService.prototype), {
             id: 'mysql',
@@ -70,14 +82,14 @@ describe('MysqlProviderService', () => {
             availability: {
                 canOpenFromHome: false,
                 canOpenRecentItems: true,
-                canRestoreSession: false,
-                unavailableMessage: 'MySQL preview currently supports connection testing and schema listing only.',
+                canRestoreSession: true,
             },
             backend,
             host,
             homeLaunchAction,
             profiles,
             recentItems,
+            workspace,
             workspaceDraft: signal(null),
             connectionSession: signal(null),
             schemaSummaries: signal(null),
@@ -92,8 +104,7 @@ describe('MysqlProviderService', () => {
         expect(service.availability).toEqual({
             canOpenFromHome: false,
             canOpenRecentItems: true,
-            canRestoreSession: false,
-            unavailableMessage: 'MySQL preview currently supports connection testing and schema listing only.',
+            canRestoreSession: true,
         })
     })
 
@@ -186,6 +197,16 @@ describe('MysqlProviderService', () => {
             selectedTable: null,
             activeTab: 'browse',
         })
+        service.connectionSession.set({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+            },
+            source: 'saved_profile',
+            connectedAt: 1234,
+        })
 
         service.removeProfile('mysql-1')
 
@@ -194,6 +215,7 @@ describe('MysqlProviderService', () => {
         expect(service.workspaceDraft()).toBeNull()
         expect(service.connectionSession()).toBeNull()
         expect(service.schemaSummaries()).toBeNull()
+        expect(workspace.clear).toHaveBeenCalledOnce()
     })
 
     it('formats the subtitle using host, port, and optional database', () => {
@@ -456,9 +478,74 @@ describe('MysqlProviderService', () => {
             { name: 'warehouse', isDefault: true },
             { name: 'analytics', isDefault: false },
         ])
+        expect(workspace.openWorkspace).toHaveBeenCalledWith(
+            {
+                target: {
+                    connectionId: 'mysql-1',
+                    connectionName: 'Analytics',
+                    host: 'db.internal',
+                    port: 3306,
+                    defaultDatabase: 'warehouse',
+                },
+                source: 'saved_profile',
+                connectedAt: 1234,
+            },
+            [
+                { name: 'warehouse', isDefault: true },
+                { name: 'analytics', isDefault: false },
+            ],
+            {
+                target: {
+                    connectionId: 'mysql-1',
+                    connectionName: 'Analytics',
+                    host: 'db.internal',
+                    port: 3306,
+                    defaultDatabase: 'warehouse',
+                },
+                source: 'saved_profile',
+                selectedTable: null,
+                activeTab: 'browse',
+            },
+        )
         expect(loadingSet).toHaveBeenNthCalledWith(1, true)
         expect(loadingSet).toHaveBeenNthCalledWith(2, false)
         expect(errorSet).toHaveBeenCalledWith(null)
+    })
+
+    it('builds an active persisted session from the opened MySQL workspace', () => {
+        service.connectionSession.set({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+            },
+            source: 'saved_profile',
+            connectedAt: 1234,
+        })
+        workspace.selectedTable.mockReturnValue({ schemaName: 'warehouse', tableName: 'orders' })
+        workspace.activeTab.mockReturnValue('query')
+
+        expect(service.buildActiveSession(999)).toEqual({
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 999,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+                selectedTable: { schemaName: 'warehouse', tableName: 'orders' },
+                activeTab: 'query',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        })
     })
 
     it('fails when the pending workspace draft cannot be resolved into a connect request', async () => {

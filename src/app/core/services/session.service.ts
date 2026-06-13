@@ -1,9 +1,11 @@
 import { Injectable, inject } from '@angular/core'
 import type { PipelineStep } from '@quarrydb/shared'
 import type { MysqlPersistedSession, PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
+import { MysqlProviderService } from '../providers/mysql-provider.service'
 import { ProviderRegistryService } from '../providers/provider-registry.service'
 import { PipelineStore } from '../store/pipeline.store'
 import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
+import { WorkspaceHostStore } from '../store/workspace-host.store'
 
 interface LegacyPersistedSession {
     version: 1
@@ -22,12 +24,18 @@ const SESSION_KEY = 'quarry_session'
 @Injectable({ providedIn: 'root' })
 export class SessionService {
     private readonly providers = inject(ProviderRegistryService)
+    private readonly workspaceHost = inject(WorkspaceHostStore)
     private readonly workspaceStore = inject(SqliteWorkspaceStore)
+    private readonly mysqlProvider = inject(MysqlProviderService)
     private readonly pipelineStore = inject(PipelineStore)
     private saveTimer: ReturnType<typeof setTimeout> | null = null
 
     // Called inside a reactive effect — reads signals so the effect tracks them.
     buildSession(): PersistedSession | null {
+        if (this.workspaceHost.activeProviderId() === 'mysql') {
+            return this.mysqlProvider.buildActiveSession(Date.now())
+        }
+
         const schemas = this.workspaceStore.schemas()
         if (!schemas.length) return null
         const src = this.pipelineStore.source()

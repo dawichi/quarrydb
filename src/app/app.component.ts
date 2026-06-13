@@ -6,6 +6,7 @@ import { SqliteWorkspaceStore } from './core/store/sqlite-workspace.store'
 import { WorkspaceHostStore } from './core/store/workspace-host.store'
 import { CreateTableModalComponent } from './features/create-table-modal/create-table-modal.component'
 import { EditModeComponent } from './features/edit-mode/edit-mode.component'
+import { MysqlWorkspaceComponent } from './features/mysql-workspace/mysql-workspace.component'
 import { PipelineBuilderComponent } from './features/pipeline-builder/pipeline-builder.component'
 import { TableSettingsModalComponent } from './features/table-settings-modal/table-settings-modal.component'
 import { TableViewerComponent } from './features/table-viewer/table-viewer.component'
@@ -23,6 +24,7 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
         SidebarComponent,
         WelcomeComponent,
         TableViewerComponent,
+        MysqlWorkspaceComponent,
         PipelineBuilderComponent,
         EditModeComponent,
         TutorialOverlayComponent,

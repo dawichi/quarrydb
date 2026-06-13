@@ -14,6 +14,7 @@ import {
 } from '@lucide/angular'
 import type { TriggerSchema, ViewSchema } from '@quarrydb/shared'
 import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
+import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
 
@@ -38,6 +39,7 @@ export class SidebarComponent {
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly workspaceHost = inject(WorkspaceHostStore)
     protected readonly workspaceStore = inject(SqliteWorkspaceStore)
+    protected readonly mysqlWorkspace = inject(MysqlWorkspaceStore)
     private readonly providers = inject(ProviderRegistryService)
 
     // ─── State ────────────────────────────────────────────────────────────────
@@ -116,6 +118,12 @@ export class SidebarComponent {
 
     protected openDefaultProvider(): void {
         void this.providers.openFromHome()
+    }
+
+    protected showHome(): void {
+        this.mysqlWorkspace.clear()
+        this.workspaceHost.error.set(null)
+        this.workspaceHost.clearWorkspace()
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────

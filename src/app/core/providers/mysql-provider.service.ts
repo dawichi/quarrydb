@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
+import { MysqlWorkspaceStore } from '../store/mysql-workspace.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
 import type { MysqlConnectionSession, MysqlSchemaSummary } from './mysql-backend-adapter'
 import { MysqlBackendAdapterService } from './mysql-backend-adapter.service'
@@ -25,6 +26,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     private readonly backend = inject(MysqlBackendAdapterService)
     private readonly profiles = inject(MysqlConnectionProfilesService)
     private readonly recentItems = inject(RecentItemsService)
+    private readonly workspace = inject(MysqlWorkspaceStore)
     private readonly host = inject(WorkspaceHostStore)
     readonly workspaceDraft = signal<MysqlWorkspaceDraft | null>(null)
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
@@ -49,20 +51,20 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     readonly availability = {
         canOpenFromHome: false,
         canOpenRecentItems: true,
-        canRestoreSession: false,
-        unavailableMessage: 'MySQL preview currently supports connection testing and schema listing only.',
+        canRestoreSession: true,
     }
 
     readonly homeLaunchAction: HomeLaunchAction = {
         id: 'mysql-preview',
         status: 'planned',
         name: 'MySQL',
-        description: 'Connect to a saved MySQL server profile once the second provider lands.',
+        description: 'Preview provider: saved profiles, schema browsing, row preview, and raw SQL.',
         icon: 'mysql-server',
         openLabel: 'Connect to MySQL',
-        openHint: 'Planned provider: saved connections, browse, and raw SQL.',
+        openHint: 'Preview provider: saved connections, browse, and raw SQL.',
         badgeLabel: 'Planned',
-        availabilityNote: 'MySQL support is not shipped yet.',
+        availabilityNote:
+            'Preview quality: browse tables and run raw SQL; pipeline and edit mode stay SQLite-only for now.',
     }
 
     createDraft(): MysqlConnectionProfileDraft {
@@ -130,6 +132,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         if (this.connectionSession()?.target.connectionId === id) {
             this.connectionSession.set(null)
             this.schemaSummaries.set(null)
+            this.workspace.clear()
         }
     }
 
@@ -149,6 +152,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         this.workspaceDraft.set(null)
         this.connectionSession.set(null)
         this.schemaSummaries.set(null)
+        this.workspace.clear()
     }
 
     buildConnectRequestFromWorkspaceDraft(): MysqlConnectRequest | null {
@@ -174,7 +178,9 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         try {
             const session = await this.backend.connect(request)
             this.connectionSession.set(session)
-            this.schemaSummaries.set(await this.backend.listSchemas(session))
+            const schemas = await this.backend.listSchemas(session)
+            this.schemaSummaries.set(schemas)
+            await this.workspace.openWorkspace(session, schemas, this.workspaceDraft())
         } catch (error) {
             throw this.notAvailableYet(error instanceof Error ? error.message : undefined)
         } finally {
@@ -203,6 +209,29 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
                 ...createMysqlConnectionTarget(profile),
                 selectedTable: selectedTable ?? null,
                 activeTab: 'browse',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        }
+    }
+
+    buildActiveSession(savedAt = Date.now()): MysqlPersistedSession | null {
+        const session = this.connectionSession()
+        if (!session) {
+            return null
+        }
+
+        return {
+            version: 1,
+            providerId: 'mysql',
+            savedAt,
+            workspace: {
+                ...session.target,
+                selectedTable: this.workspace.selectedTable(),
+                activeTab: this.workspace.activeTab(),
             },
             pipeline: {
                 source: null,
