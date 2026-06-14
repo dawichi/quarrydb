@@ -26,9 +26,11 @@ export class MysqlWorkspaceStore {
     readonly queryRows = signal<Record<string, unknown>[]>([])
     readonly queryColumns = signal<string[]>([])
     readonly queryMeta = signal<string | null>(null)
+    readonly sampleDataStatus = signal<string | null>(null)
     readonly isLoadingTables = signal(false)
     readonly isLoadingRows = signal(false)
     readonly isRunningQuery = signal(false)
+    readonly isSeedingSampleData = signal(false)
 
     readonly hasWorkspace = computed(() => this.host.hasWorkspace() && this.host.activeProviderId() === 'mysql')
     readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
@@ -45,6 +47,7 @@ export class MysqlWorkspaceStore {
         this.queryRows.set([])
         this.queryColumns.set([])
         this.queryMeta.set(null)
+        this.sampleDataStatus.set(null)
 
         const initialSchema =
             draft?.selectedTable?.schemaName ??
@@ -86,9 +89,11 @@ export class MysqlWorkspaceStore {
         this.queryRows.set([])
         this.queryColumns.set([])
         this.queryMeta.set(null)
+        this.sampleDataStatus.set(null)
         this.isLoadingTables.set(false)
         this.isLoadingRows.set(false)
         this.isRunningQuery.set(false)
+        this.isSeedingSampleData.set(false)
         this.rowOffset = 0
     }
 
@@ -165,6 +170,42 @@ export class MysqlWorkspaceStore {
             this.host.error.set(error instanceof Error ? error.message : 'Failed to run MySQL query')
         } finally {
             this.isRunningQuery.set(false)
+        }
+    }
+
+    async loadSampleData(): Promise<void> {
+        const session = this.connectionSession()
+        const schemaName = this.selectedSchemaName()
+        if (!session || !schemaName) {
+            return
+        }
+
+        this.isSeedingSampleData.set(true)
+        this.host.error.set(null)
+        this.sampleDataStatus.set(null)
+        try {
+            const inserted = await this.backend.seedSampleData(session, schemaName)
+            await this.selectSchema(schemaName)
+            this.sampleDataStatus.set(
+                inserted
+                    ? `Loaded sample data into ${schemaName}.`
+                    : `Sample tables already contained data in ${schemaName}; nothing was inserted.`,
+            )
+
+            const selected = this.selectedTable()
+            if (selected) {
+                await this.selectTable(selected.schemaName, selected.tableName)
+                return
+            }
+
+            const defaultTable = this.tables().find((table) => table.name === 'orders') ?? this.tables()[0]
+            if (defaultTable) {
+                await this.selectTable(schemaName, defaultTable.name)
+            }
+        } catch (error) {
+            this.host.error.set(error instanceof Error ? error.message : 'Failed to load MySQL sample data')
+        } finally {
+            this.isSeedingSampleData.set(false)
         }
     }
 

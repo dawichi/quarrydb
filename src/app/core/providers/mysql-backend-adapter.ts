@@ -31,6 +31,7 @@ export interface MysqlBackendAdapter {
     connect(request: MysqlConnectRequest): Promise<MysqlConnectionSession>
     listSchemas(session: MysqlConnectionSession): Promise<MysqlSchemaSummary[]>
     listTables(session: MysqlConnectionSession, schemaName: string): Promise<MysqlTableSummary[]>
+    seedSampleData(session: MysqlConnectionSession, schemaName: string): Promise<boolean>
     queryTableRows(
         session: MysqlConnectionSession,
         schemaName: string,

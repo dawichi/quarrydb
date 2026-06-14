@@ -24,4 +24,8 @@ export class MysqlWorkspaceComponent {
     protected formatTotal(value: number): string {
         return value.toLocaleString()
     }
+
+    protected selectedSchemaLabel(): string {
+        return this.store.selectedSchemaName() ?? 'current schema'
+    }
 }

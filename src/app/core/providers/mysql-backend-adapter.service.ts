@@ -9,10 +9,12 @@ import type {
     MysqlTableSummary,
 } from './mysql-backend-adapter'
 import type { MysqlConnectRequest } from './mysql-connect-request'
+import { MysqlSampleDataService } from './mysql-sample-data.service'
 
 @Injectable({ providedIn: 'root' })
 export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     private readonly requests = new Map<string, MysqlConnectRequest>()
+    private readonly sampleData = new MysqlSampleDataService()
 
     async connect(request: MysqlConnectRequest): Promise<MysqlConnectionSession> {
         const db = await Database.load(this.buildDsn(request))
@@ -148,6 +150,15 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
                 affectedRows: result.rowsAffected,
                 lastInsertId: result.lastInsertId ?? undefined,
             }
+        } finally {
+            await db.close()
+        }
+    }
+
+    async seedSampleData(session: MysqlConnectionSession, schemaName: string): Promise<boolean> {
+        const db = await this.openDatabase(session)
+        try {
+            return await this.sampleData.seed(db, schemaName)
         } finally {
             await db.close()
         }

@@ -43,6 +43,8 @@ Connection settings:
 - user: `root`
 - password: `quarry`
 - default schema: `quarry_demo`
+- after connecting in Quarry, use `Load sample data into quarry_demo` in the MySQL workspace
+  to create and seed `products`, `customers`, `orders`, and `order_items`
 
 ## Postgres
 
@@ -64,6 +66,6 @@ Connection settings:
 ## Notes
 
 - Change host ports if you already have local services running.
-- These containers are intentionally disposable and unseeded by default.
-- If provider-specific sample data becomes useful later, keep that as dev tooling
-  (`scripts/`, SQL seed files, or compose files), not as shipped app behavior.
+- These containers are intentionally disposable.
+- Quarry now seeds MySQL sample tables on demand from inside the connected MySQL workspace,
+  rather than auto-populating the Docker container at startup.
