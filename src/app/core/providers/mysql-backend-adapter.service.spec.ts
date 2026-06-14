@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MysqlBackendAdapterService } from './mysql-backend-adapter.service'
 
-    const { close, select, load } = vi.hoisted(() => {
-        const close = vi.fn()
-        const select = vi.fn()
-        const load = vi.fn(async () => ({ close, select }))
+const { close, select, load } = vi.hoisted(() => {
+    const close = vi.fn()
+    const select = vi.fn()
+    const load = vi.fn(async () => ({ close, select }))
     return { close, select, load }
 })
 

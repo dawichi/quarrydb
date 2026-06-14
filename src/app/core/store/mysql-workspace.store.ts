@@ -203,7 +203,7 @@ export class MysqlWorkspaceStore {
                 await this.selectTable(schemaName, defaultTable.name)
             }
         } catch (error) {
-            this.host.error.set(error instanceof Error ? error.message : 'Failed to load MySQL sample data')
+            this.host.error.set(this.describeError(error, 'Failed to load MySQL sample data'))
         } finally {
             this.isSeedingSampleData.set(false)
         }
@@ -244,5 +244,17 @@ export class MysqlWorkspaceStore {
             return 'SELECT NOW() AS current_time;'
         }
         return `SELECT * FROM \`${selected.schemaName}\`.\`${selected.tableName}\` LIMIT ${this.PAGE_SIZE}`
+    }
+
+    private describeError(error: unknown, fallback: string): string {
+        if (error instanceof Error && error.message.trim()) {
+            return error.message
+        }
+
+        if (typeof error === 'string' && error.trim()) {
+            return error
+        }
+
+        return fallback
     }
 }

@@ -4,66 +4,70 @@ import Database from '@tauri-apps/plugin-sql'
 @Injectable({ providedIn: 'root' })
 export class MysqlSampleDataService {
     async seed(db: Database, schemaName: string): Promise<boolean> {
-        await db.execute(`USE ${this.quoteIdentifier(schemaName)}`)
-        await this.createTables(db)
+        await this.createTables(db, schemaName)
 
-        const [{ count }] = await db.select<Array<{ count: number }>>('SELECT COUNT(*) as count FROM products')
+        const [{ count }] = await db.select<Array<{ count: number }>>(
+            `SELECT COUNT(*) as count FROM ${this.qualifyTable(schemaName, 'products')}`,
+        )
         if (count > 0) {
             return false
         }
 
-        for (const sql of this.seedStatements()) {
+        for (const sql of this.seedStatements(schemaName)) {
             await db.execute(sql)
         }
 
         return true
     }
 
-    buildCreateTableStatements(): string[] {
+    buildCreateTableStatements(schemaName = 'sample'): string[] {
         return [
-            `CREATE TABLE IF NOT EXISTS products (
+            `CREATE TABLE IF NOT EXISTS ${this.qualifyTable(schemaName, 'products')} (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 name VARCHAR(255) NOT NULL,
                 category VARCHAR(255) NOT NULL,
                 price DECIMAL(10, 2) NOT NULL,
                 stock INT NOT NULL DEFAULT 0
             )`,
-            `CREATE TABLE IF NOT EXISTS customers (
+            `CREATE TABLE IF NOT EXISTS ${this.qualifyTable(schemaName, 'customers')} (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 name VARCHAR(255) NOT NULL,
                 email VARCHAR(255) NOT NULL UNIQUE,
                 country VARCHAR(255) NOT NULL,
                 created_at DATETIME NOT NULL
             )`,
-            `CREATE TABLE IF NOT EXISTS orders (
+            `CREATE TABLE IF NOT EXISTS ${this.qualifyTable(schemaName, 'orders')} (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 customer_id INT NOT NULL,
                 status VARCHAR(64) NOT NULL,
                 created_at DATETIME NOT NULL,
                 total DECIMAL(10, 2) NOT NULL DEFAULT 0,
-                CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
+                CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id)
+                    REFERENCES ${this.qualifyTable(schemaName, 'customers')}(id)
             )`,
-            `CREATE TABLE IF NOT EXISTS order_items (
+            `CREATE TABLE IF NOT EXISTS ${this.qualifyTable(schemaName, 'order_items')} (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 order_id INT NOT NULL,
                 product_id INT NOT NULL,
                 qty INT NOT NULL,
                 unit_price DECIMAL(10, 2) NOT NULL,
-                CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id),
-                CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id)
+                CONSTRAINT fk_order_items_order FOREIGN KEY (order_id)
+                    REFERENCES ${this.qualifyTable(schemaName, 'orders')}(id),
+                CONSTRAINT fk_order_items_product FOREIGN KEY (product_id)
+                    REFERENCES ${this.qualifyTable(schemaName, 'products')}(id)
             )`,
         ]
     }
 
-    private async createTables(db: Database): Promise<void> {
-        for (const sql of this.buildCreateTableStatements()) {
+    private async createTables(db: Database, schemaName: string): Promise<void> {
+        for (const sql of this.buildCreateTableStatements(schemaName)) {
             await db.execute(sql)
         }
     }
 
-    private seedStatements(): string[] {
+    private seedStatements(schemaName: string): string[] {
         return [
-            `INSERT INTO products (name, category, price, stock) VALUES
+            `INSERT INTO ${this.qualifyTable(schemaName, 'products')} (name, category, price, stock) VALUES
                 ('Laptop Pro 15"', 'Electronics', 1299.99, 12),
                 ('Wireless Keyboard', 'Electronics', 89.99, 45),
                 ('USB-C Hub 7-port', 'Electronics', 49.99, 78),
@@ -78,7 +82,7 @@ export class MysqlSampleDataService {
                 ('Laptop Backpack 15"', 'Accessories', 79.99, 35),
                 ('Standing Desk Mat', 'Home', 29.99, 50),
                 ('Cable Organiser Set', 'Home', 9.99, 120)`,
-            `INSERT INTO customers (name, email, country, created_at) VALUES
+            `INSERT INTO ${this.qualifyTable(schemaName, 'customers')} (name, email, country, created_at) VALUES
                 ('Alice Martin', 'alice@example.com', 'France', '2024-01-15 00:00:00'),
                 ('Bob Chen', 'bob@example.com', 'Canada', '2024-02-03 00:00:00'),
                 ('Carol White', 'carol@example.com', 'United Kingdom', '2024-02-18 00:00:00'),
@@ -89,7 +93,7 @@ export class MysqlSampleDataService {
                 ('Hiro Nakamura', 'hiro@example.com', 'Japan', '2024-05-14 00:00:00'),
                 ('Irina Petrov', 'irina@example.com', 'Russia', '2024-05-30 00:00:00'),
                 ('James O''Brien', 'james@example.com', 'Ireland', '2024-06-10 00:00:00')`,
-            `INSERT INTO orders (customer_id, status, created_at, total) VALUES
+            `INSERT INTO ${this.qualifyTable(schemaName, 'orders')} (customer_id, status, created_at, total) VALUES
                 (1, 'delivered', '2024-03-01 00:00:00', 1389.98),
                 (1, 'shipped', '2024-05-10 00:00:00', 179.98),
                 (2, 'delivered', '2024-03-15 00:00:00', 84.98),
@@ -105,7 +109,7 @@ export class MysqlSampleDataService {
                 (9, 'delivered', '2024-05-08 00:00:00', 239.97),
                 (10, 'delivered', '2024-05-15 00:00:00', 119.98),
                 (3, 'pending', '2024-06-08 00:00:00', 499.99)`,
-            `INSERT INTO order_items (order_id, product_id, qty, unit_price) VALUES
+            `INSERT INTO ${this.qualifyTable(schemaName, 'order_items')} (order_id, product_id, qty, unit_price) VALUES
                 (1, 1, 1, 1299.99),
                 (1, 3, 1, 49.99),
                 (2, 2, 1, 89.99),
@@ -139,5 +143,9 @@ export class MysqlSampleDataService {
 
     private quoteIdentifier(identifier: string): string {
         return `\`${identifier.replaceAll('`', '``')}\``
+    }
+
+    private qualifyTable(schemaName: string, tableName: string): string {
+        return `${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`
     }
 }

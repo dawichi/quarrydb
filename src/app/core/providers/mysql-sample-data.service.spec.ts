@@ -5,12 +5,12 @@ describe('MysqlSampleDataService', () => {
     it('builds the expected sample schema tables', () => {
         const service = new MysqlSampleDataService()
 
-        expect(service.buildCreateTableStatements()).toEqual(
+        expect(service.buildCreateTableStatements('quarry_demo')).toEqual(
             expect.arrayContaining([
-                expect.stringContaining('CREATE TABLE IF NOT EXISTS products'),
-                expect.stringContaining('CREATE TABLE IF NOT EXISTS customers'),
-                expect.stringContaining('CREATE TABLE IF NOT EXISTS orders'),
-                expect.stringContaining('CREATE TABLE IF NOT EXISTS order_items'),
+                expect.stringContaining('CREATE TABLE IF NOT EXISTS `quarry_demo`.`products`'),
+                expect.stringContaining('CREATE TABLE IF NOT EXISTS `quarry_demo`.`customers`'),
+                expect.stringContaining('CREATE TABLE IF NOT EXISTS `quarry_demo`.`orders`'),
+                expect.stringContaining('CREATE TABLE IF NOT EXISTS `quarry_demo`.`order_items`'),
             ]),
         )
     })

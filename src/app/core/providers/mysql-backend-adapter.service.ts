@@ -56,9 +56,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
                 return []
             }
 
-            const tableNames = rows
-                .map((row) => this.extractTableName(row))
-                .filter((name): name is string => !!name)
+            const tableNames = rows.map((row) => this.extractTableName(row)).filter((name): name is string => !!name)
 
             const tablesWithColumns = await Promise.all(
                 tableNames.map(async (tableName) => ({
