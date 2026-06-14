@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MysqlBackendAdapterService } from './mysql-backend-adapter.service'
 
-const { close, select, load } = vi.hoisted(() => {
-    const close = vi.fn()
-    const select = vi.fn()
-    const load = vi.fn(async () => ({ close, select }))
+    const { close, select, load } = vi.hoisted(() => {
+        const close = vi.fn()
+        const select = vi.fn()
+        const load = vi.fn(async () => ({ close, select }))
     return { close, select, load }
 })
 
@@ -47,7 +47,7 @@ describe('MysqlBackendAdapterService', () => {
     })
 
     it('lists schema names from information_schema using the saved in-memory connect request', async () => {
-        select.mockResolvedValue([{ name: 'information_schema' }, { name: 'warehouse' }])
+        select.mockResolvedValue([{ Database: 'information_schema' }, { Database: 'warehouse' }])
 
         const session = await service.connect({
             target: {
@@ -67,9 +67,7 @@ describe('MysqlBackendAdapterService', () => {
             { name: 'information_schema', isDefault: false },
             { name: 'warehouse', isDefault: true },
         ])
-        expect(select).toHaveBeenCalledWith(
-            'SELECT SCHEMA_NAME as name FROM information_schema.schemata ORDER BY SCHEMA_NAME',
-        )
+        expect(select).toHaveBeenCalledWith('SHOW DATABASES')
     })
 
     it('fails schema listing when no in-memory connect request exists for the session', async () => {

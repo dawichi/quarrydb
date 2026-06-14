@@ -30,14 +30,16 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     async listSchemas(session: MysqlConnectionSession): Promise<MysqlSchemaSummary[]> {
         const db = await this.openDatabase(session)
         try {
-            const rows = await db.select<Array<{ name: string }>>(
-                'SELECT SCHEMA_NAME as name FROM information_schema.schemata ORDER BY SCHEMA_NAME',
-            )
+            const rows = await db.select<Array<Record<string, unknown>>>('SHOW DATABASES')
             const defaultSchema = session.target.defaultDatabase
-            return rows.map((row) => ({
-                name: row.name,
-                isDefault: defaultSchema ? row.name === defaultSchema : false,
-            }))
+            return rows
+                .map((row) => this.extractFirstStringValue(row))
+                .filter((name): name is string => !!name)
+                .sort((left, right) => left.localeCompare(right))
+                .map((name) => ({
+                    name,
+                    isDefault: defaultSchema ? name === defaultSchema : false,
+                }))
         } finally {
             await db.close()
         }
@@ -46,60 +48,71 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     async listTables(session: MysqlConnectionSession, schemaName: string): Promise<MysqlTableSummary[]> {
         const db = await this.openDatabase(session)
         try {
-            const rows = await db.select<Array<{ schemaName: string; name: string }>>(
-                `SELECT TABLE_SCHEMA as schemaName, TABLE_NAME as name
-                 FROM information_schema.tables
-                 WHERE TABLE_SCHEMA = ?
-                 AND TABLE_TYPE = 'BASE TABLE'
-                 ORDER BY TABLE_NAME`,
-                [schemaName],
+            const rows = await db.select<Array<Record<string, unknown>>>(
+                `SHOW FULL TABLES FROM ${this.quoteIdentifier(schemaName)} WHERE Table_type = 'BASE TABLE'`,
             )
+
             if (rows.length === 0) {
                 return []
             }
 
-            const columnRows = await db.select<
-                Array<{
-                    tableName: string
-                    name: string
-                    type: string
-                    nullable: 'YES' | 'NO'
-                    primaryKey: 'PRI' | ''
-                    defaultValue: string | null
-                }>
-            >(
-                `SELECT TABLE_NAME as tableName,
-                        COLUMN_NAME as name,
-                        COLUMN_TYPE as type,
-                        IS_NULLABLE as nullable,
-                        COLUMN_KEY as primaryKey,
-                        COLUMN_DEFAULT as defaultValue
-                 FROM information_schema.columns
-                 WHERE TABLE_SCHEMA = ?
-                 ORDER BY TABLE_NAME, ORDINAL_POSITION`,
-                [schemaName],
+            const tableNames = rows
+                .map((row) => this.extractTableName(row))
+                .filter((name): name is string => !!name)
+
+            const tablesWithColumns = await Promise.all(
+                tableNames.map(async (tableName) => ({
+                    schemaName,
+                    name: tableName,
+                    columns: await this.listColumns(db, schemaName, tableName),
+                })),
             )
 
-            const columnsByTable = new Map<string, Column[]>()
-            for (const row of columnRows) {
-                const columns = columnsByTable.get(row.tableName) ?? []
-                columns.push({
-                    name: row.name,
-                    type: row.type,
-                    nullable: row.nullable === 'YES',
-                    primaryKey: row.primaryKey === 'PRI',
-                    defaultValue: row.defaultValue ?? undefined,
-                })
-                columnsByTable.set(row.tableName, columns)
-            }
-
-            return rows.map((row) => ({
-                ...row,
-                columns: columnsByTable.get(row.name) ?? [],
-            }))
+            return tablesWithColumns.sort((left, right) => left.name.localeCompare(right.name))
         } finally {
             await db.close()
         }
+    }
+
+    private async listColumns(db: Database, schemaName: string, tableName: string): Promise<Column[]> {
+        const rows = await db.select<
+            Array<{
+                Field: string
+                Type: string
+                Null: 'YES' | 'NO'
+                Key: 'PRI' | ''
+                Default: string | null
+            }>
+        >(`SHOW COLUMNS FROM ${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`)
+
+        return rows.map((row) => ({
+            name: row.Field,
+            type: row.Type,
+            nullable: row.Null === 'YES',
+            primaryKey: row.Key === 'PRI',
+            defaultValue: row.Default ?? undefined,
+        }))
+    }
+
+    private extractFirstStringValue(row: Record<string, unknown>): string | null {
+        for (const value of Object.values(row)) {
+            if (typeof value === 'string') {
+                return value
+            }
+        }
+        return null
+    }
+
+    private extractTableName(row: Record<string, unknown>): string | null {
+        for (const [key, value] of Object.entries(row)) {
+            if (key === 'Table_type') {
+                continue
+            }
+            if (typeof value === 'string') {
+                return value
+            }
+        }
+        return null
     }
 
     async queryTableRows(
