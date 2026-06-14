@@ -49,7 +49,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         const db = await this.openDatabase(session)
         try {
             const rows = await db.select<Array<Record<string, unknown>>>(
-                `SHOW FULL TABLES FROM ${this.quoteIdentifier(schemaName)} WHERE Table_type = 'BASE TABLE'`,
+                `SHOW TABLES FROM ${this.quoteIdentifier(schemaName)}`,
             )
 
             if (rows.length === 0) {
@@ -67,21 +67,35 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
             )
 
             return tablesWithColumns.sort((left, right) => left.name.localeCompare(right.name))
+        } catch (error) {
+            throw new Error(`Failed to load tables from ${schemaName}: ${this.describeError(error)}`)
         } finally {
             await db.close()
         }
     }
 
     private async listColumns(db: Database, schemaName: string, tableName: string): Promise<Column[]> {
-        const rows = await db.select<
-            Array<{
-                Field: string
-                Type: string
-                Null: 'YES' | 'NO'
-                Key: 'PRI' | ''
-                Default: string | null
-            }>
-        >(`SHOW COLUMNS FROM ${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`)
+        let rows: Array<{
+            Field: string
+            Type: string
+            Null: 'YES' | 'NO'
+            Key: 'PRI' | ''
+            Default: string | null
+        }>
+
+        try {
+            rows = await db.select<
+                Array<{
+                    Field: string
+                    Type: string
+                    Null: 'YES' | 'NO'
+                    Key: 'PRI' | ''
+                    Default: string | null
+                }>
+            >(`SHOW COLUMNS FROM ${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`)
+        } catch (error) {
+            throw new Error(`Failed to inspect columns for ${schemaName}.${tableName}: ${this.describeError(error)}`)
+        }
 
         return rows.map((row) => ({
             name: row.Field,
@@ -198,5 +212,17 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
     private quoteIdentifier(identifier: string): string {
         return `\`${identifier.replaceAll('`', '``')}\``
+    }
+
+    private describeError(error: unknown): string {
+        if (error instanceof Error && error.message.trim()) {
+            return error.message
+        }
+
+        if (typeof error === 'string' && error.trim()) {
+            return error
+        }
+
+        return 'Unknown MySQL adapter error'
     }
 }

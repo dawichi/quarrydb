@@ -122,7 +122,7 @@ export class MysqlWorkspaceStore {
                 this.tableRowTotal.set(0)
             }
         } catch (error) {
-            this.host.error.set(error instanceof Error ? error.message : 'Failed to load MySQL tables')
+            this.host.error.set(this.describeError(error, 'Failed to load MySQL tables'))
         } finally {
             this.isLoadingTables.set(false)
         }
@@ -167,7 +167,7 @@ export class MysqlWorkspaceStore {
                     : `Statement executed. ${result.affectedRows ?? 0} row${result.affectedRows === 1 ? '' : 's'} affected`,
             )
         } catch (error) {
-            this.host.error.set(error instanceof Error ? error.message : 'Failed to run MySQL query')
+            this.host.error.set(this.describeError(error, 'Failed to run MySQL query'))
         } finally {
             this.isRunningQuery.set(false)
         }
@@ -232,7 +232,7 @@ export class MysqlWorkspaceStore {
             this.tableRows.update((rows) => (reset ? result.rows : [...rows, ...result.rows]))
             this.rowOffset = offset + result.rows.length
         } catch (error) {
-            this.host.error.set(error instanceof Error ? error.message : 'Failed to load MySQL rows')
+            this.host.error.set(this.describeError(error, 'Failed to load MySQL rows'))
         } finally {
             this.isLoadingRows.set(false)
         }

@@ -84,4 +84,66 @@ describe('MysqlBackendAdapterService', () => {
             }),
         ).rejects.toThrow('MySQL connection request not found for Missing')
     })
+
+    it('lists tables and their columns from a selected schema', async () => {
+        select
+            .mockResolvedValueOnce([{ Tables_in_quarry_demo: 'products' }, { Tables_in_quarry_demo: 'orders' }])
+            .mockResolvedValueOnce([
+                { Field: 'id', Type: 'int', Null: 'NO', Key: 'PRI', Default: null },
+                { Field: 'name', Type: 'varchar(255)', Null: 'NO', Key: '', Default: null },
+            ])
+            .mockResolvedValueOnce([
+                { Field: 'id', Type: 'int', Null: 'NO', Key: 'PRI', Default: null },
+                { Field: 'total', Type: 'decimal(10,2)', Null: 'NO', Key: '', Default: '0.00' },
+            ])
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            sslMode: 'required',
+            source: 'saved_profile',
+        })
+
+        await expect(service.listTables(session, 'quarry_demo')).resolves.toEqual([
+            {
+                schemaName: 'quarry_demo',
+                name: 'orders',
+                columns: [
+                    { name: 'id', type: 'int', nullable: false, primaryKey: true, defaultValue: undefined },
+                    {
+                        name: 'total',
+                        type: 'decimal(10,2)',
+                        nullable: false,
+                        primaryKey: false,
+                        defaultValue: '0.00',
+                    },
+                ],
+            },
+            {
+                schemaName: 'quarry_demo',
+                name: 'products',
+                columns: [
+                    { name: 'id', type: 'int', nullable: false, primaryKey: true, defaultValue: undefined },
+                    {
+                        name: 'name',
+                        type: 'varchar(255)',
+                        nullable: false,
+                        primaryKey: false,
+                        defaultValue: undefined,
+                    },
+                ],
+            },
+        ])
+
+        expect(select).toHaveBeenNthCalledWith(1, 'SHOW TABLES FROM `quarry_demo`')
+        expect(select).toHaveBeenNthCalledWith(2, 'SHOW COLUMNS FROM `quarry_demo`.`products`')
+        expect(select).toHaveBeenNthCalledWith(3, 'SHOW COLUMNS FROM `quarry_demo`.`orders`')
+    })
 })
