@@ -13,6 +13,7 @@ import {
     type MysqlConnectionProfileDraft,
 } from './mysql-connection-profile'
 import { MysqlConnectionProfilesService } from './mysql-connection-profiles.service'
+import { MysqlConnectionSecretsService } from './mysql-connection-secrets.service'
 import {
     createMysqlWorkspaceDraft,
     createMysqlWorkspaceDraftFromRecentItem,
@@ -25,12 +26,14 @@ import type { HomeLaunchAction, ProviderDefinition } from './provider-definition
 export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSession> {
     private readonly backend = inject(MysqlBackendAdapterService)
     private readonly profiles = inject(MysqlConnectionProfilesService)
+    private readonly secrets = inject(MysqlConnectionSecretsService)
     private readonly recentItems = inject(RecentItemsService)
     private readonly workspace = inject(MysqlWorkspaceStore)
     private readonly host = inject(WorkspaceHostStore)
     readonly workspaceDraft = signal<MysqlWorkspaceDraft | null>(null)
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
     readonly schemaSummaries = signal<MysqlSchemaSummary[] | null>(null)
+    readonly connectPassword = signal('')
 
     readonly id = 'mysql' as const
     readonly kind = 'relational' as const
@@ -51,7 +54,9 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     readonly availability = {
         canOpenFromHome: false,
         canOpenRecentItems: true,
-        canRestoreSession: true,
+        canRestoreSession: false,
+        unavailableMessage:
+            'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
     }
 
     readonly homeLaunchAction: HomeLaunchAction = {
@@ -88,7 +93,11 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
 
     async openRecentItem(item: RecentItem): Promise<void> {
         this.previewRecentItem(item)
-        await this.connectWorkspaceDraft()
+        if (this.hasPasswordForWorkspaceDraft()) {
+            await this.connectWorkspaceDraft()
+            return
+        }
+        this.host.error.set('Enter the MySQL password to reconnect to this saved profile.')
     }
 
     async restoreSession(session: MysqlPersistedSession): Promise<void> {
@@ -96,7 +105,10 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             throw new Error(`MySQL provider cannot restore session for provider ${session.providerId}`)
         }
         this.workspaceDraft.set(createMysqlWorkspaceDraftFromSession(session))
-        await this.connectWorkspaceDraft()
+        this.syncDraftPassword(session.workspace.connectionId)
+        this.host.error.set(
+            'MySQL session restore requires re-entering the password; the saved session was not reopened automatically.',
+        )
     }
 
     loadProfiles(): MysqlConnectionProfile[] {
@@ -118,16 +130,20 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             now,
         )
         this.profiles.upsert(profile)
+        this.secrets.set(profile.id, draft.password)
         this.recentItems.add(this.recentItems.createMysqlItem(profile, now))
         this.workspaceDraft.set(this.createWorkspaceDraftFromProfile(profile))
+        this.syncDraftPassword(profile.id)
         return profile
     }
 
     removeProfile(id: string): void {
         this.profiles.remove(id)
+        this.secrets.remove(id)
         this.recentItems.remove(`mysql:${id}`)
         if (this.workspaceDraft()?.target.connectionId === id) {
             this.workspaceDraft.set(null)
+            this.connectPassword.set('')
         }
         if (this.connectionSession()?.target.connectionId === id) {
             this.connectionSession.set(null)
@@ -145,6 +161,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         const profile = this.profiles.find(id)
         if (!profile) return false
         this.workspaceDraft.set(this.createWorkspaceDraftFromProfile(profile))
+        this.syncDraftPassword(profile.id)
         return true
     }
 
@@ -152,7 +169,28 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         this.workspaceDraft.set(null)
         this.connectionSession.set(null)
         this.schemaSummaries.set(null)
+        this.connectPassword.set('')
         this.workspace.clear()
+    }
+
+    setConnectPassword(password: string): void {
+        this.connectPassword.set(password)
+
+        const draft = this.workspaceDraft()
+        if (!draft) {
+            return
+        }
+
+        this.secrets.set(draft.target.connectionId, password)
+    }
+
+    hasPasswordForWorkspaceDraft(): boolean {
+        const draft = this.workspaceDraft()
+        if (!draft) {
+            return false
+        }
+
+        return !!this.resolvePassword(draft.target.connectionId)
     }
 
     buildConnectRequestFromWorkspaceDraft(): MysqlConnectRequest | null {
@@ -161,8 +199,10 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
 
         const profile = this.profiles.find(draft.target.connectionId)
         if (!profile) return null
+        const password = this.resolvePassword(draft.target.connectionId)
+        if (!password) return null
 
-        return createMysqlConnectRequest(profile, draft.source)
+        return createMysqlConnectRequest(profile, password, draft.source)
     }
 
     async connectWorkspaceDraft(): Promise<void> {
@@ -193,6 +233,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             throw new Error(`MySQL provider cannot preview recent item for provider ${item.providerId}`)
         }
         this.workspaceDraft.set(createMysqlWorkspaceDraftFromRecentItem(item))
+        this.syncDraftPassword(item.resource.connectionId)
         return true
     }
 
@@ -249,5 +290,18 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
 
     private createWorkspaceDraftFromProfile(profile: MysqlConnectionProfile) {
         return createMysqlWorkspaceDraft(createMysqlConnectionTarget(profile), 'saved_profile')
+    }
+
+    private resolvePassword(connectionId: string): string | null {
+        const runtimePassword = this.connectPassword().trim()
+        if (this.workspaceDraft()?.target.connectionId === connectionId && runtimePassword) {
+            return runtimePassword
+        }
+
+        return this.secrets.get(connectionId)
+    }
+
+    private syncDraftPassword(connectionId: string): void {
+        this.connectPassword.set(this.secrets.get(connectionId) ?? '')
     }
 }

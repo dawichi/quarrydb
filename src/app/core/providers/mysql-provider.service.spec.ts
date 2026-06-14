@@ -30,6 +30,12 @@ describe('MysqlProviderService', () => {
         upsert: vi.fn(),
         remove: vi.fn(),
     }
+    const secrets = {
+        get: vi.fn(),
+        set: vi.fn(),
+        has: vi.fn(),
+        remove: vi.fn(),
+    }
     const errorSet = vi.fn()
     const loadingSet = vi.fn()
     const host = {
@@ -61,6 +67,10 @@ describe('MysqlProviderService', () => {
         profiles.create.mockReset()
         profiles.upsert.mockReset()
         profiles.remove.mockReset()
+        secrets.get.mockReset()
+        secrets.set.mockReset()
+        secrets.has.mockReset()
+        secrets.remove.mockReset()
         errorSet.mockReset()
         loadingSet.mockReset()
         backend.connect.mockReset()
@@ -82,17 +92,21 @@ describe('MysqlProviderService', () => {
             availability: {
                 canOpenFromHome: false,
                 canOpenRecentItems: true,
-                canRestoreSession: true,
+                canRestoreSession: false,
+                unavailableMessage:
+                    'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
             },
             backend,
             host,
             homeLaunchAction,
             profiles,
+            secrets,
             recentItems,
             workspace,
             workspaceDraft: signal(null),
             connectionSession: signal(null),
             schemaSummaries: signal(null),
+            connectPassword: signal(''),
         }) as MysqlProviderService
     })
 
@@ -104,7 +118,9 @@ describe('MysqlProviderService', () => {
         expect(service.availability).toEqual({
             canOpenFromHome: false,
             canOpenRecentItems: true,
-            canRestoreSession: true,
+            canRestoreSession: false,
+            unavailableMessage:
+                'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
         })
     })
 
@@ -169,6 +185,7 @@ describe('MysqlProviderService', () => {
             1,
         )
         expect(profiles.upsert).toHaveBeenCalledWith(created)
+        expect(secrets.set).toHaveBeenCalledWith('mysql-1', ' secret ')
         expect(recentItems.createMysqlItem).toHaveBeenCalledWith(created, 1)
         expect(recentItems.add).toHaveBeenCalledWith({ id: 'mysql:mysql-1' })
         expect(service.workspaceDraft()).toEqual({
@@ -295,6 +312,7 @@ describe('MysqlProviderService', () => {
             createdAt: 1,
             updatedAt: 1,
         })
+        secrets.get.mockReturnValue('secret')
 
         expect(service.selectProfile('mysql-1')).toBe(true)
         expect(service.workspaceDraft()).toEqual({
@@ -309,6 +327,7 @@ describe('MysqlProviderService', () => {
             selectedTable: null,
             activeTab: 'browse',
         })
+        expect(service.connectPassword()).toBe('secret')
     })
 
     it('returns false when selecting an unknown saved profile', () => {
@@ -356,7 +375,47 @@ describe('MysqlProviderService', () => {
             host: 'db.internal',
             port: 3306,
             username: 'quarry',
+            defaultDatabase: 'warehouse',
+            sslMode: 'required',
+            createdAt: 1,
+            updatedAt: 1,
+        })
+        service.workspaceDraft.set({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+            },
+            source: 'saved_profile',
+            selectedTable: null,
+            activeTab: 'browse',
+        })
+        service.connectPassword.set('secret')
+
+        expect(service.buildConnectRequestFromWorkspaceDraft()).toEqual({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+            },
+            username: 'quarry',
             password: 'secret',
+            sslMode: 'required',
+            source: 'saved_profile',
+        })
+    })
+
+    it('returns null when a draft exists but no password is available', () => {
+        profiles.find.mockReturnValue({
+            id: 'mysql-1',
+            name: 'Analytics',
+            host: 'db.internal',
+            port: 3306,
+            username: 'quarry',
             defaultDatabase: 'warehouse',
             sslMode: 'required',
             createdAt: 1,
@@ -375,19 +434,7 @@ describe('MysqlProviderService', () => {
             activeTab: 'browse',
         })
 
-        expect(service.buildConnectRequestFromWorkspaceDraft()).toEqual({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: 'db.internal',
-                port: 3306,
-                defaultDatabase: 'warehouse',
-            },
-            username: 'quarry',
-            password: 'secret',
-            sslMode: 'required',
-            source: 'saved_profile',
-        })
+        expect(service.buildConnectRequestFromWorkspaceDraft()).toBeNull()
     })
 
     it('returns null when the pending workspace draft has no matching saved profile', () => {
@@ -414,7 +461,6 @@ describe('MysqlProviderService', () => {
             host: 'db.internal',
             port: 3306,
             username: 'quarry',
-            password: 'secret',
             defaultDatabase: 'warehouse',
             sslMode: 'required',
             createdAt: 1,
@@ -447,6 +493,7 @@ describe('MysqlProviderService', () => {
             selectedTable: null,
             activeTab: 'browse',
         })
+        service.connectPassword.set('secret')
 
         await service.connectWorkspaceDraft()
 
@@ -512,6 +559,26 @@ describe('MysqlProviderService', () => {
         expect(errorSet).toHaveBeenCalledWith(null)
     })
 
+    it('previews a recent item without auto-connecting when no password is available', async () => {
+        const item = {
+            id: 'mysql:mysql-1',
+            providerId: 'mysql' as const,
+            label: 'Analytics',
+            openedAt: 1,
+            resource: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+            },
+        }
+
+        await service.openRecentItem(item)
+
+        expect(backend.connect).not.toHaveBeenCalled()
+        expect(errorSet).toHaveBeenCalledWith('Enter the MySQL password to reconnect to this saved profile.')
+    })
+
     it('builds an active persisted session from the opened MySQL workspace', () => {
         service.connectionSession.set({
             target: {
@@ -573,7 +640,6 @@ describe('MysqlProviderService', () => {
             host: 'db.internal',
             port: 3306,
             username: 'quarry',
-            password: 'secret',
             createdAt: 1,
             updatedAt: 1,
         })
@@ -600,6 +666,7 @@ describe('MysqlProviderService', () => {
             selectedTable: null,
             activeTab: 'browse',
         })
+        service.connectPassword.set('secret')
 
         await expect(service.connectWorkspaceDraft()).rejects.toThrow('MySQL backend adapter is not implemented yet')
 
@@ -617,6 +684,25 @@ describe('MysqlProviderService', () => {
         expect(errorSet).toHaveBeenCalledWith('MySQL backend adapter is not implemented yet')
     })
 
+    it('stores a runtime password for the current draft', () => {
+        service.workspaceDraft.set({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+            },
+            source: 'saved_profile',
+            selectedTable: null,
+            activeTab: 'browse',
+        })
+
+        service.setConnectPassword('secret')
+
+        expect(service.connectPassword()).toBe('secret')
+        expect(secrets.set).toHaveBeenCalledWith('mysql-1', 'secret')
+    })
+
     it('fails shell entrypoints with a consistent unavailable error', async () => {
         backend.listSchemas.mockRejectedValue(new Error('MySQL backend adapter is not implemented yet'))
         profiles.find.mockReturnValue({
@@ -625,7 +711,6 @@ describe('MysqlProviderService', () => {
             host: 'db.internal',
             port: 3306,
             username: 'quarry',
-            password: 'secret',
             defaultDatabase: 'warehouse',
             createdAt: 1,
             updatedAt: 1,
@@ -638,57 +723,46 @@ describe('MysqlProviderService', () => {
 
         await expect(service.openFromHome()).rejects.toThrow('MySQL connect target is not ready yet')
         await expect(service.openSample()).rejects.toThrow('MySQL provider is not available yet')
-        await expect(
-            service.openRecentItem({
-                id: 'mysql:mysql-1',
-                providerId: 'mysql',
-                label: 'Analytics',
-                openedAt: 1,
-                resource: {
-                    connectionId: 'mysql-1',
-                    connectionName: 'Analytics',
-                    host: 'db.internal',
-                    port: 3306,
-                    defaultDatabase: 'warehouse',
-                },
-            }),
-        ).rejects.toThrow('MySQL backend adapter is not implemented yet')
-        await expect(
-            service.restoreSession({
-                version: 1,
-                providerId: 'mysql',
-                savedAt: 1,
-                workspace: {
-                    connectionId: 'mysql-1',
-                    connectionName: 'Analytics',
-                    host: 'db.internal',
-                    port: 3306,
-                    defaultDatabase: 'warehouse',
-                    selectedTable: null,
-                    activeTab: 'browse',
-                },
-                pipeline: {
-                    source: null,
-                    steps: [],
-                    variableValues: {},
-                },
-            }),
-        ).rejects.toThrow('MySQL backend adapter is not implemented yet')
-
-        expect(errorSet).toHaveBeenCalledWith('MySQL connect target is not ready yet')
-        expect(errorSet).toHaveBeenCalledWith('MySQL provider is not available yet')
-        expect(errorSet).toHaveBeenCalledWith('MySQL backend adapter is not implemented yet')
-        expect(service.connectionSession()).toEqual({
-            target: {
+        await service.openRecentItem({
+            id: 'mysql:mysql-1',
+            providerId: 'mysql',
+            label: 'Analytics',
+            openedAt: 1,
+            resource: {
                 connectionId: 'mysql-1',
                 connectionName: 'Analytics',
                 host: 'db.internal',
                 port: 3306,
                 defaultDatabase: 'warehouse',
             },
-            source: 'session_restore',
-            connectedAt: 1234,
         })
+        await service.restoreSession({
+            version: 1,
+            providerId: 'mysql',
+            savedAt: 1,
+            workspace: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+                defaultDatabase: 'warehouse',
+                selectedTable: null,
+                activeTab: 'browse',
+            },
+            pipeline: {
+                source: null,
+                steps: [],
+                variableValues: {},
+            },
+        })
+
+        expect(errorSet).toHaveBeenCalledWith('MySQL connect target is not ready yet')
+        expect(errorSet).toHaveBeenCalledWith('MySQL provider is not available yet')
+        expect(errorSet).toHaveBeenCalledWith('Enter the MySQL password to reconnect to this saved profile.')
+        expect(errorSet).toHaveBeenCalledWith(
+            'MySQL session restore requires re-entering the password; the saved session was not reopened automatically.',
+        )
+        expect(service.connectionSession()).toBeNull()
         expect(service.schemaSummaries()).toBeNull()
         expect(service.workspaceDraft()).toEqual({
             target: {

@@ -9,7 +9,11 @@ export class MysqlConnectionProfilesService {
         try {
             const raw = localStorage.getItem(STORAGE_KEY)
             if (!raw) return []
-            return JSON.parse(raw) as MysqlConnectionProfile[]
+            const profiles = (JSON.parse(raw) as Array<MysqlConnectionProfile & { password?: string }>).map(
+                ({ password: _password, ...profile }) => profile,
+            )
+            this.persist(profiles)
+            return profiles
         } catch {
             return []
         }
@@ -26,7 +30,6 @@ export class MysqlConnectionProfilesService {
             host: draft.host,
             port: draft.port,
             username: draft.username,
-            password: draft.password || undefined,
             defaultDatabase: draft.defaultDatabase,
             color: draft.color,
             sslMode: draft.sslMode,

@@ -246,7 +246,7 @@
                                                     Save profile
                                                 </button>
                                                 <p class="text-xs text-zinc-500">
-                                                    Passwords are currently stored locally with the saved MySQL profile so the preview connection flow can be tested.
+                                                    Saved profiles keep connection metadata only. Passwords stay in runtime memory and must be re-entered after relaunch.
                                                 </p>
                                             </div>
 
@@ -314,8 +314,26 @@
                                                         </button>
                                                     </div>
                                                     <p class="mt-3 text-xs text-amber-200/80">
-                                                        This draft is the future MySQL open target. The current preview can already test a real MySQL connection and list schemas.
+                                                        This draft is the MySQL open target. The preview can browse tables and run raw SQL once a connection succeeds.
                                                     </p>
+
+                                                    <div class="mt-4">
+                                                        <label class="flex flex-col gap-1">
+                                                            <span class="text-xs uppercase tracking-wide text-zinc-500">Connection password</span>
+                                                            <input
+                                                                class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
+                                                                type="password"
+                                                                [value]="mysqlProvider.connectPassword()"
+                                                                (input)="updateMysqlConnectPassword($any($event.target).value)"
+                                                                placeholder="Required to connect"
+                                                            />
+                                                        </label>
+                                                        @if (mysqlDraftNeedsPassword()) {
+                                                            <p class="mt-2 text-xs text-amber-200/80">
+                                                                This password is kept only for the current app run.
+                                                            </p>
+                                                        }
+                                                    </div>
 
                                                     @if (mysqlConnectRequest(); as request) {
                                                         <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
@@ -334,7 +352,7 @@
                                                             <button
                                                                 type="button"
                                                                 class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-400 active:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                                                [disabled]="workspaceHost.isLoading()"
+                                                                [disabled]="workspaceHost.isLoading() || !canConnectMysqlDraft()"
                                                                 (click)="connectMysqlDraft()"
                                                             >
                                                                 @if (workspaceHost.isLoading()) {
@@ -381,7 +399,7 @@
                                                         }
                                                     } @else {
                                                         <p class="mt-4 text-xs text-amber-200/80">
-                                                            The saved profile backing this draft no longer exists, so a connect request cannot be built yet.
+                                                            Enter a password to build a connect request, or re-save the profile if its metadata no longer exists.
                                                         </p>
                                                     }
                                                 </div>

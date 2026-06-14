@@ -12,6 +12,7 @@ export interface MysqlConnectRequest {
 
 export function createMysqlConnectRequest(
     profile: MysqlConnectionProfile,
+    password: string,
     source: MysqlWorkspaceDraftSource,
 ): MysqlConnectRequest {
     return {
@@ -23,7 +24,7 @@ export function createMysqlConnectRequest(
             defaultDatabase: profile.defaultDatabase,
         },
         username: profile.username,
-        password: profile.password ?? '',
+        password,
         sslMode: profile.sslMode,
         source,
     }

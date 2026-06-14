@@ -11,12 +11,12 @@ describe('mysql connect request helpers', () => {
                     host: 'db.internal',
                     port: 3306,
                     username: 'quarry',
-                    password: 'secret',
                     defaultDatabase: 'warehouse',
                     sslMode: 'required',
                     createdAt: 1,
                     updatedAt: 1,
                 },
+                'secret',
                 'saved_profile',
             ),
         ).toEqual({

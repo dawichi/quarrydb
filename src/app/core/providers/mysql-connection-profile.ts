@@ -6,7 +6,6 @@ export interface MysqlConnectionProfile {
     host: string
     port: number
     username: string
-    password?: string
     defaultDatabase?: string
     color?: string
     sslMode?: 'disabled' | 'preferred' | 'required'

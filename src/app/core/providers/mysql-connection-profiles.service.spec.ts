@@ -57,13 +57,43 @@ describe('MysqlConnectionProfilesService', () => {
             host: 'db.internal',
             port: 3306,
             username: 'quarry',
-            password: 'secret',
             defaultDatabase: 'warehouse',
             color: '#0ea5e9',
             sslMode: 'required',
             createdAt: 1234,
             updatedAt: 1234,
         })
+    })
+
+    it('strips legacy persisted passwords on load', () => {
+        localStorage.setItem(
+            'quarry_mysql_connection_profiles',
+            JSON.stringify([
+                {
+                    id: 'a',
+                    name: 'Main',
+                    host: 'localhost',
+                    port: 3306,
+                    username: 'root',
+                    password: 'secret',
+                    createdAt: 1,
+                    updatedAt: 1,
+                },
+            ]),
+        )
+
+        expect(service.load()).toEqual([
+            {
+                id: 'a',
+                name: 'Main',
+                host: 'localhost',
+                port: 3306,
+                username: 'root',
+                createdAt: 1,
+                updatedAt: 1,
+            },
+        ])
+        expect(localStorage.getItem('quarry_mysql_connection_profiles')).not.toContain('secret')
     })
 
     it('upserts profiles by id and keeps the newest copy first', () => {

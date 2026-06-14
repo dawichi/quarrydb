@@ -27,7 +27,7 @@ import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
     templateUrl: './welcome.component.html',
 })
 export class WelcomeComponent {
-    private readonly mysqlProvider = inject(MysqlProviderService)
+    protected readonly mysqlProvider = inject(MysqlProviderService)
     protected readonly workspaceHost = inject(WorkspaceHostStore)
     protected readonly tutorialSvc = inject(TutorialService)
     protected readonly recentItemsSvc = inject(RecentItemsService)
@@ -133,6 +133,18 @@ export class WelcomeComponent {
 
     protected connectMysqlDraft(): void {
         void this.mysqlProvider.connectWorkspaceDraft()
+    }
+
+    protected updateMysqlConnectPassword(value: string): void {
+        this.mysqlProvider.setConnectPassword(value)
+    }
+
+    protected mysqlDraftNeedsPassword(): boolean {
+        return !!this.mysqlWorkspaceDraft() && !this.mysqlProvider.hasPasswordForWorkspaceDraft()
+    }
+
+    protected canConnectMysqlDraft(): boolean {
+        return !!this.mysqlConnectRequest()
     }
 
     protected mysqlProfileSubtitle(profile: MysqlConnectionProfile): string {
