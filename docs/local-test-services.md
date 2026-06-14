@@ -19,6 +19,9 @@ For development, the fastest path is usually a disposable Docker container.
 bun run dev:services:up
 ```
 
+On macOS, this helper switches to Docker's `default` context, tries to launch Docker
+Desktop if needed, and waits briefly for the daemon before failing.
+
 Stop everything:
 
 ```bash

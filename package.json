@@ -13,7 +13,7 @@
     "start": "concurrently -n TW,NG -c cyan,green \"bun run tw:dev\" \"ng serve\"",
     "build": "bun run tw:build && ng build",
     "tauri": "tauri",
-    "dev:services:up": "docker compose -f docker-compose.local-test-services.yml up -d",
+    "dev:services:up": "bash scripts/dev-services-up.sh",
     "dev:services:down": "docker compose -f docker-compose.local-test-services.yml down",
     "dev:services:logs": "docker compose -f docker-compose.local-test-services.yml logs -f",
     "lint": "biome lint src/ packages/",
