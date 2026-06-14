@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core'
+import type { Column } from '@quarrydb/shared'
 import Database from '@tauri-apps/plugin-sql'
 import type {
     MysqlBackendAdapter,
@@ -51,7 +52,49 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
                  ORDER BY TABLE_NAME`,
                 [schemaName],
             )
-            return rows
+            if (rows.length === 0) {
+                return []
+            }
+
+            const columnRows = await db.select<
+                Array<{
+                    tableName: string
+                    name: string
+                    type: string
+                    nullable: 'YES' | 'NO'
+                    primaryKey: 'PRI' | ''
+                    defaultValue: string | null
+                }>
+            >(
+                `SELECT TABLE_NAME as tableName,
+                        COLUMN_NAME as name,
+                        COLUMN_TYPE as type,
+                        IS_NULLABLE as nullable,
+                        COLUMN_KEY as primaryKey,
+                        COLUMN_DEFAULT as defaultValue
+                 FROM information_schema.columns
+                 WHERE TABLE_SCHEMA = ?
+                 ORDER BY TABLE_NAME, ORDINAL_POSITION`,
+                [schemaName],
+            )
+
+            const columnsByTable = new Map<string, Column[]>()
+            for (const row of columnRows) {
+                const columns = columnsByTable.get(row.tableName) ?? []
+                columns.push({
+                    name: row.name,
+                    type: row.type,
+                    nullable: row.nullable === 'YES',
+                    primaryKey: row.primaryKey === 'PRI',
+                    defaultValue: row.defaultValue ?? undefined,
+                })
+                columnsByTable.set(row.tableName, columns)
+            }
+
+            return rows.map((row) => ({
+                ...row,
+                columns: columnsByTable.get(row.name) ?? [],
+            }))
         } finally {
             await db.close()
         }

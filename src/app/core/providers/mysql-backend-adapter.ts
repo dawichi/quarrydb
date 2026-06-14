@@ -1,3 +1,4 @@
+import type { Column } from '@quarrydb/shared'
 import type { MysqlConnectionTarget } from '@quarrydb/shared/mysql-connection-target'
 import type { MysqlConnectRequest } from './mysql-connect-request'
 
@@ -15,6 +16,7 @@ export interface MysqlSchemaSummary {
 export interface MysqlTableSummary {
     schemaName: string
     name: string
+    columns: Column[]
 }
 
 export interface MysqlQueryResult {

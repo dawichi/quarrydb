@@ -67,6 +67,14 @@ export class SidebarComponent {
         this.expandedTables.set(this.toggled(this.expandedTables(), tableName))
     }
 
+    protected isMysqlTableExpanded(schemaName: string, tableName: string): boolean {
+        return this.expandedTables().has(this.mysqlTableKey(schemaName, tableName))
+    }
+
+    protected toggleMysqlTable(schemaName: string, tableName: string): void {
+        this.expandedTables.set(this.toggled(this.expandedTables(), this.mysqlTableKey(schemaName, tableName)))
+    }
+
     /** Section keys are namespaced per-schema (`<alias>:views`) so two attached files don't collide. */
     protected isSectionExpanded(alias: string, section: 'views' | 'triggers'): boolean {
         return this.expandedSections().has(`${alias}:${section}`)
@@ -135,5 +143,9 @@ export class SidebarComponent {
             next.add(key)
         }
         return next
+    }
+
+    private mysqlTableKey(schemaName: string, tableName: string): string {
+        return `${schemaName}:${tableName}`
     }
 }
