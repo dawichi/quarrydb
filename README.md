@@ -82,7 +82,7 @@ bun run dev:services:up
 
 This starts disposable local MySQL, Postgres, and Redis containers via
 [`docker-compose.local-test-services.yml`](docker-compose.local-test-services.yml). Full
-connection details and teardown commands are in
+connection details, MySQL sample-data steps, and teardown commands are in
 [`docs/local-test-services.md`](docs/local-test-services.md).
 
 ---

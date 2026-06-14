@@ -43,8 +43,42 @@ Connection settings:
 - user: `root`
 - password: `quarry`
 - default schema: `quarry_demo`
-- after connecting in Quarry, use `Load sample data into quarry_demo` in the MySQL workspace
-  to create and seed `products`, `customers`, `orders`, and `order_items`
+
+### Manual Quarry Test Flow
+
+1. Start the local services:
+
+```bash
+bun run dev:services:up
+```
+
+2. Start Quarry:
+
+```bash
+bun run tauri dev
+```
+
+3. In the welcome screen, open the MySQL provider card.
+4. Save a MySQL profile with:
+   - name: anything you want, for example `Local MySQL`
+   - host: `127.0.0.1`
+   - port: `3306`
+   - username: `root`
+   - password: `quarry`
+   - default database: `quarry_demo`
+5. Click `Use profile`.
+6. In the pending connection target panel, re-enter the connection password if needed.
+7. Click `Test MySQL connection`.
+8. Once the MySQL workspace opens, click `Load sample data into quarry_demo`.
+9. Browse the generated `products`, `customers`, `orders`, and `order_items` tables.
+10. Use the `query` tab to run raw SQL against the sample schema.
+
+Notes:
+
+- Passwords are intentionally kept in runtime memory only for the current app run.
+- Recent-item reopen and session restore require re-entering the MySQL password.
+- Sample loading is idempotent for practical testing: if `products` already contains rows,
+  Quarry leaves the existing sample tables alone.
 
 ## Postgres
 
@@ -67,5 +101,7 @@ Connection settings:
 
 - Change host ports if you already have local services running.
 - These containers are intentionally disposable.
-- Quarry now seeds MySQL sample tables on demand from inside the connected MySQL workspace,
-  rather than auto-populating the Docker container at startup.
+- Docker stayed as developer tooling only. Quarry does not provision Docker containers for
+  end users.
+- Quarry now seeds MySQL sample tables on demand from inside the connected MySQL workspace
+  instead of auto-populating the container at startup.
