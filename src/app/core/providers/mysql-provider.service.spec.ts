@@ -106,6 +106,7 @@ describe('MysqlProviderService', () => {
             workspaceDraft: signal(null),
             connectionSession: signal(null),
             schemaSummaries: signal(null),
+            schemaBootstrapError: signal(null),
             connectPassword: signal(''),
         }) as MysqlProviderService
     })
@@ -525,6 +526,7 @@ describe('MysqlProviderService', () => {
             { name: 'warehouse', isDefault: true },
             { name: 'analytics', isDefault: false },
         ])
+        expect(service.schemaBootstrapError()).toBeNull()
         expect(workspace.openWorkspace).toHaveBeenCalledWith(
             {
                 target: {
@@ -633,13 +635,14 @@ describe('MysqlProviderService', () => {
         expect(errorSet).toHaveBeenCalledWith('MySQL connect target is not ready yet')
     })
 
-    it('keeps the provisional session when schema bootstrap fails and clears schema summaries', async () => {
+    it('keeps the provisional session and falls back to the default schema when schema bootstrap fails', async () => {
         profiles.find.mockReturnValue({
             id: 'mysql-1',
             name: 'Analytics',
             host: 'db.internal',
             port: 3306,
             username: 'quarry',
+            defaultDatabase: 'warehouse',
             createdAt: 1,
             updatedAt: 1,
         })
@@ -649,6 +652,7 @@ describe('MysqlProviderService', () => {
                 connectionName: 'Analytics',
                 host: 'db.internal',
                 port: 3306,
+                defaultDatabase: 'warehouse',
             },
             source: 'saved_profile',
             connectedAt: 1234,
@@ -661,6 +665,7 @@ describe('MysqlProviderService', () => {
                 connectionName: 'Analytics',
                 host: 'db.internal',
                 port: 3306,
+                defaultDatabase: 'warehouse',
             },
             source: 'saved_profile',
             selectedTable: null,
@@ -668,7 +673,7 @@ describe('MysqlProviderService', () => {
         })
         service.connectPassword.set('secret')
 
-        await expect(service.connectWorkspaceDraft()).rejects.toThrow('MySQL backend adapter is not implemented yet')
+        await service.connectWorkspaceDraft()
 
         expect(service.connectionSession()).toEqual({
             target: {
@@ -676,12 +681,39 @@ describe('MysqlProviderService', () => {
                 connectionName: 'Analytics',
                 host: 'db.internal',
                 port: 3306,
+                defaultDatabase: 'warehouse',
             },
             source: 'saved_profile',
             connectedAt: 1234,
         })
-        expect(service.schemaSummaries()).toBeNull()
-        expect(errorSet).toHaveBeenCalledWith('MySQL backend adapter is not implemented yet')
+        expect(service.schemaSummaries()).toEqual([{ name: 'warehouse', isDefault: true }])
+        expect(service.schemaBootstrapError()).toBe('MySQL backend adapter is not implemented yet')
+        expect(workspace.openWorkspace).toHaveBeenCalledWith(
+            {
+                target: {
+                    connectionId: 'mysql-1',
+                    connectionName: 'Analytics',
+                    host: 'db.internal',
+                    port: 3306,
+                    defaultDatabase: 'warehouse',
+                },
+                source: 'saved_profile',
+                connectedAt: 1234,
+            },
+            [{ name: 'warehouse', isDefault: true }],
+            {
+                target: {
+                    connectionId: 'mysql-1',
+                    connectionName: 'Analytics',
+                    host: 'db.internal',
+                    port: 3306,
+                    defaultDatabase: 'warehouse',
+                },
+                source: 'saved_profile',
+                selectedTable: null,
+                activeTab: 'browse',
+            },
+        )
     })
 
     it('stores a runtime password for the current draft', () => {
@@ -807,5 +839,6 @@ describe('MysqlProviderService', () => {
         expect(service.workspaceDraft()).toBeNull()
         expect(service.connectionSession()).toBeNull()
         expect(service.schemaSummaries()).toBeNull()
+        expect(service.schemaBootstrapError()).toBeNull()
     })
 })

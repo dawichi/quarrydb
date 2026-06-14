@@ -37,6 +37,7 @@ export class WelcomeComponent {
     protected readonly mysqlWorkspaceDraft = this.mysqlProvider.workspaceDraft
     protected readonly mysqlConnectionSession = this.mysqlProvider.connectionSession
     protected readonly mysqlSchemaSummaries = this.mysqlProvider.schemaSummaries
+    protected readonly mysqlSchemaBootstrapError = this.mysqlProvider.schemaBootstrapError
 
     protected get recentItems() {
         return this.recentItemsSvc.load()

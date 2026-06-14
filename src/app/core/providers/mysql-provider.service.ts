@@ -33,6 +33,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     readonly workspaceDraft = signal<MysqlWorkspaceDraft | null>(null)
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
     readonly schemaSummaries = signal<MysqlSchemaSummary[] | null>(null)
+    readonly schemaBootstrapError = signal<string | null>(null)
     readonly connectPassword = signal('')
 
     readonly id = 'mysql' as const
@@ -169,6 +170,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         this.workspaceDraft.set(null)
         this.connectionSession.set(null)
         this.schemaSummaries.set(null)
+        this.schemaBootstrapError.set(null)
         this.connectPassword.set('')
         this.workspace.clear()
     }
@@ -215,14 +217,28 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         this.host.error.set(null)
         this.connectionSession.set(null)
         this.schemaSummaries.set(null)
+        this.schemaBootstrapError.set(null)
         try {
             const session = await this.backend.connect(request)
             this.connectionSession.set(session)
-            const schemas = await this.backend.listSchemas(session)
+            let schemas: MysqlSchemaSummary[]
+            try {
+                schemas = await this.backend.listSchemas(session)
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Failed to load MySQL schemas'
+                this.schemaBootstrapError.set(message)
+
+                const fallbackSchema = request.target.defaultDatabase
+                if (!fallbackSchema) {
+                    throw error
+                }
+
+                schemas = [{ name: fallbackSchema, isDefault: true }]
+            }
             this.schemaSummaries.set(schemas)
             await this.workspace.openWorkspace(session, schemas, this.workspaceDraft())
         } catch (error) {
-            throw this.notAvailableYet(error instanceof Error ? error.message : undefined)
+            throw this.notAvailableYet(this.describeError(error))
         } finally {
             this.host.isLoading.set(false)
         }
@@ -286,6 +302,37 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         const error = new Error(message)
         this.host.error.set(error.message)
         return error
+    }
+
+    private describeError(error: unknown): string {
+        if (error instanceof Error && error.message.trim()) {
+            return error.message
+        }
+
+        if (typeof error === 'string' && error.trim()) {
+            return error
+        }
+
+        if (error && typeof error === 'object') {
+            const candidate = error as { message?: unknown; error?: unknown; details?: unknown }
+            if (typeof candidate.message === 'string' && candidate.message.trim()) {
+                return candidate.message
+            }
+            if (typeof candidate.error === 'string' && candidate.error.trim()) {
+                return candidate.error
+            }
+            if (typeof candidate.details === 'string' && candidate.details.trim()) {
+                return candidate.details
+            }
+
+            try {
+                return JSON.stringify(error)
+            } catch {
+                return 'Unknown MySQL error'
+            }
+        }
+
+        return 'Unknown MySQL error'
     }
 
     private createWorkspaceDraftFromProfile(profile: MysqlConnectionProfile) {
