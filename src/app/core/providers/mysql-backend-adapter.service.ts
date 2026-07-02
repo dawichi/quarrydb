@@ -58,13 +58,14 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
             const tableNames = rows.map((row) => this.extractTableName(row)).filter((name): name is string => !!name)
 
-            const tablesWithColumns = await Promise.all(
-                tableNames.map(async (tableName) => ({
+            const tablesWithColumns: MysqlTableSummary[] = []
+            for (const tableName of tableNames) {
+                tablesWithColumns.push({
                     schemaName,
                     name: tableName,
                     columns: await this.listColumns(db, schemaName, tableName),
-                })),
-            )
+                })
+            }
 
             return tablesWithColumns.sort((left, right) => left.name.localeCompare(right.name))
         } catch (error) {
