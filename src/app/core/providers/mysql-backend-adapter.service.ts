@@ -49,7 +49,12 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         const db = await this.openDatabase(session)
         try {
             const rows = await db.select<Array<Record<string, unknown>>>(
-                `SHOW TABLES FROM ${this.quoteIdentifier(schemaName)}`,
+                `SELECT CAST(table_name AS CHAR(255)) AS table_name
+                 FROM information_schema.tables
+                 WHERE table_schema = ?
+                   AND table_type = 'BASE TABLE'
+                 ORDER BY table_name`,
+                [schemaName],
             )
 
             if (rows.length === 0) {
@@ -77,33 +82,44 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
     private async listColumns(db: Database, schemaName: string, tableName: string): Promise<Column[]> {
         let rows: Array<{
-            Field: string
-            Type: string
-            Null: 'YES' | 'NO'
-            Key: 'PRI' | ''
-            Default: string | null
+            column_name: string
+            column_type: string
+            is_nullable: 'YES' | 'NO'
+            column_key: 'PRI' | ''
+            column_default: string | null
         }>
 
         try {
             rows = await db.select<
                 Array<{
-                    Field: string
-                    Type: string
-                    Null: 'YES' | 'NO'
-                    Key: 'PRI' | ''
-                    Default: string | null
+                    column_name: string
+                    column_type: string
+                    is_nullable: 'YES' | 'NO'
+                    column_key: 'PRI' | ''
+                    column_default: string | null
                 }>
-            >(`SHOW COLUMNS FROM ${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`)
+            >(
+                `SELECT CAST(column_name AS CHAR(255)) AS column_name,
+                        CAST(column_type AS CHAR(255)) AS column_type,
+                        is_nullable,
+                        column_key,
+                        CAST(column_default AS CHAR(255)) AS column_default
+                 FROM information_schema.columns
+                 WHERE table_schema = ?
+                   AND table_name = ?
+                 ORDER BY ordinal_position`,
+                [schemaName, tableName],
+            )
         } catch (error) {
             throw new Error(`Failed to inspect columns for ${schemaName}.${tableName}: ${this.describeError(error)}`)
         }
 
         return rows.map((row) => ({
-            name: row.Field,
-            type: row.Type,
-            nullable: row.Null === 'YES',
-            primaryKey: row.Key === 'PRI',
-            defaultValue: row.Default ?? undefined,
+            name: row.column_name,
+            type: row.column_type,
+            nullable: row.is_nullable === 'YES',
+            primaryKey: row.column_key === 'PRI',
+            defaultValue: row.column_default ?? undefined,
         }))
     }
 
@@ -117,15 +133,8 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     }
 
     private extractTableName(row: Record<string, unknown>): string | null {
-        for (const [key, value] of Object.entries(row)) {
-            if (key === 'Table_type') {
-                continue
-            }
-            if (typeof value === 'string') {
-                return value
-            }
-        }
-        return null
+        const value = row['table_name']
+        return typeof value === 'string' ? value : null
     }
 
     async queryTableRows(

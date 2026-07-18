@@ -87,14 +87,38 @@ describe('MysqlBackendAdapterService', () => {
 
     it('lists tables and their columns from a selected schema', async () => {
         select
-            .mockResolvedValueOnce([{ Tables_in_quarry_demo: 'products' }, { Tables_in_quarry_demo: 'orders' }])
+            .mockResolvedValueOnce([{ table_name: 'products' }, { table_name: 'orders' }])
             .mockResolvedValueOnce([
-                { Field: 'id', Type: 'int', Null: 'NO', Key: 'PRI', Default: null },
-                { Field: 'name', Type: 'varchar(255)', Null: 'NO', Key: '', Default: null },
+                {
+                    column_name: 'id',
+                    column_type: 'int',
+                    is_nullable: 'NO',
+                    column_key: 'PRI',
+                    column_default: null,
+                },
+                {
+                    column_name: 'name',
+                    column_type: 'varchar(255)',
+                    is_nullable: 'NO',
+                    column_key: '',
+                    column_default: null,
+                },
             ])
             .mockResolvedValueOnce([
-                { Field: 'id', Type: 'int', Null: 'NO', Key: 'PRI', Default: null },
-                { Field: 'total', Type: 'decimal(10,2)', Null: 'NO', Key: '', Default: '0.00' },
+                {
+                    column_name: 'id',
+                    column_type: 'int',
+                    is_nullable: 'NO',
+                    column_key: 'PRI',
+                    column_default: null,
+                },
+                {
+                    column_name: 'total',
+                    column_type: 'decimal(10,2)',
+                    is_nullable: 'NO',
+                    column_key: '',
+                    column_default: '0.00',
+                },
             ])
 
         const session = await service.connect({
@@ -142,8 +166,40 @@ describe('MysqlBackendAdapterService', () => {
             },
         ])
 
-        expect(select).toHaveBeenNthCalledWith(1, 'SHOW TABLES FROM `quarry_demo`')
-        expect(select).toHaveBeenNthCalledWith(2, 'SHOW COLUMNS FROM `quarry_demo`.`products`')
-        expect(select).toHaveBeenNthCalledWith(3, 'SHOW COLUMNS FROM `quarry_demo`.`orders`')
+        expect(select).toHaveBeenNthCalledWith(
+            1,
+            `SELECT CAST(table_name AS CHAR(255)) AS table_name
+                 FROM information_schema.tables
+                 WHERE table_schema = ?
+                   AND table_type = 'BASE TABLE'
+                 ORDER BY table_name`,
+            ['quarry_demo'],
+        )
+        expect(select).toHaveBeenNthCalledWith(
+            2,
+            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
+                        CAST(column_type AS CHAR(255)) AS column_type,
+                        is_nullable,
+                        column_key,
+                        CAST(column_default AS CHAR(255)) AS column_default
+                 FROM information_schema.columns
+                 WHERE table_schema = ?
+                   AND table_name = ?
+                 ORDER BY ordinal_position`,
+            ['quarry_demo', 'products'],
+        )
+        expect(select).toHaveBeenNthCalledWith(
+            3,
+            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
+                        CAST(column_type AS CHAR(255)) AS column_type,
+                        is_nullable,
+                        column_key,
+                        CAST(column_default AS CHAR(255)) AS column_default
+                 FROM information_schema.columns
+                 WHERE table_schema = ?
+                   AND table_name = ?
+                 ORDER BY ordinal_position`,
+            ['quarry_demo', 'orders'],
+        )
     })
 })
