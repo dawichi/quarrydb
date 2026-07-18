@@ -263,4 +263,120 @@ describe('MysqlBackendAdapterService', () => {
             'SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` LIMIT 100 OFFSET 0',
         )
     })
+
+    it('rewrites simple select-star queries to cast mysql-only preview types', async () => {
+        select
+            .mockResolvedValueOnce([
+                {
+                    column_name: 'id',
+                    column_type: 'int',
+                    is_nullable: 'NO',
+                    column_key: 'PRI',
+                    column_default: '',
+                },
+                {
+                    column_name: 'total',
+                    column_type: 'decimal(10,2)',
+                    is_nullable: 'NO',
+                    column_key: '',
+                    column_default: '0.00',
+                },
+            ])
+            .mockResolvedValueOnce([{ id: 1, total: '1389.98' }])
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            sslMode: 'required',
+            source: 'saved_profile',
+        })
+
+        await expect(service.runQuery(session, 'SELECT * FROM `quarry_demo`.`orders` LIMIT 20;', 100)).resolves.toEqual(
+            {
+                kind: 'rows',
+                rows: [{ id: 1, total: '1389.98' }],
+                columns: ['id', 'total'],
+            },
+        )
+
+        expect(select).toHaveBeenNthCalledWith(
+            1,
+            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
+                        CAST(column_type AS CHAR(255)) AS column_type,
+                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
+                        CAST(column_key AS CHAR(3)) AS column_key,
+                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
+                 FROM information_schema.columns
+                 WHERE table_schema = ?
+                   AND table_name = ?
+                 ORDER BY ordinal_position`,
+            ['quarry_demo', 'orders'],
+        )
+        expect(select).toHaveBeenNthCalledWith(
+            2,
+            'SELECT * FROM (SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` LIMIT 20) AS quarry_query LIMIT 100',
+        )
+    })
+
+    it('rewrites simple projected table queries to cast mysql-only preview types', async () => {
+        select
+            .mockResolvedValueOnce([
+                {
+                    column_name: 'id',
+                    column_type: 'int',
+                    is_nullable: 'NO',
+                    column_key: 'PRI',
+                    column_default: '',
+                },
+                {
+                    column_name: 'total',
+                    column_type: 'decimal(10,2)',
+                    is_nullable: 'NO',
+                    column_key: '',
+                    column_default: '0.00',
+                },
+                {
+                    column_name: 'created_at',
+                    column_type: 'datetime',
+                    is_nullable: 'NO',
+                    column_key: '',
+                    column_default: '',
+                },
+            ])
+            .mockResolvedValueOnce([{ id: 1, total: '1389.98', created_at: '2024-03-01 00:00:00' }])
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            sslMode: 'required',
+            source: 'saved_profile',
+        })
+
+        await expect(
+            service.runQuery(session, 'SELECT id, total, created_at FROM `quarry_demo`.`orders` LIMIT 20;', 100),
+        ).resolves.toEqual({
+            kind: 'rows',
+            rows: [{ id: 1, total: '1389.98', created_at: '2024-03-01 00:00:00' }],
+            columns: ['id', 'total', 'created_at'],
+        })
+
+        expect(select).toHaveBeenNthCalledWith(
+            2,
+            'SELECT * FROM (SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total`, `created_at` AS `created_at` FROM `quarry_demo`.`orders` LIMIT 20) AS quarry_query LIMIT 100',
+        )
+    })
 })

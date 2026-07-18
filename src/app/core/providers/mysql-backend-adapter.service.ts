@@ -172,9 +172,10 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         const normalizedSql = sql.trim().replace(/;+$/, '')
         try {
             if (this.isRowQuery(normalizedSql)) {
-                const querySql = /^(select|with)\b/i.test(normalizedSql)
-                    ? `SELECT * FROM (${normalizedSql}) AS quarry_query LIMIT ${previewLimit}`
-                    : normalizedSql
+                const rewrittenSql = await this.rewriteSimpleSelectForPreview(db, normalizedSql)
+                const querySql = /^(select|with)\b/i.test(rewrittenSql)
+                    ? `SELECT * FROM (${rewrittenSql}) AS quarry_query LIMIT ${previewLimit}`
+                    : rewrittenSql
                 const rows = await db.select<Record<string, unknown>[]>(querySql)
                 return {
                     kind: 'rows',
@@ -240,6 +241,154 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
                 return `${expression} AS ${identifier}`
             })
             .join(', ')
+    }
+
+    private async rewriteSimpleSelectForPreview(db: Database, sql: string): Promise<string> {
+        const match = sql.match(
+            /^select\s+([\s\S]+?)\s+from\s+((?:`[^`]+`\.)?`[^`]+`)(?:\s+(?:as\s+)?([a-zA-Z_][\w]*|`[^`]+`))?(\s+.*)?$/i,
+        )
+        if (!match) {
+            return sql
+        }
+
+        const [, projection, source, aliasToken, rest = ''] = match
+        const reservedAliasKeywords = new Set(['where', 'order', 'group', 'having', 'limit', 'offset'])
+        const normalizedAliasToken = aliasToken ? this.unquoteIdentifier(aliasToken).toLowerCase() : null
+        const hasRealAlias = !!normalizedAliasToken && !reservedAliasKeywords.has(normalizedAliasToken)
+        const effectiveAliasToken = hasRealAlias ? aliasToken : null
+        const effectiveRest =
+            aliasToken && !hasRealAlias ? `${rest ? ` ${aliasToken}${rest}` : ` ${aliasToken}`}` : rest
+        if (/\b(join|union|intersect|except)\b/i.test(effectiveRest)) {
+            return sql
+        }
+
+        const { schemaName, tableName } = this.parseQuotedTableReference(source)
+        if (!tableName) {
+            return sql
+        }
+
+        const columns = await this.listColumns(db, schemaName, tableName)
+        const alias = effectiveAliasToken ? this.unquoteIdentifier(effectiveAliasToken) : null
+        const rewrittenProjection = this.rewriteSimpleProjection(projection, columns, alias)
+        if (!rewrittenProjection) {
+            return sql
+        }
+
+        return `SELECT ${rewrittenProjection} FROM ${source}${effectiveAliasToken ? ` ${effectiveAliasToken}` : ''}${effectiveRest}`
+    }
+
+    private rewriteSimpleProjection(projection: string, columns: Column[], alias: string | null): string | null {
+        const trimmedProjection = projection.trim()
+        const sourceStarPatterns = new Set(['*'])
+        if (alias) {
+            sourceStarPatterns.add(`${alias}.*`)
+            sourceStarPatterns.add(`${this.quoteIdentifier(alias)}.*`)
+        }
+
+        if (sourceStarPatterns.has(trimmedProjection)) {
+            return columns.map((column) => this.buildProjectedColumnExpression(column, alias)).join(', ')
+        }
+
+        const expressions = this.splitTopLevelCsv(trimmedProjection)
+        const rewrittenExpressions: string[] = []
+
+        for (const expression of expressions) {
+            const rewrittenExpression = this.rewriteProjectedExpression(expression, columns, alias)
+            if (!rewrittenExpression) {
+                return null
+            }
+            rewrittenExpressions.push(rewrittenExpression)
+        }
+
+        return rewrittenExpressions.join(', ')
+    }
+
+    private rewriteProjectedExpression(expression: string, columns: Column[], alias: string | null): string | null {
+        const trimmedExpression = expression.trim()
+        const match = trimmedExpression.match(
+            /^(?:(`[^`]+`|[a-zA-Z_][\w]*)\.)?(`[^`]+`|[a-zA-Z_][\w]*)(?:\s+(?:as\s+)?(`[^`]+`|[a-zA-Z_][\w]*))?$/i,
+        )
+        if (!match) {
+            return null
+        }
+
+        const [, qualifierToken, columnToken, aliasToken] = match
+        const qualifier = qualifierToken ? this.unquoteIdentifier(qualifierToken) : null
+        if (qualifier && alias && qualifier !== alias) {
+            return null
+        }
+
+        const columnName = this.unquoteIdentifier(columnToken)
+        const column = columns.find((candidate) => candidate.name === columnName)
+        if (!column) {
+            return null
+        }
+
+        const outputAlias = aliasToken ? this.unquoteIdentifier(aliasToken) : column.name
+        const reference =
+            qualifierToken && alias
+                ? `${this.quoteIdentifier(alias)}.${this.quoteIdentifier(column.name)}`
+                : this.quoteIdentifier(column.name)
+        const projectionExpression = this.shouldCastColumnForPreview(column.type)
+            ? `CAST(${reference} AS CHAR(255))`
+            : reference
+
+        return `${projectionExpression} AS ${this.quoteIdentifier(outputAlias)}`
+    }
+
+    private buildProjectedColumnExpression(column: Column, alias: string | null): string {
+        const reference = alias
+            ? `${this.quoteIdentifier(alias)}.${this.quoteIdentifier(column.name)}`
+            : this.quoteIdentifier(column.name)
+        const expression = this.shouldCastColumnForPreview(column.type) ? `CAST(${reference} AS CHAR(255))` : reference
+        return `${expression} AS ${this.quoteIdentifier(column.name)}`
+    }
+
+    private splitTopLevelCsv(value: string): string[] {
+        const parts: string[] = []
+        let current = ''
+        let depth = 0
+
+        for (const character of value) {
+            if (character === '(') {
+                depth += 1
+            } else if (character === ')' && depth > 0) {
+                depth -= 1
+            }
+
+            if (character === ',' && depth === 0) {
+                parts.push(current.trim())
+                current = ''
+                continue
+            }
+
+            current += character
+        }
+
+        if (current.trim()) {
+            parts.push(current.trim())
+        }
+
+        return parts
+    }
+
+    private parseQuotedTableReference(reference: string): { schemaName: string; tableName: string | null } {
+        const parts = reference.match(/`([^`]+)`/g)?.map((part) => this.unquoteIdentifier(part)) ?? []
+        if (parts.length === 1) {
+            return { schemaName: '', tableName: parts[0] }
+        }
+
+        if (parts.length >= 2) {
+            return { schemaName: parts[0], tableName: parts[1] }
+        }
+
+        return { schemaName: '', tableName: null }
+    }
+
+    private unquoteIdentifier(identifier: string): string {
+        return identifier.startsWith('`') && identifier.endsWith('`')
+            ? identifier.slice(1, -1).replaceAll('``', '`')
+            : identifier
     }
 
     private shouldCastColumnForPreview(type: string): boolean {
