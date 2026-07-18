@@ -85,8 +85,8 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
             column_name: string
             column_type: string
             is_nullable: 'YES' | 'NO'
-            column_key: 'PRI' | ''
-            column_default: string | null
+            column_key: 'PRI' | 'UNI' | 'MUL' | ''
+            column_default: string
         }>
 
         try {
@@ -95,15 +95,15 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
                     column_name: string
                     column_type: string
                     is_nullable: 'YES' | 'NO'
-                    column_key: 'PRI' | ''
-                    column_default: string | null
+                    column_key: 'PRI' | 'UNI' | 'MUL' | ''
+                    column_default: string
                 }>
             >(
                 `SELECT CAST(column_name AS CHAR(255)) AS column_name,
                         CAST(column_type AS CHAR(255)) AS column_type,
-                        is_nullable,
-                        column_key,
-                        CAST(column_default AS CHAR(255)) AS column_default
+                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
+                        CAST(column_key AS CHAR(3)) AS column_key,
+                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
                  FROM information_schema.columns
                  WHERE table_schema = ?
                    AND table_name = ?
@@ -119,7 +119,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
             type: row.column_type,
             nullable: row.is_nullable === 'YES',
             primaryKey: row.column_key === 'PRI',
-            defaultValue: row.column_default ?? undefined,
+            defaultValue: row.column_default === '' ? undefined : row.column_default,
         }))
     }
 
