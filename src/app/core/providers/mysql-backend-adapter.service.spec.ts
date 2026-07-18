@@ -379,4 +379,31 @@ describe('MysqlBackendAdapterService', () => {
             'SELECT * FROM (SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total`, `created_at` AS `created_at` FROM `quarry_demo`.`orders` LIMIT 20) AS quarry_query LIMIT 100',
         )
     })
+
+    it('runs simple select expressions without wrapping them in a subquery', async () => {
+        select.mockResolvedValueOnce([{ current_time: '2026-07-18 13:20:00' }])
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            sslMode: 'required',
+            source: 'saved_profile',
+        })
+
+        await expect(service.runQuery(session, 'SELECT NOW() AS current_time;', 100)).resolves.toEqual({
+            kind: 'rows',
+            rows: [{ current_time: '2026-07-18 13:20:00' }],
+            columns: ['current_time'],
+        })
+
+        expect(select).toHaveBeenCalledOnce()
+        expect(select).toHaveBeenCalledWith('SELECT NOW() AS current_time')
+    })
 })

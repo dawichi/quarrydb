@@ -173,7 +173,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         try {
             if (this.isRowQuery(normalizedSql)) {
                 const rewrittenSql = await this.rewriteSimpleSelectForPreview(db, normalizedSql)
-                const querySql = /^(select|with)\b/i.test(rewrittenSql)
+                const querySql = this.shouldWrapRowQuery(rewrittenSql)
                     ? `SELECT * FROM (${rewrittenSql}) AS quarry_query LIMIT ${previewLimit}`
                     : rewrittenSql
                 const rows = await db.select<Record<string, unknown>[]>(querySql)
@@ -225,6 +225,18 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
     private isRowQuery(sql: string): boolean {
         return /^(select|show|describe|desc|explain|with)\b/i.test(sql)
+    }
+
+    private shouldWrapRowQuery(sql: string): boolean {
+        if (/^with\b/i.test(sql)) {
+            return true
+        }
+
+        if (!/^select\b/i.test(sql)) {
+            return false
+        }
+
+        return /\bfrom\b/i.test(sql)
     }
 
     private quoteIdentifier(identifier: string): string {
