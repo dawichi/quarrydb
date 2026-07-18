@@ -204,7 +204,25 @@ describe('MysqlBackendAdapterService', () => {
     })
 
     it('inlines validated limit and offset when loading table rows', async () => {
-        select.mockResolvedValueOnce([{ count: 10 }]).mockResolvedValueOnce([{ id: 1, name: 'Alice' }])
+        select
+            .mockResolvedValueOnce([
+                {
+                    column_name: 'id',
+                    column_type: 'int',
+                    is_nullable: 'NO',
+                    column_key: 'PRI',
+                    column_default: '',
+                },
+                {
+                    column_name: 'total',
+                    column_type: 'decimal(10,2)',
+                    is_nullable: 'NO',
+                    column_key: '',
+                    column_default: '0.00',
+                },
+            ])
+            .mockResolvedValueOnce([{ count: 10 }])
+            .mockResolvedValueOnce([{ id: 1, total: '1389.98' }])
 
         const session = await service.connect({
             target: {
@@ -220,13 +238,29 @@ describe('MysqlBackendAdapterService', () => {
             source: 'saved_profile',
         })
 
-        await expect(service.queryTableRows(session, 'quarry_demo', 'customers', 100, 0)).resolves.toEqual({
-            rows: [{ id: 1, name: 'Alice' }],
-            columns: ['id', 'name'],
+        await expect(service.queryTableRows(session, 'quarry_demo', 'orders', 100, 0)).resolves.toEqual({
+            rows: [{ id: 1, total: '1389.98' }],
+            columns: ['id', 'total'],
             total: 10,
         })
 
-        expect(select).toHaveBeenNthCalledWith(1, 'SELECT COUNT(*) as count FROM `quarry_demo`.`customers`')
-        expect(select).toHaveBeenNthCalledWith(2, 'SELECT * FROM `quarry_demo`.`customers` LIMIT 100 OFFSET 0')
+        expect(select).toHaveBeenNthCalledWith(
+            1,
+            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
+                        CAST(column_type AS CHAR(255)) AS column_type,
+                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
+                        CAST(column_key AS CHAR(3)) AS column_key,
+                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
+                 FROM information_schema.columns
+                 WHERE table_schema = ?
+                   AND table_name = ?
+                 ORDER BY ordinal_position`,
+            ['quarry_demo', 'orders'],
+        )
+        expect(select).toHaveBeenNthCalledWith(2, 'SELECT COUNT(*) as count FROM `quarry_demo`.`orders`')
+        expect(select).toHaveBeenNthCalledWith(
+            3,
+            'SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` LIMIT 100 OFFSET 0',
+        )
     })
 })

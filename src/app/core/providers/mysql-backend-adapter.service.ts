@@ -149,13 +149,17 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         const safeLimit = this.toSafeNonNegativeInt(limit)
         const safeOffset = this.toSafeNonNegativeInt(offset)
         try {
+            const columns = await this.listColumns(db, schemaName, tableName)
+            const selectList = this.buildPreviewSelectList(columns)
             const [countRows, rows] = await Promise.all([
                 db.select<Array<{ count: number }>>(`SELECT COUNT(*) as count FROM ${source}`),
-                db.select<Record<string, unknown>[]>(`SELECT * FROM ${source} LIMIT ${safeLimit} OFFSET ${safeOffset}`),
+                db.select<Record<string, unknown>[]>(
+                    `SELECT ${selectList} FROM ${source} LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+                ),
             ])
             return {
                 rows,
-                columns: rows.length > 0 ? Object.keys(rows[0]) : [],
+                columns: columns.map((column) => column.name),
                 total: countRows[0]?.count ?? 0,
             }
         } finally {
@@ -224,6 +228,22 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
     private quoteIdentifier(identifier: string): string {
         return `\`${identifier.replaceAll('`', '``')}\``
+    }
+
+    private buildPreviewSelectList(columns: Column[]): string {
+        return columns
+            .map((column) => {
+                const identifier = this.quoteIdentifier(column.name)
+                const expression = this.shouldCastColumnForPreview(column.type)
+                    ? `CAST(${identifier} AS CHAR(255))`
+                    : identifier
+                return `${expression} AS ${identifier}`
+            })
+            .join(', ')
+    }
+
+    private shouldCastColumnForPreview(type: string): boolean {
+        return /^(decimal|numeric|fixed|dec|bit|binary|varbinary|blob|tinyblob|mediumblob|longblob|json)\b/i.test(type)
     }
 
     private describeError(error: unknown): string {
