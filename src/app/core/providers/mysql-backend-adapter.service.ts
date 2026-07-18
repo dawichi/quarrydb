@@ -146,10 +146,12 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     ): Promise<{ rows: Record<string, unknown>[]; columns: string[]; total: number }> {
         const db = await this.openDatabase(session)
         const source = `${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`
+        const safeLimit = this.toSafeNonNegativeInt(limit)
+        const safeOffset = this.toSafeNonNegativeInt(offset)
         try {
             const [countRows, rows] = await Promise.all([
                 db.select<Array<{ count: number }>>(`SELECT COUNT(*) as count FROM ${source}`),
-                db.select<Record<string, unknown>[]>(`SELECT * FROM ${source} LIMIT ? OFFSET ?`, [limit, offset]),
+                db.select<Record<string, unknown>[]>(`SELECT * FROM ${source} LIMIT ${safeLimit} OFFSET ${safeOffset}`),
             ])
             return {
                 rows,
@@ -234,5 +236,13 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         }
 
         return 'Unknown MySQL adapter error'
+    }
+
+    private toSafeNonNegativeInt(value: number): number {
+        if (!Number.isFinite(value) || value < 0) {
+            return 0
+        }
+
+        return Math.floor(value)
     }
 }

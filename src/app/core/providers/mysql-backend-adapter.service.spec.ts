@@ -202,4 +202,31 @@ describe('MysqlBackendAdapterService', () => {
             ['quarry_demo', 'orders'],
         )
     })
+
+    it('inlines validated limit and offset when loading table rows', async () => {
+        select.mockResolvedValueOnce([{ count: 10 }]).mockResolvedValueOnce([{ id: 1, name: 'Alice' }])
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            sslMode: 'required',
+            source: 'saved_profile',
+        })
+
+        await expect(service.queryTableRows(session, 'quarry_demo', 'customers', 100, 0)).resolves.toEqual({
+            rows: [{ id: 1, name: 'Alice' }],
+            columns: ['id', 'name'],
+            total: 10,
+        })
+
+        expect(select).toHaveBeenNthCalledWith(1, 'SELECT COUNT(*) as count FROM `quarry_demo`.`customers`')
+        expect(select).toHaveBeenNthCalledWith(2, 'SELECT * FROM `quarry_demo`.`customers` LIMIT 100 OFFSET 0')
+    })
 })
