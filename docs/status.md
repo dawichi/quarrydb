@@ -42,7 +42,8 @@ shipped publicly with auto-updates working.
 | Testing — integration tests for pipeline run/export and edit-mode transactions (8 tests) | ✅ Done |
 | Query history (opt-in) | ✅ Done |
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
-| Testing — Playwright E2E | ⬜ Post-MVP |
+| Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
+| Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
 | JOIN: branch input mode | ✅ Done |
 | JOIN: subpipeline mode | ✅ Done |
 | Encrypted SQLite (SQLCipher) | ⬜ Post-MVP |
@@ -53,13 +54,12 @@ shipped publicly with auto-updates working.
 See `docs/roadmap.md` for the long-term phased view. This list is the near-term, concrete
 slice of that.
 
-1. **Provider architecture pass** — define and introduce the provider model that separates
-   shared shell concerns from SQLite-specific logic. See
-   `docs/multi-engine-architecture.md`.
-2. **MySQL as the second provider** — after the provider boundary is explicit, add MySQL
-   as the first non-SQLite engine and use it to validate the architecture.
-3. **Playwright E2E** — once the provider shell settles enough, cover the core golden
-   paths with full UI tests.
+1. **MySQL v1 productization** — promote the current preview into a supported browse/query
+   provider, starting with export, reconnect/secret handling, and clearer connection UX.
+2. **MySQL relational features** — evaluate staged row editing and visual pipeline support
+   only after the provider-specific SQL boundary is explicit.
+3. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
+   menu bars where the environment supports it.
 4. **Performance at scale** — especially important once provider breadth starts growing.
 
 ## Intentionally Deferred
@@ -143,3 +143,7 @@ multiple features.
 | 2026-06-11 | MySQL transport preview landed behind `MysqlBackendAdapterService`: `src-tauri/Cargo.toml` now enables `tauri-plugin-sql` MySQL support alongside SQLite; the adapter performs a real `Database.load('mysql://...')` connection attempt and lists schema names from `information_schema.schemata`; MySQL recent items can now reopen through that adapter path |
 | 2026-06-11 | MySQL password tradeoff made explicit for preview/testing: saved MySQL profiles currently store the password locally so the app can reconnect and test a real local MySQL instance; recent items and persisted sessions still avoid carrying credentials, and secure secret storage remains follow-up work |
 | 2026-06-14 | MySQL preview reached a practical manual-testing slice: provider-owned MySQL workspace opens after a real connection, lists schemas/tables/columns, previews table rows with paging, runs raw SQL, and can seed a sample `products/customers/orders/order_items` dataset into the selected schema; MySQL passwords no longer persist in saved profiles and stay in runtime memory only, so reconnect-after-relaunch now requires re-entry |
+| 2026-08-03 | Added Playwright browser harness, initial welcome/provider smoke tests, a complete local `bun run qa` command, and GitHub Actions CI for check, Vitest, Playwright, and production build |
+| 2026-08-03 | Added Docker-backed MySQL integration tests through a mysql2 transport; fixed MySQL-reserved `current_time` default query alias discovered by the live suite |
+| 2026-08-03 | Extended Playwright with a deterministic SQLite IPC fixture covering session restore, table browsing, WHERE pipeline creation, generated SQL, and result rendering |
+| 2026-08-03 | Added Playwright coverage for staged SQLite row updates, transactional apply, refreshed data, and CSV export payloads |

@@ -4,6 +4,7 @@ import Database from '@tauri-apps/plugin-sql'
 import type {
     MysqlBackendAdapter,
     MysqlConnectionSession,
+    MysqlDatabaseClient,
     MysqlQueryResult,
     MysqlSchemaSummary,
     MysqlTableSummary,
@@ -17,7 +18,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     private readonly sampleData = new MysqlSampleDataService()
 
     async connect(request: MysqlConnectRequest): Promise<MysqlConnectionSession> {
-        const db = await Database.load(this.buildDsn(request))
+        const db = await this.loadDatabase(this.buildDsn(request))
         await db.close()
         this.requests.set(request.target.connectionId, request)
         return {
@@ -80,7 +81,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         }
     }
 
-    private async listColumns(db: Database, schemaName: string, tableName: string): Promise<Column[]> {
+    private async listColumns(db: MysqlDatabaseClient, schemaName: string, tableName: string): Promise<Column[]> {
         let rows: Array<{
             column_name: string
             column_type: string
@@ -215,12 +216,16 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         return `mysql://${username}:${password}@${host}:${port}${database}`
     }
 
-    private async openDatabase(session: MysqlConnectionSession) {
+    protected async loadDatabase(dsn: string): Promise<MysqlDatabaseClient> {
+        return (await Database.load(dsn)) as unknown as MysqlDatabaseClient
+    }
+
+    private async openDatabase(session: MysqlConnectionSession): Promise<MysqlDatabaseClient> {
         const request = this.requests.get(session.target.connectionId)
         if (!request) {
             throw new Error(`MySQL connection request not found for ${session.target.connectionName}`)
         }
-        return Database.load(this.buildDsn(request))
+        return this.loadDatabase(this.buildDsn(request))
     }
 
     private isRowQuery(sql: string): boolean {
@@ -255,7 +260,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
             .join(', ')
     }
 
-    private async rewriteSimpleSelectForPreview(db: Database, sql: string): Promise<string> {
+    private async rewriteSimpleSelectForPreview(db: MysqlDatabaseClient, sql: string): Promise<string> {
         const match = sql.match(
             /^select\s+([\s\S]+?)\s+from\s+((?:`[^`]+`\.)?`[^`]+`)(?:\s+(?:as\s+)?([a-zA-Z_][\w]*|`[^`]+`))?(\s+.*)?$/i,
         )

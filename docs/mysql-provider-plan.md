@@ -120,10 +120,10 @@ must be explicit before shipping.
 
 Current preview status:
 
-- Quarry's current MySQL preview stores the password locally with the saved connection
-  profile so the real connection flow can be exercised end-to-end during development.
-- Recent items and persisted sessions still do not carry raw credentials.
-- Replacing local password storage with a more deliberate secret-storage approach remains
+- MySQL passwords stay in runtime memory only and are not persisted in profiles, recent
+  items, or sessions.
+- Recent-item reopen and session restore therefore require the user to re-enter the password.
+- Replacing this development-time behavior with deliberate OS-backed secret storage remains
   required before treating the provider as production-ready.
 
 ## Workspace Model

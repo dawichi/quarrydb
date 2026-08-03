@@ -95,6 +95,9 @@ Unit tests cover the SQL generation layer (`buildPipelineSql`) — the pure func
 # Run once (CI mode)
 bun run test:run
 
+# Browser UI tests (installs Chromium once with `bunx playwright install chromium`)
+bun run test:e2e
+
 # Watch mode
 bun run test
 ```
@@ -125,7 +128,7 @@ bun run format     # Biome: format only
 | Package manager | Bun |
 | Linter / Formatter | Biome |
 | Unit tests | Vitest |
-| E2E tests | Playwright *(planned)* |
+| E2E tests | Playwright |
 | Landing | Astro |
 
 ---

@@ -9,18 +9,25 @@ export class MenuService {
     private readonly updaterSvc = inject(UpdaterService)
 
     async register(): Promise<void> {
-        await listen('menu:open-database', () => {
-            void this.providers.openFromHome()
-        })
-        await listen('menu:open-sample', () => {
-            void this.providers.openSample()
-        })
-        await listen('menu:check-for-updates', () => {
-            void this.updaterSvc.checkManually()
-        })
-        await listen('menu:hard-reset', () => {
-            localStorage.clear()
-            window.location.reload()
-        })
+        try {
+            await Promise.all([
+                listen('menu:open-database', () => {
+                    void this.providers.openFromHome()
+                }),
+                listen('menu:open-sample', () => {
+                    void this.providers.openSample()
+                }),
+                listen('menu:check-for-updates', () => {
+                    void this.updaterSvc.checkManually()
+                }),
+                listen('menu:hard-reset', () => {
+                    localStorage.clear()
+                    window.location.reload()
+                }),
+            ])
+        } catch {
+            // The browser preview has no native Tauri menu event bridge.
+            // Native menu registration remains active when running inside Tauri.
+        }
     }
 }

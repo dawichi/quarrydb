@@ -241,7 +241,7 @@ export class MysqlWorkspaceStore {
     private defaultQueryForDraft(draft: MysqlWorkspaceDraft | null): string {
         const selected = draft?.selectedTable
         if (!selected) {
-            return 'SELECT NOW() AS current_time;'
+            return 'SELECT NOW() AS now_value;'
         }
         return `SELECT * FROM \`${selected.schemaName}\`.\`${selected.tableName}\` LIMIT ${this.PAGE_SIZE}`
     }

@@ -381,7 +381,7 @@ describe('MysqlBackendAdapterService', () => {
     })
 
     it('runs simple select expressions without wrapping them in a subquery', async () => {
-        select.mockResolvedValueOnce([{ current_time: '2026-07-18 13:20:00' }])
+        select.mockResolvedValueOnce([{ now_value: '2026-07-18 13:20:00' }])
 
         const session = await service.connect({
             target: {
@@ -397,13 +397,13 @@ describe('MysqlBackendAdapterService', () => {
             source: 'saved_profile',
         })
 
-        await expect(service.runQuery(session, 'SELECT NOW() AS current_time;', 100)).resolves.toEqual({
+        await expect(service.runQuery(session, 'SELECT NOW() AS now_value;', 100)).resolves.toEqual({
             kind: 'rows',
-            rows: [{ current_time: '2026-07-18 13:20:00' }],
-            columns: ['current_time'],
+            rows: [{ now_value: '2026-07-18 13:20:00' }],
+            columns: ['now_value'],
         })
 
         expect(select).toHaveBeenCalledOnce()
-        expect(select).toHaveBeenCalledWith('SELECT NOW() AS current_time')
+        expect(select).toHaveBeenCalledWith('SELECT NOW() AS now_value')
     })
 })

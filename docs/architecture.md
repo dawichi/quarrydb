@@ -12,7 +12,7 @@
 | Auto-updates | `tauri-plugin-updater` (GitHub Releases) |
 | Package manager | Bun |
 | Linter / Formatter | Biome (`bun run check`) |
-| Testing | Vitest (unit) + Playwright (E2E, planned) |
+| Testing | Vitest (unit/integration) + Playwright (browser E2E) |
 | Landing | Astro |
 
 ## Repository Layout (Monorepo)

@@ -52,7 +52,9 @@ the first real MySQL preview path now exists:
 - welcome/home renders provider-owned launcher metadata and recent-item visuals
 - MySQL owns saved connection profiles, recent-item/session shapes, a workspace draft, and a backend-facing connect request
 - `MysqlBackendAdapterService` now performs a real `tauri-plugin-sql` MySQL connection attempt and schema-name listing
-- MySQL is still a preview flow, not a full Quarry workspace: connection testing + schema bootstrap work, but sidebar/browse/query integration is still pending
+- MySQL is still a preview flow, not a production-ready provider: connection, sidebar,
+  browse, sample seeding, and raw-query integration work, while export, editing, and
+  visual pipeline support remain outside the current preview scope
 
 ## Refactor Principles
 

@@ -17,6 +17,7 @@ start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(
 | [provider-contract-plan.md](provider-contract-plan.md) | Proposed TypeScript contracts for provider identity, recent items, workspace payloads, capabilities, and backend adapters |
 | [provider-refactor-checklist.md](provider-refactor-checklist.md) | File-by-file implementation checklist for moving the app from SQLite-global state to a provider-based shell |
 | [local-test-services.md](local-test-services.md) | Optional Docker-based local MySQL/Postgres/Redis setup for manual provider testing during development |
+| [testing.md](testing.md) | Automated unit, integration, browser, and CI testing workflow |
 | [schema-management-plan.md](schema-management-plan.md) | Historical build-order plan for SQLite DDL support (create/alter/drop tables, columns, indexes, views, triggers) |
 | [post-mvp-scoping.md](post-mvp-scoping.md) | Goals/Non-goals notes for post-MVP features, written before starting them |
 
