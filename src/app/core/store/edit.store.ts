@@ -93,10 +93,14 @@ export class EditStore {
     }
 
     async applyAll(path: string, tableName: string): Promise<boolean> {
+        return this.applyAllWith((ops) => this.db.applyEdits(path, tableName, ops))
+    }
+
+    async applyAllWith(apply: (ops: EditOperation[]) => Promise<void>): Promise<boolean> {
         this.isApplying.set(true)
         this.applyError.set(null)
         try {
-            await this.db.applyEdits(path, tableName, this.pendingEdits())
+            await apply(this.pendingEdits())
             this.clearAll()
             return true
         } catch (err) {

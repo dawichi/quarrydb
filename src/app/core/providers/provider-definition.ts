@@ -25,7 +25,7 @@ export type HomeLaunchAction =
           icon: 'mysql-server'
           openLabel: 'Connect to MySQL'
           openHint?: string
-          badgeLabel: 'Planned'
+          badgeLabel: string
           availabilityNote: string
       }
 

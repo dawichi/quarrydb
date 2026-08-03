@@ -26,4 +26,12 @@ test('connects to MySQL and exports a browsed table', async ({ page }) => {
     await page.getByRole('button', { name: 'CSV', exact: true }).click()
     await expect.poll(async () => page.evaluate(() => window.__quarryE2eWrites?.[0]?.ext)).toBe('csv')
     await expect.poll(async () => page.evaluate(() => window.__quarryE2eWrites?.[0]?.content)).toContain('Laptop Pro 15')
+
+    await page.getByRole('button', { name: 'edit', exact: true }).click()
+    await page.getByText('Laptop Pro 15"', { exact: true }).dblclick()
+    await page.locator('input').fill('Laptop Pro 15 updated')
+    await page.locator('input').press('Enter')
+    await expect(page.getByText('Pending changes', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Apply all', exact: true }).click()
+    await expect(page.getByText('Pending changes', { exact: true })).not.toBeVisible()
 })

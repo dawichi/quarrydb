@@ -14,7 +14,7 @@ export class MysqlWorkspaceComponent {
     protected readonly store = inject(MysqlWorkspaceStore)
     protected readonly provider = inject(MysqlProviderService)
     protected readonly workspaceHost = inject(WorkspaceHostStore)
-    protected readonly tabs: Array<Extract<WorkspaceTab, 'browse' | 'query'>> = ['browse', 'query']
+    protected readonly tabs: Array<Extract<WorkspaceTab, 'browse' | 'query' | 'edit'>> = ['browse', 'query', 'edit']
     protected readonly showExportMenu = signal(false)
 
     protected formatCell(value: unknown): string {
@@ -39,12 +39,99 @@ export class MysqlWorkspaceComponent {
         this.showExportMenu.set(false)
         if (this.store.activeTab() === 'browse') {
             void this.store.exportTable(format)
-        } else {
+        } else if (this.store.activeTab() === 'query') {
             void this.store.exportQuery(format)
         }
     }
 
     protected reconnect(): void {
         void this.provider.connectWorkspaceDraft().catch(() => undefined)
+    }
+
+    protected readonly editingCell = signal<{ rowIndex: number; column: string } | null>(null)
+    protected readonly editValue = signal('')
+
+    protected pkColumns(): string[] {
+        return (
+            this.store
+                .selectedTableSummary()
+                ?.columns.filter((column) => column.primaryKey)
+                .map((column) => column.name) ?? []
+        )
+    }
+
+    protected editableColumns(): string[] {
+        return (
+            this.store
+                .selectedTableSummary()
+                ?.columns.filter((column) => !column.primaryKey)
+                .map((column) => column.name) ?? []
+        )
+    }
+
+    protected getPkValues(row: Record<string, unknown>): Record<string, unknown> {
+        return Object.fromEntries(this.pkColumns().map((column) => [column, row[column]]))
+    }
+
+    protected startEdit(rowIndex: number, column: string): void {
+        if (this.pkColumns().includes(column)) return
+        const row = this.store.tableRows()[rowIndex]
+        if (this.store.editStore.isRowDeleted(this.getPkValues(row))) return
+        this.editingCell.set({ rowIndex, column })
+        const value = this.store.editStore.getRowUpdate(this.getPkValues(row))?.changes[column] ?? row[column]
+        this.editValue.set(value === null || value === undefined ? '' : String(value))
+    }
+
+    protected commitEdit(): void {
+        const cell = this.editingCell()
+        if (!cell) return
+        const row = this.store.tableRows()[cell.rowIndex]
+        const original = row[cell.column]
+        const value = this.parseValue(this.editValue(), original)
+        if (value !== original) {
+            this.store.editStore.stageUpdate(this.getPkValues(row), cell.column, value, row)
+        }
+        this.editingCell.set(null)
+    }
+
+    protected cancelEdit(): void {
+        this.editingCell.set(null)
+    }
+
+    protected isEditing(rowIndex: number, column: string): boolean {
+        const cell = this.editingCell()
+        return cell?.rowIndex === rowIndex && cell.column === column
+    }
+
+    protected displayValue(row: Record<string, unknown>, column: string): unknown {
+        return this.store.editStore.getRowUpdate(this.getPkValues(row))?.changes[column] ?? row[column]
+    }
+
+    protected isModified(row: Record<string, unknown>, column: string): boolean {
+        return this.store.editStore.getRowUpdate(this.getPkValues(row))?.changes[column] !== undefined
+    }
+
+    protected stageDelete(rowIndex: number): void {
+        const row = this.store.tableRows()[rowIndex]
+        this.store.editStore.stageDelete(this.getPkValues(row), row)
+    }
+
+    protected formatEditValues(values: Record<string, unknown>): string {
+        return Object.entries(values)
+            .map(([key, value]) => `${key} → ${value}`)
+            .join(', ')
+    }
+
+    protected async applyEdits(): Promise<void> {
+        await this.store.applyPendingEdits()
+    }
+
+    private parseValue(raw: string, original: unknown): unknown {
+        if (raw === '' && (original === null || original === undefined)) return null
+        if (typeof original === 'number') {
+            const number = Number(raw)
+            return Number.isNaN(number) ? raw : number
+        }
+        return raw
     }
 }

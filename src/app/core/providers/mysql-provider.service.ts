@@ -44,6 +44,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         'relational_schema_browser',
         'sql_query_runner',
         'export_results',
+        'row_editor',
     ] as const
     readonly launchAction = {
         id: 'mysql' as const,
@@ -65,13 +66,13 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         id: 'mysql-preview',
         status: 'planned',
         name: 'MySQL',
-        description: 'Preview provider: saved profiles, schema browsing, row preview, and raw SQL.',
+        description: 'MySQL provider: saved profiles, schema browsing, row editing, exports, and raw SQL.',
         icon: 'mysql-server',
         openLabel: 'Connect to MySQL',
         openHint: 'Preview provider: saved connections, browse, and raw SQL.',
-        badgeLabel: 'Planned',
+        badgeLabel: 'Preview',
         availabilityNote:
-            'Preview quality: browse tables and run raw SQL; pipeline and edit mode stay SQLite-only for now.',
+            'Preview quality: browse, stage row edits, export results, and run raw SQL; visual pipelines remain SQLite-only.',
     }
 
     createDraft(): MysqlConnectionProfileDraft {

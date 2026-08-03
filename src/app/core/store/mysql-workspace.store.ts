@@ -4,6 +4,7 @@ import type { MysqlConnectionSession, MysqlSchemaSummary, MysqlTableSummary } fr
 import { MysqlBackendAdapterService } from '../providers/mysql-backend-adapter.service'
 import type { MysqlWorkspaceDraft } from '../providers/mysql-workspace-draft'
 import { type ExportFormat, ExportService } from '../services/export.service'
+import { EditStore } from './edit.store'
 import { WorkspaceHostStore } from './workspace-host.store'
 
 @Injectable({ providedIn: 'root' })
@@ -13,6 +14,7 @@ export class MysqlWorkspaceStore {
     private readonly host = inject(WorkspaceHostStore)
     private readonly backend = inject(MysqlBackendAdapterService)
     private readonly exportService = inject(ExportService)
+    readonly editStore = inject(EditStore)
     private rowOffset = 0
 
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
@@ -37,6 +39,10 @@ export class MysqlWorkspaceStore {
 
     readonly hasWorkspace = computed(() => this.host.hasWorkspace() && this.host.activeProviderId() === 'mysql')
     readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
+    readonly selectedTableSummary = computed(() => {
+        const selected = this.selectedTable()
+        return selected ? (this.tables().find((table) => table.name === selected.tableName) ?? null) : null
+    })
 
     async openWorkspace(
         session: MysqlConnectionSession,
@@ -51,6 +57,7 @@ export class MysqlWorkspaceStore {
         this.queryColumns.set([])
         this.queryMeta.set(null)
         this.sampleDataStatus.set(null)
+        this.editStore.clearAll()
 
         const initialSchema =
             draft?.selectedTable?.schemaName ??
@@ -98,6 +105,7 @@ export class MysqlWorkspaceStore {
         this.isRunningQuery.set(false)
         this.isSeedingSampleData.set(false)
         this.isExporting.set(false)
+        this.editStore.clearAll()
         this.rowOffset = 0
     }
 
@@ -133,6 +141,9 @@ export class MysqlWorkspaceStore {
     }
 
     async selectTable(schemaName: string, tableName: string): Promise<void> {
+        if (this.selectedTable()?.schemaName !== schemaName || this.selectedTable()?.tableName !== tableName) {
+            this.editStore.clearAll()
+        }
         if (this.selectedSchemaName() !== schemaName) {
             await this.selectSchema(schemaName)
         }
@@ -140,6 +151,20 @@ export class MysqlWorkspaceStore {
         this.selectedTable.set({ schemaName, tableName })
         this.querySql.set(`SELECT * FROM \`${schemaName}\`.\`${tableName}\` LIMIT ${this.PAGE_SIZE}`)
         await this.loadTableRows(true)
+    }
+
+    async applyPendingEdits(): Promise<boolean> {
+        const session = this.connectionSession()
+        const selected = this.selectedTable()
+        if (!session || !selected || !this.editStore.hasPending()) return false
+
+        const success = await this.editStore.applyAllWith((operations) =>
+            this.backend.applyEdits(session, selected.schemaName, selected.tableName, operations),
+        )
+        if (success) {
+            await this.loadTableRows(true)
+        }
+        return success
     }
 
     async loadMoreRows(): Promise<void> {

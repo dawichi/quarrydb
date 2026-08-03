@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MysqlBackendAdapterService } from './mysql-backend-adapter.service'
 
-const { close, select, load } = vi.hoisted(() => {
+const { close, execute, select, load } = vi.hoisted(() => {
     const close = vi.fn()
+    const execute = vi.fn()
     const select = vi.fn()
-    const load = vi.fn(async () => ({ close, select }))
-    return { close, select, load }
+    const load = vi.fn(async () => ({ close, execute, select }))
+    return { close, execute, select, load }
 })
 
 vi.mock('@tauri-apps/plugin-sql', () => ({
@@ -21,8 +22,9 @@ describe('MysqlBackendAdapterService', () => {
         service = new MysqlBackendAdapterService()
         load.mockReset()
         close.mockReset()
+        execute.mockReset()
         select.mockReset()
-        load.mockResolvedValue({ close, select })
+        load.mockResolvedValue({ close, execute, select })
     })
 
     it('opens a real mysql plugin-sql dsn and returns a provisional connection session', async () => {
@@ -83,6 +85,46 @@ describe('MysqlBackendAdapterService', () => {
                 connectedAt: 1,
             }),
         ).rejects.toThrow('MySQL connection request not found for Missing')
+    })
+
+    it('applies staged MySQL row edits in one transaction', async () => {
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            source: 'saved_profile',
+        })
+
+        await service.applyEdits(session, 'quarry_demo', 'products', [
+            {
+                kind: 'update',
+                pkValues: { id: 7 },
+                changes: { name: 'Updated product' },
+                original: { id: 7, name: 'Old product' },
+            },
+            { kind: 'delete', pkValues: { id: 8 }, original: { id: 8, name: 'Deleted product' } },
+            { kind: 'insert', values: { name: 'New product', price: '4.50' } },
+        ])
+
+        expect(execute).toHaveBeenNthCalledWith(1, 'BEGIN')
+        expect(execute).toHaveBeenNthCalledWith(2, 'UPDATE `quarry_demo`.`products` SET `name` = ? WHERE `id` = ?', [
+            'Updated product',
+            7,
+        ])
+        expect(execute).toHaveBeenNthCalledWith(3, 'DELETE FROM `quarry_demo`.`products` WHERE `id` = ?', [8])
+        expect(execute).toHaveBeenNthCalledWith(
+            4,
+            'INSERT INTO `quarry_demo`.`products` (`name`, `price`) VALUES (?, ?)',
+            ['New product', '4.50'],
+        )
+        expect(execute).toHaveBeenNthCalledWith(5, 'COMMIT')
+        expect(close).toHaveBeenCalled()
     })
 
     it('lists tables and their columns from a selected schema', async () => {

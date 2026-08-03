@@ -1,5 +1,6 @@
 import type { Column } from '@quarrydb/shared'
 import type { MysqlConnectionTarget } from '@quarrydb/shared/mysql-connection-target'
+import type { EditOperation } from '../store/edit.store'
 import type { MysqlConnectRequest } from './mysql-connect-request'
 
 export interface MysqlDatabaseClient {
@@ -55,4 +56,10 @@ export interface MysqlBackendAdapter {
     }>
     runQuery(session: MysqlConnectionSession, sql: string, previewLimit: number): Promise<MysqlQueryResult>
     runQueryFull(session: MysqlConnectionSession, sql: string): Promise<Record<string, unknown>[]>
+    applyEdits(
+        session: MysqlConnectionSession,
+        schemaName: string,
+        tableName: string,
+        operations: EditOperation[],
+    ): Promise<void>
 }

@@ -229,6 +229,61 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         }
     }
 
+    async applyEdits(
+        session: MysqlConnectionSession,
+        schemaName: string,
+        tableName: string,
+        operations: import('../store/edit.store').EditOperation[],
+    ): Promise<void> {
+        const db = await this.openDatabase(session)
+        const source = `${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`
+        try {
+            await db.execute('BEGIN')
+            try {
+                for (const operation of operations) {
+                    if (operation.kind === 'update') {
+                        const columns = Object.keys(operation.changes)
+                        const primaryKeys = Object.keys(operation.pkValues)
+                        if (columns.length === 0 || primaryKeys.length === 0) continue
+                        const setClause = columns.map((column) => `${this.quoteIdentifier(column)} = ?`).join(', ')
+                        const whereClause = primaryKeys
+                            .map((column) => `${this.quoteIdentifier(column)} = ?`)
+                            .join(' AND ')
+                        await db.execute(`UPDATE ${source} SET ${setClause} WHERE ${whereClause}`, [
+                            ...Object.values(operation.changes),
+                            ...Object.values(operation.pkValues),
+                        ])
+                    } else if (operation.kind === 'delete') {
+                        const primaryKeys = Object.keys(operation.pkValues)
+                        if (primaryKeys.length === 0) continue
+                        const whereClause = primaryKeys
+                            .map((column) => `${this.quoteIdentifier(column)} = ?`)
+                            .join(' AND ')
+                        await db.execute(
+                            `DELETE FROM ${source} WHERE ${whereClause}`,
+                            Object.values(operation.pkValues),
+                        )
+                    } else {
+                        const columns = Object.keys(operation.values)
+                        if (columns.length === 0) continue
+                        const columnList = columns.map((column) => this.quoteIdentifier(column)).join(', ')
+                        const placeholders = columns.map(() => '?').join(', ')
+                        await db.execute(
+                            `INSERT INTO ${source} (${columnList}) VALUES (${placeholders})`,
+                            Object.values(operation.values),
+                        )
+                    }
+                }
+                await db.execute('COMMIT')
+            } catch (error) {
+                await db.execute('ROLLBACK')
+                throw error
+            }
+        } finally {
+            await db.close()
+        }
+    }
+
     async seedSampleData(session: MysqlConnectionSession, schemaName: string): Promise<boolean> {
         const db = await this.openDatabase(session)
         try {

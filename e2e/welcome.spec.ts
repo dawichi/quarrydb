@@ -9,7 +9,9 @@ test.describe('welcome screen', () => {
     test('offers SQLite and MySQL provider entry points', async ({ page }) => {
         await expect(page.getByRole('heading', { name: 'Open SQLite file' })).toBeVisible()
         await expect(page.getByRole('heading', { name: 'Connect to MySQL' })).toBeVisible()
-        await expect(page.getByText('Preview quality: browse tables and run raw SQL')).toBeVisible()
+        await expect(
+            page.getByText('Preview quality: browse, stage row edits, export results, and run raw SQL; visual pipelines remain SQLite-only.'),
+        ).toBeVisible()
     })
 
     test('allows filling a MySQL connection profile', async ({ page }) => {

@@ -18,7 +18,9 @@ class Mysql2BackendAdapterService extends MysqlBackendAdapterService {
                 return rows as T
             },
             execute: async (query: string, bindValues?: unknown[]) => {
-                const [result] = await connection.execute(query, bindValues)
+                const [result] = bindValues?.length
+                    ? await connection.execute(query, bindValues)
+                    : await connection.query(query)
                 return {
                     rowsAffected: result.affectedRows,
                     lastInsertId: result.insertId,
@@ -127,5 +129,41 @@ describeMysql('MySQL provider against a real MySQL server', () => {
         )
         expect(query).toHaveLength(2)
         expect(Object.keys(query[0] ?? {})).toEqual(['customer_id', 'total'])
+    })
+
+    it('applies and rolls back staged row edits transactionally', async () => {
+        const before = await service.runQueryFull(session, 'SELECT name FROM `quarry_demo`.`products` WHERE id = 1')
+        const originalName = before[0]?.['name']
+
+        await service.applyEdits(session, 'quarry_demo', 'products', [
+            {
+                kind: 'update',
+                pkValues: { id: 1 },
+                changes: { name: 'MySQL edited product' },
+                original: { id: 1, name: originalName },
+            },
+        ])
+        await expect(
+            service.runQueryFull(session, 'SELECT name FROM `quarry_demo`.`products` WHERE id = 1'),
+        ).resolves.toEqual([{ name: 'MySQL edited product' }])
+
+        await expect(
+            service.applyEdits(session, 'quarry_demo', 'products', [
+                {
+                    kind: 'update',
+                    pkValues: { id: 1 },
+                    changes: { name: 'should roll back' },
+                    original: { id: 1 },
+                },
+                { kind: 'insert', values: { name: 'missing required columns' } },
+            ]),
+        ).rejects.toThrow()
+        await expect(
+            service.runQueryFull(session, 'SELECT name FROM `quarry_demo`.`products` WHERE id = 1'),
+        ).resolves.toEqual([{ name: 'MySQL edited product' }])
+
+        await service.applyEdits(session, 'quarry_demo', 'products', [
+            { kind: 'update', pkValues: { id: 1 }, changes: { name: originalName }, original: { id: 1 } },
+        ])
     })
 })
