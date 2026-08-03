@@ -45,5 +45,14 @@ export interface MysqlBackendAdapter {
         limit: number,
         offset: number,
     ): Promise<{ rows: Record<string, unknown>[]; columns: string[]; total: number }>
+    fetchTableRows(
+        session: MysqlConnectionSession,
+        schemaName: string,
+        tableName: string,
+    ): Promise<{
+        rows: Record<string, unknown>[]
+        columns: string[]
+    }>
     runQuery(session: MysqlConnectionSession, sql: string, previewLimit: number): Promise<MysqlQueryResult>
+    runQueryFull(session: MysqlConnectionSession, sql: string): Promise<Record<string, unknown>[]>
 }

@@ -406,4 +406,66 @@ describe('MysqlBackendAdapterService', () => {
         expect(select).toHaveBeenCalledOnce()
         expect(select).toHaveBeenCalledWith('SELECT NOW() AS now_value')
     })
+
+    it('fetches full table rows for export without a preview limit', async () => {
+        select
+            .mockResolvedValueOnce([
+                {
+                    column_name: 'id',
+                    column_type: 'int',
+                    is_nullable: 'NO',
+                    column_key: 'PRI',
+                    column_default: '',
+                },
+                {
+                    column_name: 'name',
+                    column_type: 'varchar(255)',
+                    is_nullable: 'NO',
+                    column_key: '',
+                    column_default: '',
+                },
+            ])
+            .mockResolvedValueOnce([{ id: 1, name: 'Alice' }])
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            source: 'saved_profile',
+        })
+
+        await expect(service.fetchTableRows(session, 'quarry_demo', 'customers')).resolves.toEqual({
+            rows: [{ id: 1, name: 'Alice' }],
+            columns: ['id', 'name'],
+        })
+        expect(select).toHaveBeenLastCalledWith('SELECT `id` AS `id`, `name` AS `name` FROM `quarry_demo`.`customers`')
+    })
+
+    it('exports full result-returning queries without applying preview rewriting', async () => {
+        select.mockResolvedValueOnce([{ id: 1, total: 50 }])
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            source: 'saved_profile',
+        })
+
+        await expect(service.runQueryFull(session, 'SELECT id, total FROM orders;')).resolves.toEqual([
+            { id: 1, total: 50 },
+        ])
+        expect(select).toHaveBeenLastCalledWith('SELECT id, total FROM orders')
+    })
 })

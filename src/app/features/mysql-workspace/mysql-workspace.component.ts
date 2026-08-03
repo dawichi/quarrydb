@@ -1,5 +1,6 @@
-import { Component, inject } from '@angular/core'
+import { Component, inject, signal } from '@angular/core'
 import type { WorkspaceTab } from '@quarrydb/shared/session'
+import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 
 @Component({
@@ -10,6 +11,7 @@ import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 export class MysqlWorkspaceComponent {
     protected readonly store = inject(MysqlWorkspaceStore)
     protected readonly tabs: Array<Extract<WorkspaceTab, 'browse' | 'query'>> = ['browse', 'query']
+    protected readonly showExportMenu = signal(false)
 
     protected formatCell(value: unknown): string {
         if (value === null || value === undefined) {
@@ -27,5 +29,14 @@ export class MysqlWorkspaceComponent {
 
     protected selectedSchemaLabel(): string {
         return this.store.selectedSchemaName() ?? 'current schema'
+    }
+
+    protected exportAs(format: ExportFormat): void {
+        this.showExportMenu.set(false)
+        if (this.store.activeTab() === 'browse') {
+            void this.store.exportTable(format)
+        } else {
+            void this.store.exportQuery(format)
+        }
     }
 }

@@ -168,6 +168,24 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         }
     }
 
+    async fetchTableRows(
+        session: MysqlConnectionSession,
+        schemaName: string,
+        tableName: string,
+    ): Promise<{ rows: Record<string, unknown>[]; columns: string[] }> {
+        const db = await this.openDatabase(session)
+        const source = `${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`
+        try {
+            const columns = await this.listColumns(db, schemaName, tableName)
+            const rows = await db.select<Record<string, unknown>[]>(
+                `SELECT ${this.buildPreviewSelectList(columns)} FROM ${source}`,
+            )
+            return { rows, columns: columns.map((column) => column.name) }
+        } finally {
+            await db.close()
+        }
+    }
+
     async runQuery(session: MysqlConnectionSession, sql: string, previewLimit: number): Promise<MysqlQueryResult> {
         const db = await this.openDatabase(session)
         const normalizedSql = sql.trim().replace(/;+$/, '')
@@ -193,6 +211,19 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
                 affectedRows: result.rowsAffected,
                 lastInsertId: result.lastInsertId ?? undefined,
             }
+        } finally {
+            await db.close()
+        }
+    }
+
+    async runQueryFull(session: MysqlConnectionSession, sql: string): Promise<Record<string, unknown>[]> {
+        const db = await this.openDatabase(session)
+        const normalizedSql = sql.trim().replace(/;+$/, '')
+        try {
+            if (!this.isRowQuery(normalizedSql)) {
+                throw new Error('Only result-returning queries can be exported')
+            }
+            return await db.select<Record<string, unknown>[]>(normalizedSql)
         } finally {
             await db.close()
         }

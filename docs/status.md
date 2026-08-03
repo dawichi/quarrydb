@@ -44,6 +44,7 @@ shipped publicly with auto-updates working.
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
 | Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
+| MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
 | JOIN: branch input mode | ✅ Done |
 | JOIN: subpipeline mode | ✅ Done |
 | Encrypted SQLite (SQLCipher) | ⬜ Post-MVP |

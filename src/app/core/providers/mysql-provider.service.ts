@@ -43,6 +43,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         'server_connection',
         'relational_schema_browser',
         'sql_query_runner',
+        'export_results',
     ] as const
     readonly launchAction = {
         id: 'mysql' as const,

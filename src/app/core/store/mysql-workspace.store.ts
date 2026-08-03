@@ -3,6 +3,7 @@ import type { MysqlWorkspaceSelection, WorkspaceTab } from '@quarrydb/shared/ses
 import type { MysqlConnectionSession, MysqlSchemaSummary, MysqlTableSummary } from '../providers/mysql-backend-adapter'
 import { MysqlBackendAdapterService } from '../providers/mysql-backend-adapter.service'
 import type { MysqlWorkspaceDraft } from '../providers/mysql-workspace-draft'
+import { type ExportFormat, ExportService } from '../services/export.service'
 import { WorkspaceHostStore } from './workspace-host.store'
 
 @Injectable({ providedIn: 'root' })
@@ -11,6 +12,7 @@ export class MysqlWorkspaceStore {
 
     private readonly host = inject(WorkspaceHostStore)
     private readonly backend = inject(MysqlBackendAdapterService)
+    private readonly exportService = inject(ExportService)
     private rowOffset = 0
 
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
@@ -31,6 +33,7 @@ export class MysqlWorkspaceStore {
     readonly isLoadingRows = signal(false)
     readonly isRunningQuery = signal(false)
     readonly isSeedingSampleData = signal(false)
+    readonly isExporting = signal(false)
 
     readonly hasWorkspace = computed(() => this.host.hasWorkspace() && this.host.activeProviderId() === 'mysql')
     readonly hasMoreRows = computed(() => this.tableRows().length < this.tableRowTotal())
@@ -94,6 +97,7 @@ export class MysqlWorkspaceStore {
         this.isLoadingRows.set(false)
         this.isRunningQuery.set(false)
         this.isSeedingSampleData.set(false)
+        this.isExporting.set(false)
         this.rowOffset = 0
     }
 
@@ -173,6 +177,49 @@ export class MysqlWorkspaceStore {
         }
     }
 
+    async exportTable(format: ExportFormat): Promise<void> {
+        const session = this.connectionSession()
+        const selected = this.selectedTable()
+        if (!session || !selected || this.isExporting()) return
+
+        this.isExporting.set(true)
+        this.host.error.set(null)
+        try {
+            const result = await this.backend.fetchTableRows(session, selected.schemaName, selected.tableName)
+            await this.exportService.saveFile(
+                this.exportContent(format, selected.tableName, result.columns, result.rows),
+                `${selected.tableName}.${format === 'md' ? 'md' : format}`,
+                format,
+            )
+        } catch (error) {
+            this.host.error.set(this.describeError(error, 'Failed to export MySQL table'))
+        } finally {
+            this.isExporting.set(false)
+        }
+    }
+
+    async exportQuery(format: ExportFormat): Promise<void> {
+        const session = this.connectionSession()
+        const sql = this.querySql().trim()
+        if (!session || !sql || this.isExporting()) return
+
+        this.isExporting.set(true)
+        this.host.error.set(null)
+        try {
+            const rows = await this.backend.runQueryFull(session, sql)
+            const columns = rows.length > 0 ? Object.keys(rows[0]) : this.queryColumns()
+            await this.exportService.saveFile(
+                this.exportContent(format, 'mysql_query', columns, rows),
+                `mysql_query.${format === 'md' ? 'md' : format}`,
+                format,
+            )
+        } catch (error) {
+            this.host.error.set(this.describeError(error, 'Failed to export MySQL query'))
+        } finally {
+            this.isExporting.set(false)
+        }
+    }
+
     async loadSampleData(): Promise<void> {
         const session = this.connectionSession()
         const schemaName = this.selectedSchemaName()
@@ -244,6 +291,24 @@ export class MysqlWorkspaceStore {
             return 'SELECT NOW() AS now_value;'
         }
         return `SELECT * FROM \`${selected.schemaName}\`.\`${selected.tableName}\` LIMIT ${this.PAGE_SIZE}`
+    }
+
+    private exportContent(
+        format: ExportFormat,
+        tableName: string,
+        columns: string[],
+        rows: Record<string, unknown>[],
+    ): string {
+        switch (format) {
+            case 'csv':
+                return this.exportService.toCsv(columns, rows)
+            case 'json':
+                return this.exportService.toJson(rows)
+            case 'sql':
+                return this.exportService.toSqlInserts(tableName, columns, rows)
+            case 'md':
+                return this.exportService.toMarkdown(columns, rows)
+        }
     }
 
     private describeError(error: unknown, fallback: string): string {

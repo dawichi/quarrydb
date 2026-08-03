@@ -115,4 +115,17 @@ describeMysql('MySQL provider against a real MySQL server', () => {
         expect(result.rows).toHaveLength(4)
         expect(result.columns).toEqual(['name', 'total'])
     })
+
+    it('fetches full table and query results for export', async () => {
+        const table = await service.fetchTableRows(session, 'quarry_demo', 'products')
+        expect(table.rows).toHaveLength(14)
+        expect(table.columns).toEqual(['id', 'name', 'category', 'price', 'stock'])
+
+        const query = await service.runQueryFull(
+            session,
+            'SELECT customer_id, total FROM `quarry_demo`.`orders` ORDER BY id LIMIT 2',
+        )
+        expect(query).toHaveLength(2)
+        expect(Object.keys(query[0] ?? {})).toEqual(['customer_id', 'total'])
+    })
 })
