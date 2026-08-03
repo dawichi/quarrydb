@@ -1,7 +1,9 @@
 import { Component, inject, signal } from '@angular/core'
 import type { WorkspaceTab } from '@quarrydb/shared/session'
+import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
 import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
+import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
 
 @Component({
     selector: 'app-mysql-workspace',
@@ -10,6 +12,8 @@ import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 })
 export class MysqlWorkspaceComponent {
     protected readonly store = inject(MysqlWorkspaceStore)
+    protected readonly provider = inject(MysqlProviderService)
+    protected readonly workspaceHost = inject(WorkspaceHostStore)
     protected readonly tabs: Array<Extract<WorkspaceTab, 'browse' | 'query'>> = ['browse', 'query']
     protected readonly showExportMenu = signal(false)
 
@@ -38,5 +42,9 @@ export class MysqlWorkspaceComponent {
         } else {
             void this.store.exportQuery(format)
         }
+    }
+
+    protected reconnect(): void {
+        void this.provider.connectWorkspaceDraft().catch(() => undefined)
     }
 }

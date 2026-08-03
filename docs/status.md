@@ -45,6 +45,7 @@ shipped publicly with auto-updates working.
 | Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
+| MySQL reconnect UX | ✅ Explicit in-workspace reconnect using runtime-only credentials |
 | JOIN: branch input mode | ✅ Done |
 | JOIN: subpipeline mode | ✅ Done |
 | Encrypted SQLite (SQLCipher) | ⬜ Post-MVP |
@@ -148,3 +149,4 @@ multiple features.
 | 2026-08-03 | Added Docker-backed MySQL integration tests through a mysql2 transport; fixed MySQL-reserved `current_time` default query alias discovered by the live suite |
 | 2026-08-03 | Extended Playwright with a deterministic SQLite IPC fixture covering session restore, table browsing, WHERE pipeline creation, generated SQL, and result rendering |
 | 2026-08-03 | Added Playwright coverage for staged SQLite row updates, transactional apply, refreshed data, and CSV export payloads |
+| 2026-08-03 | MySQL v1 productization: full-result exports, browser coverage, and explicit runtime-secret reconnect UX |
