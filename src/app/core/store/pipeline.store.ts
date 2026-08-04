@@ -12,6 +12,10 @@ import type {
     SelectStep,
     SortColumn,
 } from '@quarrydb/shared'
+import { buildPipelineSql } from '@quarrydb/shared/pipeline-sql'
+
+export { buildPipelineSql } from '@quarrydb/shared/pipeline-sql'
+
 import { type ExportFormat, ExportService } from '../services/export.service'
 import type { QueryHistoryEntry } from '../services/query-history.service'
 import { QueryHistoryService } from '../services/query-history.service'
@@ -46,22 +50,16 @@ const PREVIEW_LIMIT = 50
  */
 const HISTORY_SETTLE_MS = 3000
 
-// ─── Variable Helpers ─────────────────────────────────────────────────────────
-
-function substituteVars(text: string, vars: Record<string, string>): string {
-    return text.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, name: string) => vars[name] ?? `:${name}`)
-}
-
 function getStepTexts(step: PipelineStep): string[] {
     switch (step.type) {
         case 'WHERE':
             return [step.expression]
         case 'SELECT':
-            return step.columns.flatMap((c) => [c.expr, c.alias ?? ''])
+            return step.columns.flatMap((column) => [column.expr, column.alias ?? ''])
         case 'ORDER_BY':
             return []
         case 'GROUP_BY':
-            return step.aggregations.flatMap((a) => [a.expr, a.alias])
+            return step.aggregations.flatMap((aggregation) => [aggregation.expr, aggregation.alias])
         case 'JOIN':
             return [step.on, step.table, ...(step.subSteps ?? []).flatMap(getStepTexts)]
         case 'RAW_SQL':
@@ -69,109 +67,6 @@ function getStepTexts(step: PipelineStep): string[] {
         default:
             return []
     }
-}
-
-// ─── SQL Generation ───────────────────────────────────────────────────────────
-
-function buildStepCte(prev: string, step: PipelineStep, vars: Record<string, string>): string {
-    const v = (text: string) => substituteVars(text, vars)
-    switch (step.type) {
-        case 'SELECT': {
-            if (step.columns.length === 0) return `SELECT * FROM ${prev}`
-            const cols = step.columns
-                .filter((c) => c.expr.trim())
-                .map((c) => (c.alias ? `${v(c.expr)} AS "${c.alias}"` : v(c.expr)))
-                .join(', ')
-            return cols ? `SELECT ${cols} FROM ${prev}` : `SELECT * FROM ${prev}`
-        }
-        case 'WHERE':
-            return `SELECT * FROM ${prev} WHERE ${v(step.expression)}`
-        case 'ORDER_BY': {
-            let sql = `SELECT * FROM ${prev}`
-            if (step.columns.length > 0) {
-                sql += ` ORDER BY ${step.columns.map((c) => `"${c.name}" ${c.direction}`).join(', ')}`
-            }
-            if (step.limit !== null) sql += ` LIMIT ${step.limit}`
-            return sql
-        }
-        case 'GROUP_BY': {
-            if (step.groupBy.length === 0) return `SELECT * FROM ${prev}`
-            const groupCols = step.groupBy.map((c) => `"${c}"`).join(', ')
-            const selectParts: string[] = step.groupBy.map((c) => `"${c}"`)
-            for (const agg of step.aggregations) {
-                if (agg.expr.trim()) {
-                    const alias = agg.alias.trim() || agg.fn.toLowerCase()
-                    selectParts.push(`${agg.fn}(${v(agg.expr)}) AS "${alias}"`)
-                }
-            }
-            return `SELECT ${selectParts.join(', ')} FROM ${prev} GROUP BY ${groupCols}`
-        }
-        case 'JOIN': {
-            if (!step.table || !step.on.trim()) return `SELECT * FROM ${prev}`
-            const tableRef = step.table.includes('.')
-                ? step.table
-                      .split('.')
-                      .map((p) => `"${p}"`)
-                      .join('.')
-                : `"${step.table}"`
-            const alias = step.alias ? ` AS "${step.alias}"` : ''
-            return `SELECT * FROM ${prev} ${step.joinType} JOIN ${tableRef}${alias} ON ${v(step.on)}`
-        }
-        case 'RAW_SQL': {
-            const sql = v(step.sql.trim())
-            return sql ? sql.replaceAll('{src}', prev) : `SELECT * FROM ${prev}`
-        }
-        default:
-            return `SELECT * FROM ${prev}`
-    }
-}
-
-/**
- * Appends the CTE chain for a JOIN step's nested subpipeline (prefixed `${curr}_sub_N`
- * to stay unique alongside the outer `step_N` chain), then the JOIN step's own CTE
- * referencing the final subpipeline CTE as its right-hand side.
- */
-function pushSubpipelineJoinCtes(
-    ctes: string[],
-    step: JoinStep,
-    prev: string,
-    curr: string,
-    vars: Record<string, string>,
-): void {
-    const subTable = step.subTable ?? ''
-    const subSteps = step.subSteps ?? []
-    if (!subTable || !step.on.trim()) {
-        ctes.push(`${curr} AS (SELECT * FROM ${prev})`)
-        return
-    }
-
-    const prefix = `${curr}_sub`
-    ctes.push(`${prefix}_1 AS (SELECT * FROM "${subTable}")`)
-    for (let j = 0; j < subSteps.length; j++) {
-        ctes.push(`${prefix}_${j + 2} AS (${buildStepCte(`${prefix}_${j + 1}`, subSteps[j], vars)})`)
-    }
-    const finalSub = `${prefix}_${subSteps.length + 1}`
-    const alias = step.alias ? ` AS "${step.alias}"` : ''
-    ctes.push(
-        `${curr} AS (SELECT * FROM ${prev} ${step.joinType} JOIN ${finalSub}${alias} ON ${substituteVars(step.on, vars)})`,
-    )
-}
-
-export function buildPipelineSql(tableName: string, steps: PipelineStep[], vars: Record<string, string> = {}): string {
-    if (steps.length === 0) return `SELECT * FROM "${tableName}"`
-
-    const ctes = [`step_1 AS (SELECT * FROM "${tableName}")`]
-    for (let i = 0; i < steps.length; i++) {
-        const prev = `step_${i + 1}`
-        const curr = `step_${i + 2}`
-        const step = steps[i]
-        if (step.type === 'JOIN' && step.mode === 'subpipeline') {
-            pushSubpipelineJoinCtes(ctes, step, prev, curr, vars)
-        } else {
-            ctes.push(`${curr} AS (${buildStepCte(prev, step, vars)})`)
-        }
-    }
-    return `WITH ${ctes.join(',\n     ')}\nSELECT * FROM step_${steps.length + 1}`
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────

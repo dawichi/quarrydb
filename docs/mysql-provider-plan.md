@@ -196,6 +196,11 @@ visual query builder should follow after the provider boundary is proven.
 That is an acceptable outcome. The provider architecture is the prerequisite, not the
 other way around.
 
+Current implementation note: the pure SQL generator now has an explicit SQLite/MySQL
+dialect boundary, including MySQL backtick quoting and schema-qualified sources. The
+existing visual builder still owns SQLite execution state, so MySQL does not expose that
+UI until a provider-owned execution store is added and tested.
+
 ## Data Browsing
 
 MySQL v1 should support:

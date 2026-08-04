@@ -7,7 +7,8 @@
         "./mysql-connection-target": "./src/mysql-connection-target.ts",
         "./provider": "./src/provider.ts",
         "./recent-item": "./src/recent-item.ts",
-        "./session": "./src/session.ts"
+        "./session": "./src/session.ts",
+        "./pipeline-sql": "./src/pipeline-sql.ts"
     },
     "types": "./src/index.ts"
 }
