@@ -1,12 +1,14 @@
-import { Component, inject, signal } from '@angular/core'
+import { Component, effect, inject, signal } from '@angular/core'
 import type { WorkspaceTab } from '@quarrydb/shared/session'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
 import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
+import { MysqlPipelineComponent } from '../mysql-pipeline/mysql-pipeline.component'
 
 @Component({
     selector: 'app-mysql-workspace',
+    imports: [MysqlPipelineComponent],
     host: { class: 'flex-1 min-h-0' },
     templateUrl: './mysql-workspace.component.html',
 })
@@ -14,8 +16,21 @@ export class MysqlWorkspaceComponent {
     protected readonly store = inject(MysqlWorkspaceStore)
     protected readonly provider = inject(MysqlProviderService)
     protected readonly workspaceHost = inject(WorkspaceHostStore)
-    protected readonly tabs: Array<Extract<WorkspaceTab, 'browse' | 'query' | 'edit'>> = ['browse', 'query', 'edit']
+    protected readonly tabs: Array<Extract<WorkspaceTab, 'browse' | 'query' | 'edit'> | 'pipeline'> = [
+        'browse',
+        'query',
+        'edit',
+        'pipeline',
+    ]
+    protected readonly activeView = signal<'browse' | 'query' | 'edit' | 'pipeline'>('browse')
     protected readonly showExportMenu = signal(false)
+
+    constructor() {
+        effect(() => {
+            const tab = this.store.activeTab()
+            if (this.activeView() !== 'pipeline') this.activeView.set(tab)
+        })
+    }
 
     protected formatCell(value: unknown): string {
         if (value === null || value === undefined) {
@@ -46,6 +61,11 @@ export class MysqlWorkspaceComponent {
 
     protected reconnect(): void {
         void this.provider.connectWorkspaceDraft().catch(() => undefined)
+    }
+
+    protected selectView(view: 'browse' | 'query' | 'edit' | 'pipeline'): void {
+        this.activeView.set(view)
+        if (view !== 'pipeline') this.store.setActiveTab(view)
     }
 
     protected readonly editingCell = signal<{ rowIndex: number; column: string } | null>(null)

@@ -60,9 +60,9 @@ slice of that.
 1. **MySQL v1 productization** — promote the current preview into a supported browse/query
    provider, with export, reconnect, password-prompt session restoration, and opt-in secure
    secret storage now in place; final packaged-platform UX remains.
-2. **MySQL relational features** — staged row editing is shipped and the shared SQL
-   generator now has an explicit SQLite/MySQL dialect boundary; next evaluate the provider
-   execution store before exposing visual pipelines in the MySQL workspace.
+2. **MySQL relational features** — staged row editing and a provider-owned visual pipeline
+   slice are shipped; next expand the MySQL panel with JOIN/GROUP BY controls, saved-query
+   persistence, export, and deeper adapter/integration coverage.
 3. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
    menu bars where the environment supports it.
 4. **Performance at scale** — especially important once provider breadth starts growing.
@@ -154,4 +154,5 @@ multiple features.
 | 2026-08-03 | Added Playwright coverage for staged SQLite row updates, transactional apply, refreshed data, and CSV export payloads |
 | 2026-08-03 | MySQL v1 productization: full-result exports, browser coverage, and explicit runtime-secret reconnect UX |
 | 2026-08-04 | MySQL secure credentials: opt-in OS-backed password storage through the native credential store, with runtime-only fallback and migration-safe profile metadata |
-| 2026-08-04 | Pipeline SQL boundary: extracted dialect-aware shared SQL generation with SQLite compatibility coverage and MySQL quoting/schema-qualified source coverage; MySQL visual UI remains intentionally gated |
+| 2026-08-04 | Pipeline SQL boundary: extracted dialect-aware shared SQL generation with SQLite compatibility coverage and MySQL quoting/schema-qualified source coverage |
+| 2026-08-04 | MySQL visual pipeline slice: added provider-owned prefix execution, MySQL SQL previews, and a workspace pipeline panel for WHERE, SELECT, ORDER BY, and RAW SQL |
