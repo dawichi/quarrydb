@@ -1,3 +1,5 @@
+import type { PipelineStep } from '@quarrydb/shared'
+import { buildPipelineSql } from '@quarrydb/shared/pipeline-sql'
 import { type Connection, createConnection, type RowDataPacket } from 'mysql2/promise'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { MysqlDatabaseClient } from '../providers/mysql-backend-adapter'
@@ -116,6 +118,35 @@ describeMysql('MySQL provider against a real MySQL server', () => {
         expect(result.kind).toBe('rows')
         expect(result.rows).toHaveLength(4)
         expect(result.columns).toEqual(['name', 'total'])
+    })
+
+    it('executes generated WHERE, JOIN, GROUP BY, and ORDER BY pipelines end to end', async () => {
+        const steps: PipelineStep[] = [
+            { id: 'where', type: 'WHERE', expression: 'total > 100' },
+            {
+                id: 'join',
+                type: 'JOIN',
+                mode: 'inline',
+                joinType: 'INNER',
+                table: 'quarry_demo.customers',
+                on: 'customers.id = step_2.customer_id',
+            },
+            {
+                id: 'group',
+                type: 'GROUP_BY',
+                groupBy: ['name'],
+                aggregations: [{ fn: 'SUM', expr: 'total', alias: 'revenue' }],
+            },
+            { id: 'order', type: 'ORDER_BY', columns: [{ name: 'name', direction: 'ASC' }], limit: null },
+        ]
+        const sql = buildPipelineSql('quarry_demo.orders', steps, {}, 'mysql')
+        const rows = await service.runQueryFull(session, sql)
+
+        expect(sql).toContain('`quarry_demo`.`orders`')
+        expect(sql).toContain('INNER JOIN `quarry_demo`.`customers`')
+        expect(rows).toHaveLength(10)
+        expect(rows[0]).toMatchObject({ name: 'Alice Martin', revenue: '1569.96' })
+        expect(rows.at(-1)).toMatchObject({ name: "James O'Brien", revenue: '119.98' })
     })
 
     it('fetches full table and query results for export', async () => {
