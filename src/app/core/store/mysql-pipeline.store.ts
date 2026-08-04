@@ -3,6 +3,8 @@ import type { Aggregation, JoinType, PipelineStep, SelectColumn, SortColumn } fr
 import { buildPipelineSql } from '@quarrydb/shared/pipeline-sql'
 import type { MysqlConnectionSession } from '../providers/mysql-backend-adapter'
 import { MysqlBackendAdapterService } from '../providers/mysql-backend-adapter.service'
+import type { ExportFormat } from '../services/export.service'
+import { ExportService } from '../services/export.service'
 
 export interface MysqlPipelineResult {
     rows: Record<string, unknown>[]
@@ -23,6 +25,7 @@ const EMPTY_RESULT: MysqlPipelineResult = { rows: [], columns: [], error: null, 
 @Injectable({ providedIn: 'root' })
 export class MysqlPipelineStore {
     private readonly backend = inject(MysqlBackendAdapterService)
+    private readonly exportService = inject(ExportService)
 
     readonly source = signal<MysqlPipelineSource | null>(null)
     readonly steps = signal<PipelineStep[]>([])
@@ -61,6 +64,35 @@ export class MysqlPipelineStore {
         this.stepResults.set([])
         this.error.set(null)
         this.isRunning.set(false)
+    }
+
+    restoreState(steps: PipelineStep[], variableValues: Record<string, string>): void {
+        this.steps.set(steps.map((step) => ({ ...step })))
+        this.stepResults.set(steps.map(() => ({ ...EMPTY_RESULT })))
+        this.variableValues.set({ ...variableValues })
+        void this.execute()
+    }
+
+    async exportResult(format: ExportFormat): Promise<void> {
+        const session = this.session
+        const source = this.source()
+        if (!session || !source || this.isRunning()) return
+
+        this.isRunning.set(true)
+        this.error.set(null)
+        try {
+            const rows = await this.backend.runQueryFull(session, this.generatedSql())
+            const columns = rows.length > 0 ? Object.keys(rows[0]) : source.columns
+            await this.exportService.saveFile(
+                this.exportContent(format, columns, rows),
+                `${source.tableName}_pipeline.${format === 'md' ? 'md' : format}`,
+                format,
+            )
+        } catch (error) {
+            this.error.set(error instanceof Error ? error.message : String(error))
+        } finally {
+            this.isRunning.set(false)
+        }
     }
 
     addWhereStep(): void {
@@ -181,6 +213,19 @@ export class MysqlPipelineStore {
             }
         } finally {
             this.isRunning.set(false)
+        }
+    }
+
+    private exportContent(format: ExportFormat, columns: string[], rows: Record<string, unknown>[]): string {
+        switch (format) {
+            case 'csv':
+                return this.exportService.toCsv(columns, rows)
+            case 'json':
+                return this.exportService.toJson(rows)
+            case 'sql':
+                return this.exportService.toSqlInserts(this.source()?.tableName ?? 'pipeline_result', columns, rows)
+            case 'md':
+                return this.exportService.toMarkdown(columns, rows)
         }
     }
 }

@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MysqlProviderService } from './mysql-provider.service'
 
 describe('MysqlProviderService', () => {
-    const capabilities = ['recent_items', 'server_connection', 'relational_schema_browser', 'sql_query_runner'] as const
+    const capabilities = [
+        'recent_items',
+        'server_connection',
+        'relational_schema_browser',
+        'sql_query_runner',
+        'visual_sql_pipeline',
+    ] as const
     const launchAction = {
         id: 'mysql' as const,
         name: 'MySQL',
@@ -61,6 +67,14 @@ describe('MysqlProviderService', () => {
         createMysqlItem: vi.fn(),
         remove: vi.fn(),
     }
+    const pipeline = {
+        clear: vi.fn(),
+        source: vi.fn(),
+        steps: vi.fn(),
+        variableValues: vi.fn(),
+        openForTable: vi.fn(),
+        restoreState: vi.fn(),
+    }
 
     let service: MysqlProviderService
 
@@ -90,6 +104,15 @@ describe('MysqlProviderService', () => {
         workspace.clear.mockReset()
         workspace.selectedTable.mockReset()
         workspace.activeTab.mockReset()
+        pipeline.clear.mockReset()
+        pipeline.source.mockReset()
+        pipeline.steps.mockReset()
+        pipeline.variableValues.mockReset()
+        pipeline.openForTable.mockReset()
+        pipeline.restoreState.mockReset()
+        pipeline.source.mockReturnValue(null)
+        pipeline.steps.mockReturnValue([])
+        pipeline.variableValues.mockReturnValue({})
 
         service = Object.assign(Object.create(MysqlProviderService.prototype), {
             id: 'mysql',
@@ -108,6 +131,7 @@ describe('MysqlProviderService', () => {
             secrets,
             recentItems,
             workspace,
+            pipeline,
             workspaceDraft: signal(null),
             connectionSession: signal(null),
             schemaSummaries: signal(null),

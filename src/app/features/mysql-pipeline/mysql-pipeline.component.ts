@@ -1,5 +1,6 @@
 import { Component, effect, inject, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinType, SelectColumn, SortColumn } from '@quarrydb/shared'
+import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlPipelineStore } from '../../core/store/mysql-pipeline.store'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 
@@ -48,6 +49,10 @@ export class MysqlPipelineComponent {
     }
     protected addJoin(): void {
         this.pipeline.addJoinStep()
+    }
+
+    protected exportAs(format: ExportFormat): void {
+        void this.pipeline.exportResult(format)
     }
 
     protected updateWhere(index: number, event: Event): void {

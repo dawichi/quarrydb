@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
+import { MysqlPipelineStore } from '../store/mysql-pipeline.store'
 import { MysqlWorkspaceStore } from '../store/mysql-workspace.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
 import type { MysqlConnectionSession, MysqlSchemaSummary } from './mysql-backend-adapter'
@@ -29,6 +30,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     private readonly secrets = inject(MysqlConnectionSecretsService)
     private readonly recentItems = inject(RecentItemsService)
     private readonly workspace = inject(MysqlWorkspaceStore)
+    private readonly pipeline = inject(MysqlPipelineStore)
     private readonly host = inject(WorkspaceHostStore)
     readonly workspaceDraft = signal<MysqlWorkspaceDraft | null>(null)
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
@@ -36,6 +38,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     readonly schemaBootstrapError = signal<string | null>(null)
     readonly connectPassword = signal('')
     readonly secretStorageWarning = signal<string | null>(null)
+    private pendingPipeline: MysqlPersistedSession['pipeline'] | null = null
 
     readonly id = 'mysql' as const
     readonly kind = 'relational' as const
@@ -46,6 +49,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         'sql_query_runner',
         'export_results',
         'row_editor',
+        'visual_sql_pipeline',
     ] as const
     readonly launchAction = {
         id: 'mysql' as const,
@@ -71,7 +75,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         openHint: 'Preview provider: saved connections, browse, and raw SQL.',
         badgeLabel: 'Preview',
         availabilityNote:
-            'Preview quality: browse, stage row edits, export results, and run raw SQL; visual pipelines remain SQLite-only.',
+            'Preview quality: browse, stage row edits, export results, run raw SQL, and build MySQL visual pipelines.',
     }
 
     createDraft(): MysqlConnectionProfileDraft {
@@ -108,6 +112,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             throw new Error(`MySQL provider cannot restore session for provider ${session.providerId}`)
         }
         this.workspaceDraft.set(createMysqlWorkspaceDraftFromSession(session))
+        this.pendingPipeline = session.pipeline
         this.syncDraftPassword(session.workspace.connectionId)
         this.host.error.set('MySQL connection restored. Re-enter the password below to reopen the workspace.')
     }
@@ -162,6 +167,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         if (this.connectionSession()?.target.connectionId === id) {
             this.connectionSession.set(null)
             this.schemaSummaries.set(null)
+            this.pipeline.clear()
             this.workspace.clear()
         }
     }
@@ -181,10 +187,12 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
 
     clearWorkspaceDraft(): void {
         this.workspaceDraft.set(null)
+        this.pendingPipeline = null
         this.connectionSession.set(null)
         this.schemaSummaries.set(null)
         this.schemaBootstrapError.set(null)
         this.connectPassword.set('')
+        this.pipeline.clear()
         this.workspace.clear()
     }
 
@@ -250,6 +258,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             }
             this.schemaSummaries.set(schemas)
             await this.workspace.openWorkspace(session, schemas, this.workspaceDraft())
+            this.restorePendingPipeline(session)
         } catch (error) {
             throw this.notAvailableYet(this.describeError(error))
         } finally {
@@ -288,6 +297,14 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         }
     }
 
+    private restorePendingPipeline(session: MysqlConnectionSession): void {
+        const pending = this.pendingPipeline
+        this.pendingPipeline = null
+        if (!pending?.source || pending.source.connectionId !== session.target.connectionId) return
+        this.pipeline.openForTable(session, pending.source.schemaName, pending.source.tableName, pending.source.columns)
+        this.pipeline.restoreState(pending.steps, pending.variableValues)
+    }
+
     buildActiveSession(savedAt = Date.now()): MysqlPersistedSession | null {
         const session = this.connectionSession()
         if (!session) {
@@ -304,9 +321,9 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
                 activeTab: this.workspace.activeTab(),
             },
             pipeline: {
-                source: null,
-                steps: [],
-                variableValues: {},
+                source: this.pipeline.source(),
+                steps: this.pipeline.steps(),
+                variableValues: this.pipeline.variableValues(),
             },
         }
     }

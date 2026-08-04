@@ -61,8 +61,8 @@ slice of that.
    provider, with export, reconnect, password-prompt session restoration, and opt-in secure
    secret storage now in place; final packaged-platform UX remains.
 2. **MySQL relational features** — staged row editing and a provider-owned visual pipeline
-   with WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and RAW SQL are shipped; next add
-   saved-query persistence, export, and deeper adapter/integration coverage.
+   with WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and RAW SQL are shipped, including
+   session persistence and full-result export; next add deeper adapter/integration coverage.
 3. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
    menu bars where the environment supports it.
 4. **Performance at scale** — especially important once provider breadth starts growing.
@@ -157,3 +157,4 @@ multiple features.
 | 2026-08-04 | Pipeline SQL boundary: extracted dialect-aware shared SQL generation with SQLite compatibility coverage and MySQL quoting/schema-qualified source coverage |
 | 2026-08-04 | MySQL visual pipeline slice: added provider-owned prefix execution, MySQL SQL previews, and a workspace pipeline panel for WHERE, SELECT, ORDER BY, and RAW SQL |
 | 2026-08-04 | MySQL visual pipeline relational slice: added inline JOIN and GROUP BY controls with provider-owned prefix execution |
+| 2026-08-04 | MySQL visual pipeline persistence/export: restored pipeline source, steps, and variables through session reconnect and added full-result CSV/JSON/Markdown export |
