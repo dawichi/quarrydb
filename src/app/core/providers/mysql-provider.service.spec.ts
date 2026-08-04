@@ -92,9 +92,7 @@ describe('MysqlProviderService', () => {
             availability: {
                 canOpenFromHome: false,
                 canOpenRecentItems: true,
-                canRestoreSession: false,
-                unavailableMessage:
-                    'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
+                canRestoreSession: true,
             },
             backend,
             host,
@@ -119,13 +117,11 @@ describe('MysqlProviderService', () => {
         expect(service.availability).toEqual({
             canOpenFromHome: false,
             canOpenRecentItems: true,
-            canRestoreSession: false,
-            unavailableMessage:
-                'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
+            canRestoreSession: true,
         })
     })
 
-    it('exposes a planned home launcher action', () => {
+    it('exposes the MySQL home launcher action', () => {
         expect(service.homeLaunchAction).toEqual(homeLaunchAction)
     })
 
@@ -792,7 +788,7 @@ describe('MysqlProviderService', () => {
         expect(errorSet).toHaveBeenCalledWith('MySQL provider is not available yet')
         expect(errorSet).toHaveBeenCalledWith('Enter the MySQL password to reconnect to this saved profile.')
         expect(errorSet).toHaveBeenCalledWith(
-            'MySQL session restore requires re-entering the password; the saved session was not reopened automatically.',
+            'MySQL connection restored. Re-enter the password below to reopen the workspace.',
         )
         expect(service.connectionSession()).toBeNull()
         expect(service.schemaSummaries()).toBeNull()

@@ -199,6 +199,7 @@ describe('SessionService', () => {
         await service.restore()
 
         expect(providers.restoreSession).toHaveBeenCalledWith(session)
+        expect(localStorage.getItem('quarry_session')).toBe(JSON.stringify(session))
     })
 
     it('clears unsupported provider sessions before restore dispatch', async () => {

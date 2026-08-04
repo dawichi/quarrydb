@@ -57,9 +57,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     readonly availability = {
         canOpenFromHome: false,
         canOpenRecentItems: true,
-        canRestoreSession: false,
-        unavailableMessage:
-            'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
+        canRestoreSession: true,
     }
 
     readonly homeLaunchAction: HomeLaunchAction = {
@@ -109,9 +107,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         }
         this.workspaceDraft.set(createMysqlWorkspaceDraftFromSession(session))
         this.syncDraftPassword(session.workspace.connectionId)
-        this.host.error.set(
-            'MySQL session restore requires re-entering the password; the saved session was not reopened automatically.',
-        )
+        this.host.error.set('MySQL connection restored. Re-enter the password below to reopen the workspace.')
     }
 
     loadProfiles(): MysqlConnectionProfile[] {

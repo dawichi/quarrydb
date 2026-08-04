@@ -51,9 +51,7 @@ describe('ProviderRegistryService', () => {
         availability: {
             canOpenFromHome: false,
             canOpenRecentItems: true,
-            canRestoreSession: false,
-            unavailableMessage:
-                'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
+            canRestoreSession: true,
         },
         homeLaunchAction: {
             id: 'mysql-preview' as const,
@@ -107,13 +105,11 @@ describe('ProviderRegistryService', () => {
         expect(registry.canOpenRecentItem('sqlite')).toBe(true)
         expect(registry.canOpenRecentItem('mysql')).toBe(true)
         expect(registry.canRestoreSession('sqlite')).toBe(true)
-        expect(registry.canRestoreSession('mysql')).toBe(false)
+        expect(registry.canRestoreSession('mysql')).toBe(true)
         expect(registry.getUnavailableMessage('sqlite')).toBeNull()
         expect(registry.getCapabilities('sqlite')).toEqual(sqliteProvider.capabilities)
         expect(registry.getCapabilities('mysql')).toEqual(mysqlProvider.capabilities)
-        expect(registry.getUnavailableMessage('mysql')).toBe(
-            'MySQL preview cannot auto-restore across relaunch yet because passwords are not persisted.',
-        )
+        expect(registry.getUnavailableMessage('mysql')).toBeNull()
     })
 
     it('dispatches home open actions through the selected provider', async () => {

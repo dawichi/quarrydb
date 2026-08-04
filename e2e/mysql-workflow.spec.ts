@@ -11,10 +11,7 @@ test('connects to MySQL and exports a browsed table', async ({ page }) => {
     await page.getByLabel('Username').fill('root')
     await page.getByLabel('Password').fill('quarry')
     await page.getByLabel('Default database').fill('quarry_demo')
-    await page.getByRole('button', { name: 'Save profile' }).click()
-    await page.getByRole('button', { name: 'Use profile' }).click()
-    await page.getByLabel('Connection password').fill('quarry')
-    await page.getByRole('button', { name: 'Test MySQL connection' }).click()
+    await page.getByRole('button', { name: 'Save & connect' }).click()
 
     await expect(page.getByText('MySQL Preview', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'products' }).first()).toBeVisible()

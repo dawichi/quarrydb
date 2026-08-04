@@ -105,19 +105,20 @@ export class WelcomeComponent {
 
     protected canSaveMysqlDraft(): boolean {
         const draft = this.mysqlDraft()
-        return (
-            !!draft.name.trim() &&
-            !!draft.host.trim() &&
-            !!draft.username.trim() &&
-            !!draft.defaultDatabase?.trim() &&
-            draft.port > 0
-        )
+        return !!draft.name.trim() && !!draft.host.trim() && !!draft.username.trim() && draft.port > 0
     }
 
     protected saveMysqlDraft(): void {
         if (!this.canSaveMysqlDraft()) return
         this.mysqlProvider.saveDraft(this.mysqlDraft())
         this.mysqlDraft.set(this.mysqlProvider.createDraft())
+    }
+
+    protected saveAndConnectMysqlDraft(): void {
+        if (!this.canSaveMysqlDraft()) return
+        this.mysqlProvider.saveDraft(this.mysqlDraft())
+        this.mysqlDraft.set(this.mysqlProvider.createDraft())
+        void this.mysqlProvider.connectWorkspaceDraft()
     }
 
     protected removeMysqlProfile(id: string): void {

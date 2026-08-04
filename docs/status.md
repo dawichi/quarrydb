@@ -45,7 +45,7 @@ shipped publicly with auto-updates working.
 | Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
-| MySQL reconnect UX | ✅ Explicit in-workspace reconnect using runtime-only credentials |
+| MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, and session context restoration to the password prompt |
 | MySQL staged row editing | ✅ Primary-key guarded update/delete staging, review, transactional apply, and rollback coverage |
 | JOIN: branch input mode | ✅ Done |
 | JOIN: subpipeline mode | ✅ Done |
@@ -58,7 +58,8 @@ See `docs/roadmap.md` for the long-term phased view. This list is the near-term,
 slice of that.
 
 1. **MySQL v1 productization** — promote the current preview into a supported browse/query
-   provider, starting with export, reconnect/secret handling, and clearer connection UX.
+   provider, with export, reconnect, and password-prompt session restoration now in place;
+   secure secret storage and final connection UX remain.
 2. **MySQL relational features** — staged row editing is now shipped; next evaluate visual
    pipeline support only after the provider-specific SQL boundary is explicit.
 3. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and

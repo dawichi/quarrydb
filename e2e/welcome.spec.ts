@@ -28,6 +28,15 @@ test.describe('welcome screen', () => {
         await expect(page.getByLabel('Password')).toHaveValue('quarry')
     })
 
+    test('allows saving a MySQL profile without a default database', async ({ page }) => {
+        await page.getByLabel('Connection name').fill('Server Only')
+        await page.getByLabel('Host').fill('127.0.0.1')
+        await page.getByLabel('Username').fill('root')
+
+        await expect(page.getByRole('button', { name: 'Save profile' })).toBeEnabled()
+        await expect(page.getByRole('button', { name: 'Save & connect' })).toBeEnabled()
+    })
+
     test('shows an empty recent-items state on a fresh browser profile', async ({ page }) => {
         await expect(page.getByText('No recent items')).toBeVisible()
     })
