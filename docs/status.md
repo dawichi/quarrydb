@@ -161,3 +161,4 @@ multiple features.
 | 2026-08-04 | MySQL visual pipeline persistence/export: restored pipeline source, steps, and variables through session reconnect and added full-result CSV/JSON/Markdown export |
 | 2026-08-04 | MySQL pipeline execution coverage: added provider-store tests for prefix previews, queued reruns, blocked errors, restoration variables, and uncapped export |
 | 2026-08-04 | MySQL live integration coverage: added a real-adapter generated WHERE → JOIN → GROUP BY → ORDER BY pipeline assertion against the Docker fixture |
+| 2026-08-04 | MySQL pipeline workspace polish: persisted the provider-specific Pipeline view and added SQL export alongside CSV, JSON, and Markdown |

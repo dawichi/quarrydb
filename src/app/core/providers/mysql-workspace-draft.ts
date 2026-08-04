@@ -1,6 +1,6 @@
 import type { MysqlConnectionTarget } from '@quarrydb/shared/mysql-connection-target'
 import type { MysqlRecentItem } from '@quarrydb/shared/recent-item'
-import type { MysqlPersistedSession, MysqlWorkspaceSelection, WorkspaceTab } from '@quarrydb/shared/session'
+import type { MysqlPersistedSession, MysqlWorkspaceSelection, MysqlWorkspaceTab } from '@quarrydb/shared/session'
 
 export type MysqlWorkspaceDraftSource = 'saved_profile' | 'recent_item' | 'session_restore'
 
@@ -8,14 +8,14 @@ export interface MysqlWorkspaceDraft {
     target: MysqlConnectionTarget
     source: MysqlWorkspaceDraftSource
     selectedTable: MysqlWorkspaceSelection | null
-    activeTab: WorkspaceTab
+    activeTab: MysqlWorkspaceTab
 }
 
 export function createMysqlWorkspaceDraft(
     target: MysqlConnectionTarget,
     source: MysqlWorkspaceDraftSource,
     selectedTable: MysqlWorkspaceSelection | null = null,
-    activeTab: WorkspaceTab = 'browse',
+    activeTab: MysqlWorkspaceTab = 'browse',
 ): MysqlWorkspaceDraft {
     return {
         target,

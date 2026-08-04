@@ -650,6 +650,23 @@ describe('MysqlProviderService', () => {
         })
     })
 
+    it('persists the MySQL pipeline workspace view independently of SQLite tabs', () => {
+        service.connectionSession.set({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: 'db.internal',
+                port: 3306,
+            },
+            source: 'saved_profile',
+            connectedAt: 1234,
+        })
+        workspace.selectedTable.mockReturnValue(null)
+        workspace.activeTab.mockReturnValue('pipeline')
+
+        expect(service.buildActiveSession(999)?.workspace.activeTab).toBe('pipeline')
+    })
+
     it('fails when the pending workspace draft cannot be resolved into a connect request', async () => {
         profiles.find.mockReturnValue(null)
         service.workspaceDraft.set({

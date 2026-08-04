@@ -3,6 +3,7 @@ import type { MysqlConnectionTarget } from './mysql-connection-target'
 import type { ProviderId } from './provider'
 
 export type WorkspaceTab = 'browse' | 'query' | 'edit'
+export type MysqlWorkspaceTab = WorkspaceTab | 'pipeline'
 
 export interface PersistedSessionBase {
     version: 1
@@ -53,7 +54,7 @@ export interface MysqlWorkspaceSelection {
 
 export interface MysqlWorkspaceSessionState extends MysqlConnectionTarget {
     selectedTable?: MysqlWorkspaceSelection | null
-    activeTab?: WorkspaceTab
+    activeTab?: MysqlWorkspaceTab
 }
 
 export interface MysqlPipelineSessionSource {

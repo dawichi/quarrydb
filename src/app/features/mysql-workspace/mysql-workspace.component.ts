@@ -1,5 +1,5 @@
 import { Component, effect, inject, signal } from '@angular/core'
-import type { WorkspaceTab } from '@quarrydb/shared/session'
+import type { MysqlWorkspaceTab } from '@quarrydb/shared/session'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
 import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
@@ -16,12 +16,7 @@ export class MysqlWorkspaceComponent {
     protected readonly store = inject(MysqlWorkspaceStore)
     protected readonly provider = inject(MysqlProviderService)
     protected readonly workspaceHost = inject(WorkspaceHostStore)
-    protected readonly tabs: Array<Extract<WorkspaceTab, 'browse' | 'query' | 'edit'> | 'pipeline'> = [
-        'browse',
-        'query',
-        'edit',
-        'pipeline',
-    ]
+    protected readonly tabs: MysqlWorkspaceTab[] = ['browse', 'query', 'edit', 'pipeline']
     protected readonly activeView = signal<'browse' | 'query' | 'edit' | 'pipeline'>('browse')
     protected readonly showExportMenu = signal(false)
 
@@ -65,7 +60,7 @@ export class MysqlWorkspaceComponent {
 
     protected selectView(view: 'browse' | 'query' | 'edit' | 'pipeline'): void {
         this.activeView.set(view)
-        if (view !== 'pipeline') this.store.setActiveTab(view)
+        this.store.setActiveTab(view)
     }
 
     protected readonly editingCell = signal<{ rowIndex: number; column: string } | null>(null)

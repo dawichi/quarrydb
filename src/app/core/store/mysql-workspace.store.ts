@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { MysqlWorkspaceSelection, WorkspaceTab } from '@quarrydb/shared/session'
+import type { MysqlWorkspaceSelection, MysqlWorkspaceTab } from '@quarrydb/shared/session'
 import type { MysqlConnectionSession, MysqlSchemaSummary, MysqlTableSummary } from '../providers/mysql-backend-adapter'
 import { MysqlBackendAdapterService } from '../providers/mysql-backend-adapter.service'
 import type { MysqlWorkspaceDraft } from '../providers/mysql-workspace-draft'
@@ -25,7 +25,7 @@ export class MysqlWorkspaceStore {
     readonly tableRows = signal<Record<string, unknown>[]>([])
     readonly tableColumns = signal<string[]>([])
     readonly tableRowTotal = signal(0)
-    readonly activeTab = signal<WorkspaceTab>('browse')
+    readonly activeTab = signal<MysqlWorkspaceTab>('browse')
     readonly querySql = signal('')
     readonly queryRows = signal<Record<string, unknown>[]>([])
     readonly queryColumns = signal<string[]>([])
@@ -109,7 +109,7 @@ export class MysqlWorkspaceStore {
         this.rowOffset = 0
     }
 
-    setActiveTab(tab: WorkspaceTab): void {
+    setActiveTab(tab: MysqlWorkspaceTab): void {
         this.activeTab.set(tab)
     }
 
