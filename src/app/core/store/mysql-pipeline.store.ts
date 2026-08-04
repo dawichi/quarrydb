@@ -42,6 +42,7 @@ export class MysqlPipelineStore {
 
     private session: MysqlConnectionSession | null = null
     private sourceKey = ''
+    private rerunRequested = false
 
     openForTable(session: MysqlConnectionSession, schemaName: string, tableName: string, columns: string[]): void {
         const key = `${session.target.connectionId}:${schemaName}.${tableName}`
@@ -64,6 +65,7 @@ export class MysqlPipelineStore {
         this.stepResults.set([])
         this.error.set(null)
         this.isRunning.set(false)
+        this.rerunRequested = false
     }
 
     restoreState(steps: PipelineStep[], variableValues: Record<string, string>): void {
@@ -76,7 +78,11 @@ export class MysqlPipelineStore {
     async exportResult(format: ExportFormat): Promise<void> {
         const session = this.session
         const source = this.source()
-        if (!session || !source || this.isRunning()) return
+        if (!session || !source) return
+        if (this.isRunning()) {
+            this.rerunRequested = true
+            return
+        }
 
         this.isRunning.set(true)
         this.error.set(null)
@@ -213,6 +219,10 @@ export class MysqlPipelineStore {
             }
         } finally {
             this.isRunning.set(false)
+            if (this.rerunRequested) {
+                this.rerunRequested = false
+                void this.execute()
+            }
         }
     }
 
