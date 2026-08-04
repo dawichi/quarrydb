@@ -141,12 +141,15 @@ describeMysql('MySQL provider against a real MySQL server', () => {
         ]
         const sql = buildPipelineSql('quarry_demo.orders', steps, {}, 'mysql')
         const rows = await service.runQueryFull(session, sql)
+        const preview = await service.runQuery(session, sql, 3)
 
         expect(sql).toContain('`quarry_demo`.`orders`')
         expect(sql).toContain('INNER JOIN `quarry_demo`.`customers`')
         expect(rows).toHaveLength(10)
         expect(rows[0]).toMatchObject({ name: 'Alice Martin', revenue: '1569.96' })
         expect(rows.at(-1)).toMatchObject({ name: "James O'Brien", revenue: '119.98' })
+        expect(preview.rows).toHaveLength(3)
+        expect(preview.columns).toEqual(['name', 'revenue'])
     })
 
     it('fetches full table and query results for export', async () => {
