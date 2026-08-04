@@ -223,6 +223,15 @@
                                                         (input)="updateMysqlDraft('password', $any($event.target).value)"
                                                         placeholder="Optional"
                                                     />
+                                                    <span class="mt-1 flex items-center gap-2 text-xs text-zinc-500">
+                                                        <input
+                                                            class="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-sky-500 focus:ring-sky-500"
+                                                            type="checkbox"
+                                                            [checked]="mysqlDraft().rememberPassword"
+                                                            (change)="updateMysqlDraft('rememberPassword', $any($event.target).checked)"
+                                                        />
+                                                        Remember securely on this device
+                                                    </span>
                                                 </label>
                                                 <label class="flex flex-col gap-1 md:col-span-2">
                                                     <span class="text-xs uppercase tracking-wide text-zinc-500">Default database</span>
@@ -256,6 +265,9 @@
                                                 <p class="text-xs text-zinc-500">
                                                     Default database is optional. Saved profiles keep connection metadata only; passwords stay in runtime memory and must be re-entered after relaunch.
                                                 </p>
+                                                @if (mysqlProvider.secretStorageWarning(); as warning) {
+                                                    <p class="text-xs text-amber-200/80">{{ warning }}</p>
+                                                }
                                             </div>
 
                                             @if (mysqlProfiles().length === 0) {

@@ -118,13 +118,13 @@ Do not over-design this before implementation, but the intended direction is:
 If secure OS-backed secret storage is not part of v1, the fallback behavior and tradeoff
 must be explicit before shipping.
 
-Current preview status:
+Current credential-storage status:
 
-- MySQL passwords stay in runtime memory only and are not persisted in profiles, recent
-  items, or sessions.
-- Recent-item reopen and session restore therefore require the user to re-enter the password.
-- Replacing this development-time behavior with deliberate OS-backed secret storage remains
-  required before treating the provider as production-ready.
+- MySQL passwords are still excluded from profiles, recent items, and sessions by default.
+- Users may explicitly opt into OS-backed storage for a profile; Quarry uses the platform
+  credential store on macOS, Windows, and Linux where available.
+- If the native store is unavailable, Quarry keeps the password in runtime memory and
+  continues to require re-entry after relaunch.
 
 ## Workspace Model
 

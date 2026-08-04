@@ -7,6 +7,7 @@ export interface MysqlConnectionProfile {
     port: number
     username: string
     defaultDatabase?: string
+    rememberPassword?: boolean
     color?: string
     sslMode?: 'disabled' | 'preferred' | 'required'
     createdAt: number
@@ -20,6 +21,7 @@ export interface MysqlConnectionProfileDraft {
     username: string
     password: string
     defaultDatabase?: string
+    rememberPassword?: boolean
     color?: string
     sslMode?: 'disabled' | 'preferred' | 'required'
 }

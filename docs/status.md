@@ -45,7 +45,7 @@ shipped publicly with auto-updates working.
 | Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
-| MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, and session context restoration to the password prompt |
+| MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, password-prompt session restoration, and opt-in OS-backed password storage with runtime fallback |
 | MySQL staged row editing | ✅ Primary-key guarded update/delete staging, review, transactional apply, and rollback coverage |
 | JOIN: branch input mode | ✅ Done |
 | JOIN: subpipeline mode | ✅ Done |
@@ -58,8 +58,8 @@ See `docs/roadmap.md` for the long-term phased view. This list is the near-term,
 slice of that.
 
 1. **MySQL v1 productization** — promote the current preview into a supported browse/query
-   provider, with export, reconnect, and password-prompt session restoration now in place;
-   secure secret storage and final connection UX remain.
+   provider, with export, reconnect, password-prompt session restoration, and opt-in secure
+   secret storage now in place; final packaged-platform UX remains.
 2. **MySQL relational features** — staged row editing is now shipped; next evaluate visual
    pipeline support only after the provider-specific SQL boundary is explicit.
 3. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
@@ -152,3 +152,4 @@ multiple features.
 | 2026-08-03 | Extended Playwright with a deterministic SQLite IPC fixture covering session restore, table browsing, WHERE pipeline creation, generated SQL, and result rendering |
 | 2026-08-03 | Added Playwright coverage for staged SQLite row updates, transactional apply, refreshed data, and CSV export payloads |
 | 2026-08-03 | MySQL v1 productization: full-result exports, browser coverage, and explicit runtime-secret reconnect UX |
+| 2026-08-04 | MySQL secure credentials: opt-in OS-backed password storage through the native credential store, with runtime-only fallback and migration-safe profile metadata |

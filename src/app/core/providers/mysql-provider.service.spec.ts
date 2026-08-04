@@ -32,9 +32,12 @@ describe('MysqlProviderService', () => {
     }
     const secrets = {
         get: vi.fn(),
+        load: vi.fn(),
         set: vi.fn(),
+        remember: vi.fn(),
         has: vi.fn(),
         remove: vi.fn(),
+        forget: vi.fn(),
     }
     const errorSet = vi.fn()
     const loadingSet = vi.fn()
@@ -68,9 +71,13 @@ describe('MysqlProviderService', () => {
         profiles.upsert.mockReset()
         profiles.remove.mockReset()
         secrets.get.mockReset()
+        secrets.load.mockReset()
         secrets.set.mockReset()
+        secrets.remember.mockReset()
+        secrets.remember.mockResolvedValue(true)
         secrets.has.mockReset()
         secrets.remove.mockReset()
+        secrets.forget.mockReset()
         errorSet.mockReset()
         loadingSet.mockReset()
         backend.connect.mockReset()
@@ -106,6 +113,7 @@ describe('MysqlProviderService', () => {
             schemaSummaries: signal(null),
             schemaBootstrapError: signal(null),
             connectPassword: signal(''),
+            secretStorageWarning: signal(null),
         }) as MysqlProviderService
     })
 
@@ -132,6 +140,7 @@ describe('MysqlProviderService', () => {
             port: 3306,
             username: '',
             password: '',
+            rememberPassword: false,
             sslMode: 'preferred',
         })
     })
@@ -149,6 +158,7 @@ describe('MysqlProviderService', () => {
             port: 3306,
             username: ' quarry ',
             password: ' secret ',
+            rememberPassword: true,
             defaultDatabase: ' warehouse ',
             sslMode: 'required' as const,
         }
@@ -160,6 +170,7 @@ describe('MysqlProviderService', () => {
             username: 'quarry',
             password: 'secret',
             defaultDatabase: 'warehouse',
+            rememberPassword: true,
             sslMode: 'required' as const,
             createdAt: 1,
             updatedAt: 1,
@@ -176,6 +187,7 @@ describe('MysqlProviderService', () => {
                 username: 'quarry',
                 password: 'secret',
                 defaultDatabase: 'warehouse',
+                rememberPassword: true,
                 color: undefined,
                 sslMode: 'required',
             },
@@ -183,6 +195,7 @@ describe('MysqlProviderService', () => {
         )
         expect(profiles.upsert).toHaveBeenCalledWith(created)
         expect(secrets.set).toHaveBeenCalledWith('mysql-1', ' secret ')
+        expect(secrets.remember).toHaveBeenCalledWith('mysql-1', ' secret ')
         expect(recentItems.createMysqlItem).toHaveBeenCalledWith(created, 1)
         expect(recentItems.add).toHaveBeenCalledWith({ id: 'mysql:mysql-1' })
         expect(service.workspaceDraft()).toEqual({

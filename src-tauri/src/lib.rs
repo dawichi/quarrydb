@@ -1,6 +1,36 @@
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::Emitter;
 
+const MYSQL_KEYRING_SERVICE: &str = "dev.quarrydb.app.mysql";
+
+fn mysql_keyring_entry(connection_id: &str) -> Result<keyring::Entry, String> {
+    keyring::Entry::new(MYSQL_KEYRING_SERVICE, connection_id).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn get_mysql_password(connection_id: String) -> Result<Option<String>, String> {
+    match mysql_keyring_entry(&connection_id)?.get_password() {
+        Ok(password) => Ok(Some(password)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+#[tauri::command]
+fn set_mysql_password(connection_id: String, password: String) -> Result<(), String> {
+    mysql_keyring_entry(&connection_id)?
+        .set_password(&password)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn delete_mysql_password(connection_id: String) -> Result<(), String> {
+    match mysql_keyring_entry(&connection_id)?.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
 #[tauri::command]
 fn write_text_file(path: String, content: String, ext: String) -> Result<(), String> {
     // macOS save dialogs hide the extension visually but append it in the returned path.
@@ -19,10 +49,28 @@ fn build_menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
         "File",
         true,
         &[
-            &MenuItem::with_id(app, "open-database", "Open Database…", true, Some("CmdOrCtrl+O"))?,
-            &MenuItem::with_id(app, "open-sample", "Open Sample Database…", true, None::<&str>)?,
+            &MenuItem::with_id(
+                app,
+                "open-database",
+                "Open Database…",
+                true,
+                Some("CmdOrCtrl+O"),
+            )?,
+            &MenuItem::with_id(
+                app,
+                "open-sample",
+                "Open Sample Database…",
+                true,
+                None::<&str>,
+            )?,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "check-for-updates", "Check for Updates…", true, None::<&str>)?,
+            &MenuItem::with_id(
+                app,
+                "check-for-updates",
+                "Check for Updates…",
+                true,
+                None::<&str>,
+            )?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "hard-reset", "Hard Reset…", true, None::<&str>)?,
         ],
@@ -108,7 +156,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
-        .invoke_handler(tauri::generate_handler![write_text_file])
+        .invoke_handler(tauri::generate_handler![
+            write_text_file,
+            get_mysql_password,
+            set_mysql_password,
+            delete_mysql_password
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
 }

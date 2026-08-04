@@ -58,6 +58,7 @@ describe('MysqlConnectionProfilesService', () => {
             port: 3306,
             username: 'quarry',
             defaultDatabase: 'warehouse',
+            rememberPassword: false,
             color: '#0ea5e9',
             sslMode: 'required',
             createdAt: 1234,

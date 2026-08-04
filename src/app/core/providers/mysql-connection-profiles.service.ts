@@ -31,6 +31,7 @@ export class MysqlConnectionProfilesService {
             port: draft.port,
             username: draft.username,
             defaultDatabase: draft.defaultDatabase,
+            rememberPassword: draft.rememberPassword ?? false,
             color: draft.color,
             sslMode: draft.sslMode,
             createdAt: now,

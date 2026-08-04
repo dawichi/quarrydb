@@ -35,6 +35,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     readonly schemaSummaries = signal<MysqlSchemaSummary[] | null>(null)
     readonly schemaBootstrapError = signal<string | null>(null)
     readonly connectPassword = signal('')
+    readonly secretStorageWarning = signal<string | null>(null)
 
     readonly id = 'mysql' as const
     readonly kind = 'relational' as const
@@ -80,6 +81,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             port: 3306,
             username: '',
             password: '',
+            rememberPassword: false,
             sslMode: 'preferred',
         }
     }
@@ -123,6 +125,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
                 username: draft.username.trim(),
                 password: draft.password.trim(),
                 defaultDatabase: draft.defaultDatabase?.trim() || undefined,
+                rememberPassword: draft.rememberPassword,
                 color: draft.color,
                 sslMode: draft.sslMode,
             },
@@ -130,6 +133,18 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         )
         this.profiles.upsert(profile)
         this.secrets.set(profile.id, draft.password)
+        this.secretStorageWarning.set(null)
+        if (profile.rememberPassword) {
+            void this.secrets.remember(profile.id, draft.password).then((stored) => {
+                if (!stored) {
+                    this.secretStorageWarning.set(
+                        'Secure password storage is unavailable; this password will be forgotten when Quarry closes.',
+                    )
+                }
+            })
+        } else {
+            void this.secrets.deletePersisted(profile.id)
+        }
         this.recentItems.add(this.recentItems.createMysqlItem(profile, now))
         this.workspaceDraft.set(this.createWorkspaceDraftFromProfile(profile))
         this.syncDraftPassword(profile.id)
@@ -138,7 +153,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
 
     removeProfile(id: string): void {
         this.profiles.remove(id)
-        this.secrets.remove(id)
+        void this.secrets.forget(id)
         this.recentItems.remove(`mysql:${id}`)
         if (this.workspaceDraft()?.target.connectionId === id) {
             this.workspaceDraft.set(null)
@@ -348,5 +363,13 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
 
     private syncDraftPassword(connectionId: string): void {
         this.connectPassword.set(this.secrets.get(connectionId) ?? '')
+        const profile = this.profiles.find(connectionId)
+        if (profile?.rememberPassword && !this.connectPassword()) {
+            void this.secrets.load(connectionId).then((password) => {
+                if (this.workspaceDraft()?.target.connectionId === connectionId) {
+                    this.connectPassword.set(password ?? '')
+                }
+            })
+        }
     }
 }
