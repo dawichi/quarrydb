@@ -18,6 +18,8 @@
             <button type="button" class="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-sky-500" (click)="addWhere()">+ WHERE</button>
             <button type="button" class="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-sky-500" (click)="addSelect()">+ SELECT</button>
             <button type="button" class="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-sky-500" (click)="addOrderBy()">+ ORDER BY</button>
+            <button type="button" class="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-sky-500" (click)="addGroupBy()">+ GROUP BY</button>
+            <button type="button" class="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-sky-500" (click)="addJoin()">+ JOIN</button>
             <button type="button" class="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-sky-500" (click)="addRawSql()">+ RAW SQL</button>
         </div>
 
@@ -40,6 +42,33 @@
                             <input class="mt-2 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-100 outline-none focus:border-sky-500" placeholder="expression" [value]="column.expr" (input)="updateSelectExpr(i, $index, $event)" />
                         }
                         <button type="button" class="mt-3 text-xs text-sky-400 hover:text-sky-300" (click)="addCustomColumn(i)">+ custom expression</button>
+                    } @else if (step.type === 'GROUP_BY') {
+                        <div class="flex flex-wrap gap-2">
+                            @for (column of pipeline.source()!.columns; track column) {
+                                <button type="button" class="rounded-md border px-2 py-1 text-xs" [class]="isGrouped(i, column) ? 'border-sky-500 bg-sky-500/15 text-sky-300' : 'border-zinc-700 text-zinc-400'" (click)="toggleGroupColumn(i, column)">{{ column }}</button>
+                            }
+                        </div>
+                        @for (aggregation of step.aggregations; track $index) {
+                            <div class="mt-2 flex gap-2">
+                                <button type="button" class="w-16 rounded-lg border border-zinc-700 px-2 text-xs text-sky-300" (click)="cycleAggregation(i, $index)">{{ aggregation.fn }}</button>
+                                <input class="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-100" placeholder="expression" [value]="aggregation.expr" (input)="updateAggregation(i, $index, 'expr', $event)" />
+                                <input class="w-28 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100" placeholder="alias" [value]="aggregation.alias" (input)="updateAggregation(i, $index, 'alias', $event)" />
+                                <button type="button" class="px-2 text-zinc-500 hover:text-red-300" (click)="removeAggregation(i, $index)">×</button>
+                            </div>
+                        }
+                        <button type="button" class="mt-3 text-xs text-sky-400 hover:text-sky-300" (click)="addAggregation(i)">+ aggregation</button>
+                    } @else if (step.type === 'JOIN') {
+                        <div class="grid gap-2 md:grid-cols-3">
+                            <select class="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100" (change)="updateJoin(i, 'joinType', $event)">
+                                @for (joinType of ['INNER', 'LEFT', 'RIGHT', 'FULL']; track joinType) { <option [value]="joinType" [selected]="step.joinType === joinType">{{ joinType }} JOIN</option> }
+                            </select>
+                            <select class="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100" (change)="updateJoin(i, 'table', $event)">
+                                <option value="">Choose a table</option>
+                                @for (table of workspace.tables(); track table.name) { <option [value]="table.schemaName + '.' + table.name" [selected]="step.table === table.schemaName + '.' + table.name">{{ table.name }}</option> }
+                            </select>
+                            <input class="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-100" placeholder="a.id = b.id" [value]="step.on" (input)="updateJoin(i, 'on', $event)" />
+                        </div>
+                        <p class="mt-2 text-xs text-zinc-500">Use the source and joined table names or aliases in the ON expression.</p>
                     } @else if (step.type === 'ORDER_BY') {
                         <div class="flex gap-2">
                             <select class="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100" (change)="updateOrderBy(i, $event)">

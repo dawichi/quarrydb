@@ -1,5 +1,5 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
-import type { PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
+import type { Aggregation, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { buildPipelineSql } from '@quarrydb/shared/pipeline-sql'
 import type { MysqlConnectionSession } from '../providers/mysql-backend-adapter'
 import { MysqlBackendAdapterService } from '../providers/mysql-backend-adapter.service'
@@ -79,6 +79,14 @@ export class MysqlPipelineStore {
         this.add({ id: crypto.randomUUID(), type: 'RAW_SQL', sql: '' })
     }
 
+    addGroupByStep(): void {
+        this.add({ id: crypto.randomUUID(), type: 'GROUP_BY', groupBy: [], aggregations: [] })
+    }
+
+    addJoinStep(): void {
+        this.add({ id: crypto.randomUUID(), type: 'JOIN', mode: 'inline', joinType: 'INNER', table: '', on: '' })
+    }
+
     updateWhereStep(index: number, expression: string): void {
         this.update(index, (step) => (step.type === 'WHERE' ? { ...step, expression } : step))
     }
@@ -93,6 +101,14 @@ export class MysqlPipelineStore {
 
     updateRawSqlStep(index: number, sql: string): void {
         this.update(index, (step) => (step.type === 'RAW_SQL' ? { ...step, sql } : step))
+    }
+
+    updateGroupByStep(index: number, groupBy: string[], aggregations: Aggregation[]): void {
+        this.update(index, (step) => (step.type === 'GROUP_BY' ? { ...step, groupBy, aggregations } : step))
+    }
+
+    updateJoinStep(index: number, joinType: JoinType, table: string, on: string): void {
+        this.update(index, (step) => (step.type === 'JOIN' ? { ...step, joinType, table, on } : step))
     }
 
     removeStep(index: number): void {

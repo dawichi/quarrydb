@@ -1,5 +1,5 @@
 import { Component, effect, inject, signal } from '@angular/core'
-import type { SelectColumn, SortColumn } from '@quarrydb/shared'
+import type { AggFn, Aggregation, JoinType, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { MysqlPipelineStore } from '../../core/store/mysql-pipeline.store'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 
@@ -42,6 +42,12 @@ export class MysqlPipelineComponent {
     }
     protected addRawSql(): void {
         this.pipeline.addRawSqlStep()
+    }
+    protected addGroupBy(): void {
+        this.pipeline.addGroupByStep()
+    }
+    protected addJoin(): void {
+        this.pipeline.addJoinStep()
     }
 
     protected updateWhere(index: number, event: Event): void {
@@ -93,6 +99,72 @@ export class MysqlPipelineComponent {
 
     protected updateRawSql(index: number, event: Event): void {
         this.pipeline.updateRawSqlStep(index, (event.target as HTMLTextAreaElement).value)
+    }
+
+    protected toggleGroupColumn(index: number, name: string): void {
+        const step = this.pipeline.steps()[index]
+        if (step?.type !== 'GROUP_BY') return
+        const groupBy = step.groupBy.includes(name)
+            ? step.groupBy.filter((column) => column !== name)
+            : [...step.groupBy, name]
+        this.pipeline.updateGroupByStep(index, groupBy, step.aggregations)
+    }
+
+    protected isGrouped(index: number, name: string): boolean {
+        const step = this.pipeline.steps()[index]
+        return step?.type === 'GROUP_BY' && step.groupBy.includes(name)
+    }
+
+    protected addAggregation(index: number): void {
+        const step = this.pipeline.steps()[index]
+        if (step?.type !== 'GROUP_BY') return
+        const aggregations: Aggregation[] = [...step.aggregations, { fn: 'COUNT', expr: '*', alias: 'count' }]
+        this.pipeline.updateGroupByStep(index, step.groupBy, aggregations)
+    }
+
+    protected removeAggregation(index: number, aggregationIndex: number): void {
+        const step = this.pipeline.steps()[index]
+        if (step?.type !== 'GROUP_BY') return
+        this.pipeline.updateGroupByStep(
+            index,
+            step.groupBy,
+            step.aggregations.filter((_, i) => i !== aggregationIndex),
+        )
+    }
+
+    protected updateAggregation(index: number, aggregationIndex: number, field: 'expr' | 'alias', event: Event): void {
+        const step = this.pipeline.steps()[index]
+        if (step?.type !== 'GROUP_BY') return
+        const value = (event.target as HTMLInputElement).value
+        const aggregations = step.aggregations.map((aggregation, i) =>
+            i === aggregationIndex ? { ...aggregation, [field]: value } : aggregation,
+        )
+        this.pipeline.updateGroupByStep(index, step.groupBy, aggregations)
+    }
+
+    protected cycleAggregation(index: number, aggregationIndex: number): void {
+        const step = this.pipeline.steps()[index]
+        if (step?.type !== 'GROUP_BY') return
+        const functions: AggFn[] = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
+        const current = step.aggregations[aggregationIndex]
+        if (!current) return
+        const fn = functions[(functions.indexOf(current.fn) + 1) % functions.length]
+        const aggregations = step.aggregations.map((aggregation, i) =>
+            i === aggregationIndex ? { ...aggregation, fn } : aggregation,
+        )
+        this.pipeline.updateGroupByStep(index, step.groupBy, aggregations)
+    }
+
+    protected updateJoin(index: number, field: 'table' | 'on' | 'joinType', event: Event): void {
+        const step = this.pipeline.steps()[index]
+        if (step?.type !== 'JOIN') return
+        const value = (event.target as HTMLInputElement | HTMLSelectElement).value
+        this.pipeline.updateJoinStep(
+            index,
+            field === 'joinType' ? (value as JoinType) : step.joinType,
+            field === 'table' ? value : step.table,
+            field === 'on' ? value : step.on,
+        )
     }
 
     protected toggleResult(index: number): void {
