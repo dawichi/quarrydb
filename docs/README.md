@@ -1,8 +1,17 @@
 # Quarry — AI & Developer Reference
 
-This folder contains the project context, architecture notes, product spec, status, and
-coding conventions for Quarry. Any AI agent or contributor working on this codebase should
-start at the repo-root [`AGENTS.md`](../AGENTS.md), then read the relevant file(s) here.
+This folder contains Quarry's project context, architecture notes, product spec, standards
+contract, status, and coding conventions. Any AI agent or contributor should start at the
+canonical [`AGENTS.md`](AGENTS.md), then read the relevant file(s) here.
+
+## Agent and standards entry points
+
+| File | What it covers |
+|------|---------------|
+| [AGENTS.md](AGENTS.md) | Safe changes, source-of-truth boundaries, verification, and provider rules |
+| [project-standards.yml](project-standards.yml) | Pinned shared standards, compliance states, exceptions, and deferred work |
+| [TODO.md](TODO.md) | Prioritized standards and maturity backlog |
+| [adr/README.md](adr/README.md) | Durable architectural and policy decisions |
 
 ## Project Context
 

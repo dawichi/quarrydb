@@ -8,6 +8,7 @@ bun run test:run    # Vitest unit and SQLite integration tests
 bun run test:e2e    # Playwright browser tests against Angular
 bun run test:mysql  # Real MySQL provider integration tests via Docker
 bun run build       # Production Angular bundle
+bun run build:landing # Production Astro landing bundle
 ```
 
 Run the complete local verification sequence with:

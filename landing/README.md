@@ -1,43 +1,28 @@
-# Astro Starter Kit: Minimal
+# Quarry landing site
 
-```sh
-bun create astro@latest -- --template minimal
-```
+The public Astro landing page for [quarrydb.app](https://quarrydb.app). It contains the
+marketing page, interactive pipeline demo, and release download links.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
+## Project structure
 
 ```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+landing/
+├── public/              # favicon and static assets
+├── src/pages/index.astro
+├── src/lib/releases.ts  # GitHub release metadata boundary
+└── src/styles/global.css
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Commands
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Run these commands from the repository root:
 
-Any static assets, like images, can be placed in the `public/` directory.
+| Command | Purpose |
+|---|---|
+| `bun install --frozen-lockfile` | Install the workspace dependencies |
+| `bun --cwd landing run dev` | Start the Astro dev server |
+| `bun run build:landing` | Build the production landing site |
+| `bun --cwd landing run preview` | Preview the production build |
 
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `bun install`             | Installs dependencies                            |
-| `bun dev`             | Starts local dev server at `localhost:4321`      |
-| `bun build`           | Build your production site to `./dist/`          |
-| `bun preview`         | Preview your build locally, before deploying     |
-| `bun astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `bun astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+The landing page is static-first. Client-side JavaScript is limited to the interactive
+pipeline demo and fetching the latest public GitHub release metadata.

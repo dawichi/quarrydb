@@ -21,7 +21,7 @@
 quarrydb/
 ├── src/                  # Angular app — the desktop UI
 │   └── app/
-│       ├── core/         # services (DatabaseService, …) + state stores (WorkspaceStore, PipelineStore)
+│       ├── core/         # provider services, persistence, and host/provider state stores
 │       ├── layout/       # app shell (sidebar / schema browser)
 │       ├── features/     # table-viewer, pipeline-builder, edit-mode, tutorial,
 │       │                 # welcome, update-check-modal, update-banner
@@ -96,11 +96,11 @@ navigation models.
 
 ## Current SQLite-Coupled Assumptions
 
-Today, several generic-sounding paths are actually SQLite-only:
+Today, several paths are provider-specific even when they live under shared-looking folders:
 
-- `DatabaseService` is a SQLite bridge
-- `WorkspaceStore` assumes file-backed SQLite workspaces
-- session persistence assumes the current SQLite workspace shape
+- `SqliteDatabaseService` is a SQLite bridge
+- `SqliteWorkspaceStore` owns file-backed SQLite workspaces
+- session persistence is provider-aware but still has provider-specific payloads
 - recent items are recent SQLite files
 - the schema browser assumes SQLite tables/views/triggers
 - the query pipeline assumes SQLite dialect and source-selection rules

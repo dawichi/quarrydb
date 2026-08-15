@@ -35,6 +35,8 @@ jobs:
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.4'
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -47,7 +49,7 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       # tauri-action builds and uploads the DMG/EXE/MSI installers.
       # includeUpdaterJson is disabled because tauri-action repacks the macOS .tar.gz

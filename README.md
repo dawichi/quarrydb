@@ -34,14 +34,14 @@ quarrydb/
 
 The desktop frontend. Built with Angular 20 Signals, styled with Tailwind CSS v4. Key areas:
 
-- `src/app/core/store/` — `PipelineStore` and `WorkspaceStore` (all state as Signals)
-- `src/app/core/services/` — `DatabaseService` (Tauri SQL plugin bridge)
+- `src/app/core/store/` — provider-owned stores plus shared host state (all state as Signals)
+- `src/app/core/services/` — provider adapters, persistence, export, and updater services
 - `src/app/features/pipeline-builder/` — the visual query builder and step cards
 - `src/app/features/table-viewer/` — table row browser with pagination
 
 ### `src-tauri/` — Tauri shell
 
-Rust backend. Handles the native window, file dialogs, and the `tauri-plugin-sql` bridge that executes SQLite queries. No custom Rust commands yet — all database access goes through the plugin.
+Rust backend. Handles the native window, menus, file dialogs, OS keyring integration, export file writes, and the `tauri-plugin-sql` bridge.
 
 ### `landing/` — Astro site
 
@@ -89,7 +89,7 @@ connection details, MySQL sample-data steps, and teardown commands are in
 
 ## Running the tests
 
-Unit tests cover the SQL generation layer (`buildPipelineSql`) — the pure function that turns a pipeline step array into a CTE-based SQL query.
+Unit tests cover SQL generation, provider stores and adapters, persistence, updater behavior, edit-mode transactions, and database integration fixtures.
 
 ```bash
 # Run once (CI mode)
@@ -102,7 +102,7 @@ bun run test:e2e
 bun run test
 ```
 
-Tests live alongside the code they cover: `src/app/core/store/pipeline.store.spec.ts`.
+Tests live alongside the code they cover, with browser workflows under `e2e/` and controlled database fixtures under `src/app/core/integration/`.
 
 ---
 
@@ -110,6 +110,7 @@ Tests live alongside the code they cover: `src/app/core/store/pipeline.store.spe
 
 ```bash
 bun run check      # Biome: lint + format (auto-fix)
+bun run check:ci   # Biome: non-mutating CI check
 bun run lint       # Biome: lint only
 bun run format     # Biome: format only
 ```

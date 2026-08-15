@@ -38,7 +38,7 @@ jobs:
           exit 1
 
       - name: Check formatting and lint
-        run: bun run check
+        run: bun run check:ci
 
       - name: Run unit and integration tests
         run: bun run test:run && QUARRY_MYSQL_INTEGRATION=1 bun run vitest run src/app/core/integration/mysql-provider.integration.spec.ts
@@ -48,6 +48,9 @@ jobs:
 
       - name: Build production bundle
         run: bun run build
+
+      - name: Build landing site
+        run: bun run build:landing
 
       - name: Stop MySQL
         if: always()

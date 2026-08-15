@@ -2,6 +2,7 @@
   "name": "quarrydb",
   "version": "0.1.9",
   "private": true,
+  "packageManager": "bun@1.3.4",
   "workspaces": [
     "packages/*",
     "landing"
@@ -21,10 +22,12 @@
     "lint": "biome lint src/ packages/",
     "format": "biome format --write src/ packages/",
     "check": "biome check --write src/ packages/",
+    "check:ci": "biome check src/ packages/",
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
-    "qa": "bun run check && bun run test:run && bun run test:e2e && bun run build"
+    "build:landing": "bun run --cwd landing build",
+    "qa": "bun run check:ci && bun run test:run && bun run test:e2e && bun run build && bun run build:landing"
   },
   "dependencies": {
     "@angular/common": "^20.1.4",
