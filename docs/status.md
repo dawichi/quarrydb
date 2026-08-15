@@ -42,10 +42,10 @@ shipped publicly with auto-updates working.
 | Testing — integration tests for pipeline run/export and edit-mode transactions (8 tests) | ✅ Done |
 | Query history (opt-in) | ✅ Done |
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
-| Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
-| Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
+| Testing — Playwright E2E | 🟡 Angular welcome, browse/query, edit/apply, and export flows plus Astro landing smoke coverage; native OS flows pending |
+| Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, server-side filtering/sorting, expressions, joins, and transactional edits |
 | Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews, string/TTL editing, deletion, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN and previews |
-| Testing — Redis native provider | ✅ 5 Rust boundary tests, frontend invoke contract tests, command parser tests, and Docker-backed live protocol test in CI |
+| Testing — Redis native provider | ✅ 5 Rust boundary tests, frontend invoke contract tests, command parser tests, and Docker-backed live protocol test covering typed previews in CI |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
 | MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, password-prompt session restoration, and opt-in OS-backed password storage with runtime fallback |
 | MySQL staged row editing | ✅ Primary-key guarded update/delete staging, review, transactional apply, and rollback coverage |
@@ -65,7 +65,8 @@ slice of that.
 2. **MySQL relational features** — staged row editing and a provider-owned visual pipeline
    with WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and RAW SQL are shipped, including
    session persistence and full-result export; adapter/store execution coverage is now in
-   place, with broader live integration scenarios remaining.
+   place, with live integration coverage for filtering/sorting, generated pipelines, export, and
+   transactional edits.
 3. **Redis depth** — add focused collection editors, keyspace export, and cluster/ACL workflows
    only when their operational UX and safety boundaries are specified.
 4. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
@@ -166,3 +167,6 @@ multiple features.
 | 2026-08-04 | MySQL pipeline execution coverage: added provider-store tests for prefix previews, queued reruns, blocked errors, restoration variables, and uncapped export |
 | 2026-08-04 | MySQL live integration coverage: added a real-adapter generated WHERE → JOIN → GROUP BY → ORDER BY pipeline assertion against the Docker fixture |
 | 2026-08-04 | MySQL pipeline workspace polish: persisted the provider-specific Pipeline view and added SQL export alongside CSV, JSON, and Markdown |
+| 2026-08-15 | Session persistence hardening: added recursive versioned validation for SQLite, MySQL, Redis, nested pipeline steps, legacy sessions, and malformed-state regression fixtures |
+| 2026-08-15 | Provider safety and integration hardening: redacted credential-bearing errors, added MySQL live browse filter/sort coverage, and expanded Redis live previews across string/list/set/sorted-set/hash/stream values |
+| 2026-08-15 | Landing/CI hardening: added deterministic Astro browser smoke tests, separate Angular/Astro Playwright artifact directories, and CI failure artifact upload |
