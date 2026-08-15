@@ -23,6 +23,7 @@ export class MysqlWorkspaceStore {
     private rowOffset = 0
     private schemaRequestId = 0
     private rowsRequestId = 0
+    private queryRequestId = 0
 
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
     readonly schemas = signal<MysqlSchemaSummary[]>([])
@@ -61,6 +62,7 @@ export class MysqlWorkspaceStore {
     ): Promise<void> {
         this.schemaRequestId += 1
         this.rowsRequestId += 1
+        this.queryRequestId += 1
         this.connectionSession.set(session)
         this.isLoadingTables.set(false)
         this.isLoadingRows.set(false)
@@ -105,6 +107,7 @@ export class MysqlWorkspaceStore {
     clear(): void {
         this.schemaRequestId += 1
         this.rowsRequestId += 1
+        this.queryRequestId += 1
         this.connectionSession.set(null)
         this.schemas.set([])
         this.selectedSchemaName.set(null)
@@ -221,12 +224,14 @@ export class MysqlWorkspaceStore {
         }
 
         this.isRunningQuery.set(true)
+        const requestId = ++this.queryRequestId
         this.host.error.set(null)
         this.queryRows.set([])
         this.queryColumns.set([])
         this.queryMeta.set(null)
         try {
             const result = await this.backend.runQuery(session, sql, this.PAGE_SIZE)
+            if (requestId !== this.queryRequestId || session !== this.connectionSession()) return
             this.queryRows.set(result.rows)
             this.queryColumns.set(result.columns)
             this.queryMeta.set(
@@ -235,9 +240,10 @@ export class MysqlWorkspaceStore {
                     : `Statement executed. ${result.affectedRows ?? 0} row${result.affectedRows === 1 ? '' : 's'} affected`,
             )
         } catch (error) {
+            if (requestId !== this.queryRequestId || session !== this.connectionSession()) return
             this.host.error.set(this.describeError(error, 'Failed to run MySQL query'))
         } finally {
-            this.isRunningQuery.set(false)
+            if (requestId === this.queryRequestId) this.isRunningQuery.set(false)
         }
     }
 

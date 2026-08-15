@@ -69,11 +69,36 @@ describe('MysqlWorkspaceStore', () => {
         expect(service.tableColumns()).toEqual(['id'])
         expect(service.isLoadingRows()).toBe(false)
     })
+
+    it('keeps the newest query result when a workspace query is replaced', async () => {
+        const first = deferred<{ kind: 'rows'; rows: Record<string, unknown>[]; columns: string[] }>()
+        const second = deferred<{ kind: 'rows'; rows: Record<string, unknown>[]; columns: string[] }>()
+        const backend = {
+            runQuery: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise),
+        }
+        const service = createStore(backend)
+        service.connectionSession.set(session)
+
+        service.querySql.set('SELECT 1')
+        const oldQuery = service.runQuery()
+        service.querySql.set('SELECT 2')
+        const newQuery = service.runQuery()
+
+        second.resolve({ kind: 'rows', rows: [{ value: 2 }], columns: ['value'] })
+        await newQuery
+        first.resolve({ kind: 'rows', rows: [{ value: 1 }], columns: ['value'] })
+        await oldQuery
+
+        expect(service.queryRows()).toEqual([{ value: 2 }])
+        expect(service.queryColumns()).toEqual(['value'])
+        expect(service.isRunningQuery()).toBe(false)
+    })
 })
 
 function createStore(backend: {
-    listTables: ReturnType<typeof vi.fn>
+    listTables?: ReturnType<typeof vi.fn>
     queryTableRows?: ReturnType<typeof vi.fn>
+    runQuery?: ReturnType<typeof vi.fn>
 }): MysqlWorkspaceStore {
     return Object.assign(Object.create(MysqlWorkspaceStore.prototype), {
         host: { error: { set: vi.fn() }, setWorkspaceOpen: vi.fn() },
@@ -105,5 +130,6 @@ function createStore(backend: {
         rowOffset: 0,
         schemaRequestId: 0,
         rowsRequestId: 0,
+        queryRequestId: 0,
     }) as MysqlWorkspaceStore
 }
