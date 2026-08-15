@@ -39,9 +39,17 @@
             @if (workspaceHost.hasWorkspace()) {
 
                 @if (workspaceHost.activeProviderId() === 'mysql') {
-                    <app-mysql-workspace />
+                    @defer (on immediate) {
+                        <app-mysql-workspace />
+                    } @placeholder {
+                        <div class="flex flex-1 items-center justify-center text-sm text-zinc-600">Loading MySQL workspace…</div>
+                    }
                 } @else if (workspaceHost.activeProviderId() === 'redis') {
-                    <app-redis-workspace />
+                    @defer (on immediate) {
+                        <app-redis-workspace />
+                    } @placeholder {
+                        <div class="flex flex-1 items-center justify-center text-sm text-zinc-600">Loading Redis workspace…</div>
+                    }
                 } @else {
                     @if (workspaceStore.selectedTable()) {
                         <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
