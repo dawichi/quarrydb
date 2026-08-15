@@ -69,6 +69,42 @@ describe('ProviderRegistryService', () => {
         openRecentItem: vi.fn(),
         restoreSession: vi.fn(),
     }
+    const redisProvider = {
+        id: 'redis' as const,
+        kind: 'key-value' as const,
+        capabilities: [
+            'recent_items',
+            'server_connection',
+            'key_value_browser',
+            'key_value_editor',
+            'redis_command_runner',
+        ] as const,
+        launchAction: {
+            id: 'redis' as const,
+            name: 'Redis',
+            description: 'Browse Redis keys.',
+            icon: 'redis-server' as const,
+            openLabel: 'Connect to Redis',
+        },
+        availability: {
+            canOpenFromHome: true,
+            canOpenRecentItems: true,
+            canRestoreSession: true,
+        },
+        homeLaunchAction: {
+            id: 'redis' as const,
+            name: 'Redis',
+            description: 'Browse Redis keys.',
+            icon: 'redis-server' as const,
+            openLabel: 'Connect to Redis',
+            status: 'available' as const,
+            badgeLabel: 'Redis',
+        },
+        openFromHome: vi.fn(),
+        openSample: vi.fn(),
+        openRecentItem: vi.fn(),
+        restoreSession: vi.fn(),
+    }
 
     let registry: ProviderRegistryService
 
@@ -81,15 +117,20 @@ describe('ProviderRegistryService', () => {
         mysqlProvider.openSample.mockReset()
         mysqlProvider.openRecentItem.mockReset()
         mysqlProvider.restoreSession.mockReset()
+        redisProvider.openFromHome.mockReset()
+        redisProvider.openSample.mockReset()
+        redisProvider.openRecentItem.mockReset()
+        redisProvider.restoreSession.mockReset()
 
         registry = Object.assign(Object.create(ProviderRegistryService.prototype), {
             mysqlProvider,
             sqliteProvider,
+            redisProvider,
         }) as ProviderRegistryService
     })
 
     it('exposes provider launch actions for the shell and welcome screen', () => {
-        expect(registry.getLaunchActions()).toEqual([sqliteProvider.launchAction])
+        expect(registry.getLaunchActions()).toEqual([sqliteProvider.launchAction, redisProvider.launchAction])
         expect(registry.getHomeLaunchActions()).toEqual([
             {
                 ...sqliteProvider.launchAction,
@@ -97,10 +138,16 @@ describe('ProviderRegistryService', () => {
                 badgeLabel: 'SQLite',
             },
             {
+                ...redisProvider.launchAction,
+                status: 'available',
+                badgeLabel: 'Redis',
+            },
+            {
                 ...mysqlProvider.homeLaunchAction,
             },
         ])
         expect(registry.getProviderLabel('sqlite')).toBe('SQLite')
+        expect(registry.getProviderLabel('redis')).toBe('Redis')
         expect(registry.getProviderDisplayAction('mysql')).toEqual(mysqlProvider.homeLaunchAction)
         expect(registry.canOpenRecentItem('sqlite')).toBe(true)
         expect(registry.canOpenRecentItem('mysql')).toBe(true)
@@ -109,6 +156,7 @@ describe('ProviderRegistryService', () => {
         expect(registry.getUnavailableMessage('sqlite')).toBeNull()
         expect(registry.getCapabilities('sqlite')).toEqual(sqliteProvider.capabilities)
         expect(registry.getCapabilities('mysql')).toEqual(mysqlProvider.capabilities)
+        expect(registry.getCapabilities('redis')).toEqual(redisProvider.capabilities)
         expect(registry.getUnavailableMessage('mysql')).toBeNull()
     })
 
@@ -122,6 +170,12 @@ describe('ProviderRegistryService', () => {
         await registry.openSample('sqlite')
 
         expect(sqliteProvider.openSample).toHaveBeenCalledOnce()
+    })
+
+    it('dispatches Redis home actions through the selected provider', async () => {
+        await registry.openFromHome('redis')
+
+        expect(redisProvider.openFromHome).toHaveBeenCalledOnce()
     })
 
     it('dispatches recent items through their provider id', async () => {

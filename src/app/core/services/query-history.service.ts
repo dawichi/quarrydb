@@ -38,7 +38,11 @@ export class QueryHistoryService {
     load(): QueryHistoryEntry[] {
         try {
             const raw = localStorage.getItem(STORAGE_KEY)
-            return raw ? (JSON.parse(raw) as QueryHistoryEntry[]) : []
+            if (!raw) return []
+            const parsed: unknown = JSON.parse(raw)
+            return Array.isArray(parsed)
+                ? parsed.filter((entry): entry is QueryHistoryEntry => this.isEntry(entry))
+                : []
         } catch {
             return []
         }
@@ -76,5 +80,26 @@ export class QueryHistoryService {
 
     clear(): void {
         localStorage.removeItem(STORAGE_KEY)
+    }
+
+    private isEntry(value: unknown): value is QueryHistoryEntry {
+        if (!value || typeof value !== 'object') return false
+        const entry = value as Partial<QueryHistoryEntry>
+        const source = entry.source
+        return (
+            typeof entry.id === 'string' &&
+            typeof entry.sql === 'string' &&
+            Array.isArray(entry.steps) &&
+            !!source &&
+            typeof source === 'object' &&
+            typeof source.path === 'string' &&
+            typeof source.alias === 'string' &&
+            typeof source.tableName === 'string' &&
+            Array.isArray(source.columns) &&
+            source.columns.every((column) => typeof column === 'string') &&
+            Number.isFinite(entry.executedAt) &&
+            Number.isFinite(entry.durationMs) &&
+            Number.isFinite(entry.rowCount)
+        )
     }
 }

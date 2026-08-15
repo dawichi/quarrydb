@@ -39,6 +39,12 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12.375c0 1.036 1.511 1.875 3.375 1.875S15 13.41 15 12.375m-6.75 0c0-1.035 1.511-1.875 3.375-1.875S15 11.34 15 12.375m-6.75 0v2.25c0 1.036 1.511 1.875 3.375 1.875S15 15.66 15 14.625v-2.25" />
                                     </svg>
                                 }
+                                @case ('mysql-server') {
+                                    <svg lucideDatabase aria-hidden="true" class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-sky-500/80" [strokeWidth]="1.6"></svg>
+                                }
+                                @case ('redis-server') {
+                                    <svg lucideDatabase aria-hidden="true" class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-300/80" [strokeWidth]="1.6"></svg>
+                                }
                             }
                             <span class="min-w-0 flex-1">
                                 <span class="mb-1 inline-flex rounded-full border border-sky-500/20 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-300">
@@ -90,9 +96,12 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12.375c0 1.036 1.511 1.875 3.375 1.875S15 13.41 15 12.375m-6.75 0c0-1.035 1.511-1.875 3.375-1.875S15 11.34 15 12.375m-6.75 0v2.25c0 1.036 1.511 1.875 3.375 1.875S15 15.66 15 14.625v-2.25" />
                                             </svg>
                                         }
-                                        @case ('mysql-server') {
-                                            <svg lucideDatabase aria-hidden="true" class="w-5 h-5" [strokeWidth]="1.75"></svg>
-                                        }
+                                @case ('mysql-server') {
+                                    <svg lucideDatabase aria-hidden="true" class="w-5 h-5" [strokeWidth]="1.75"></svg>
+                                }
+                                @case ('redis-server') {
+                                    <svg lucideDatabase aria-hidden="true" class="w-5 h-5" [strokeWidth]="1.75"></svg>
+                                }
                                     }
                                 </span>
                                 <div>

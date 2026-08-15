@@ -4,12 +4,14 @@ import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { PersistedSession } from '@quarrydb/shared/session'
 import { MysqlProviderService } from './mysql-provider.service'
 import type { HomeLaunchAction, ProviderDefinition, ProviderLaunchAction } from './provider-definition'
+import { RedisProviderService } from './redis-provider.service'
 import { SqliteProviderService } from './sqlite-provider.service'
 
 @Injectable({ providedIn: 'root' })
 export class ProviderRegistryService {
     private readonly mysqlProvider = inject(MysqlProviderService)
     private readonly sqliteProvider = inject(SqliteProviderService)
+    private readonly redisProvider = inject(RedisProviderService)
 
     readonly defaultProviderId: ProviderId = 'sqlite'
 
@@ -70,15 +72,17 @@ export class ProviderRegistryService {
                 return { ...this.sqliteProvider.launchAction, status: 'available', badgeLabel: 'SQLite' }
             case 'mysql':
                 return this.mysqlProvider.homeLaunchAction
+            case 'redis':
+                return this.redisProvider.homeLaunchAction
         }
     }
 
     private registeredProviders(): ProviderDefinition[] {
-        return [this.sqliteProvider, this.mysqlProvider]
+        return [this.sqliteProvider, this.mysqlProvider, this.redisProvider]
     }
 
     private availableLaunchProviders(): ProviderDefinition[] {
-        return [this.sqliteProvider]
+        return [this.sqliteProvider, this.redisProvider]
     }
 
     private getProvider(providerId: ProviderId): ProviderDefinition {

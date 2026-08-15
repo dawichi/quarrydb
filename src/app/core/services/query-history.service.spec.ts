@@ -60,6 +60,27 @@ describe('load', () => {
         localStorage.setItem('quarry_query_history', '{not json')
         expect(service.load()).toEqual([])
     })
+
+    it('drops malformed entries at the localStorage boundary', () => {
+        localStorage.setItem(
+            'quarry_query_history',
+            JSON.stringify([
+                {
+                    id: 'valid',
+                    sql: 'SELECT 1',
+                    steps: [],
+                    source: { path: 'a', alias: 'main', tableName: 't', columns: [] },
+                    executedAt: 1,
+                    durationMs: 2,
+                    rowCount: 1,
+                },
+                { id: 'bad', sql: 3 },
+            ]),
+        )
+
+        expect(service.load()).toHaveLength(1)
+        expect(service.load()[0]?.id).toBe('valid')
+    })
 })
 
 // ─── log ──────────────────────────────────────────────────────────────────────

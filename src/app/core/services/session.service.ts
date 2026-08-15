@@ -1,8 +1,14 @@
 import { Injectable, inject } from '@angular/core'
 import type { PipelineStep } from '@quarrydb/shared'
-import type { MysqlPersistedSession, PersistedSession, SqlitePersistedSession } from '@quarrydb/shared/session'
+import type {
+    MysqlPersistedSession,
+    PersistedSession,
+    RedisPersistedSession,
+    SqlitePersistedSession,
+} from '@quarrydb/shared/session'
 import { MysqlProviderService } from '../providers/mysql-provider.service'
 import { ProviderRegistryService } from '../providers/provider-registry.service'
+import { RedisProviderService } from '../providers/redis-provider.service'
 import { PipelineStore } from '../store/pipeline.store'
 import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
@@ -27,6 +33,7 @@ export class SessionService {
     private readonly workspaceHost = inject(WorkspaceHostStore)
     private readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly mysqlProvider = inject(MysqlProviderService)
+    private readonly redisProvider = inject(RedisProviderService)
     private readonly pipelineStore = inject(PipelineStore)
     private saveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -34,6 +41,9 @@ export class SessionService {
     buildSession(): PersistedSession | null {
         if (this.workspaceHost.activeProviderId() === 'mysql') {
             return this.mysqlProvider.buildActiveSession(Date.now())
+        }
+        if (this.workspaceHost.activeProviderId() === 'redis') {
+            return this.redisProvider.buildActiveSession(Date.now())
         }
 
         const schemas = this.workspaceStore.schemas()
@@ -107,6 +117,9 @@ export class SessionService {
         if (this.isMysqlPersistedSession(parsed)) {
             return parsed
         }
+        if (this.isRedisPersistedSession(parsed)) {
+            return parsed
+        }
         if (this.isLegacyPersistedSession(parsed)) {
             return {
                 version: 1,
@@ -156,5 +169,22 @@ export class SessionService {
         if (!parsed || typeof parsed !== 'object') return false
         const candidate = parsed as Partial<LegacyPersistedSession>
         return candidate.version === 1 && Array.isArray(candidate.databases) && candidate.databases.length > 0
+    }
+
+    private isRedisPersistedSession(parsed: unknown): parsed is RedisPersistedSession {
+        if (!parsed || typeof parsed !== 'object') return false
+        const candidate = parsed as Partial<RedisPersistedSession>
+        const workspace = candidate.workspace
+        return (
+            candidate.version === 1 &&
+            candidate.providerId === 'redis' &&
+            !!workspace &&
+            typeof workspace.connectionId === 'string' &&
+            typeof workspace.connectionName === 'string' &&
+            typeof workspace.host === 'string' &&
+            Number.isInteger(workspace.port) &&
+            Number.isInteger(workspace.database) &&
+            typeof workspace.tls === 'boolean'
+        )
     }
 }

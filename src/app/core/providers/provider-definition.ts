@@ -6,7 +6,7 @@ export interface ProviderLaunchAction {
     id: ProviderId
     name: string
     description: string
-    icon: 'sqlite-file' | 'mysql-server'
+    icon: 'sqlite-file' | 'mysql-server' | 'redis-server'
     openLabel: string
     openHint?: string
     sampleLabel?: string
@@ -17,17 +17,12 @@ export type HomeLaunchAction =
           status: 'available'
           badgeLabel?: string
       })
-    | {
+    | (Omit<ProviderLaunchAction, 'id'> & {
           id: 'mysql-preview'
           status: 'planned'
-          name: 'MySQL'
-          description: string
-          icon: 'mysql-server'
-          openLabel: 'Connect to MySQL'
-          openHint?: string
           badgeLabel: string
           availabilityNote: string
-      }
+      })
 
 export interface ProviderAvailability {
     canOpenFromHome: boolean
@@ -46,6 +41,9 @@ export const PROVIDER_CAPABILITY_LABELS: Record<ProviderCapability, string> = {
     ddl_manager: 'Schema tools',
     query_history: 'Query history',
     export_results: 'Export',
+    key_value_browser: 'Key browser',
+    key_value_editor: 'Key editing',
+    redis_command_runner: 'Redis commands',
 }
 
 export interface ProviderDefinition<TSession extends PersistedSession = PersistedSession> {

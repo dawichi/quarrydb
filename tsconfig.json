@@ -11,7 +11,8 @@
       "@quarrydb/shared/recent-item": ["./packages/shared/src/recent-item.ts"],
       "@quarrydb/shared/session": ["./packages/shared/src/session.ts"],
       "@quarrydb/shared/pipeline-sql": ["./packages/shared/src/pipeline-sql.ts"],
-      "@quarrydb/shared/sql-identifiers": ["./packages/shared/src/sql-identifiers.ts"]
+      "@quarrydb/shared/sql-identifiers": ["./packages/shared/src/sql-identifiers.ts"],
+      "@quarrydb/shared/redis-connection-target": ["./packages/shared/src/redis-connection-target.ts"]
     },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,

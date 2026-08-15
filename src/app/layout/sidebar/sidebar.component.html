@@ -7,7 +7,7 @@
 
     <!-- Open button -->
     <div class="px-3 py-2 border-b border-zinc-800">
-        @if (workspaceHost.activeProviderId() === 'mysql') {
+        @if (workspaceHost.activeProviderId() === 'mysql' || workspaceHost.activeProviderId() === 'redis') {
             <button
                 type="button"
                 class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
@@ -98,6 +98,25 @@
                         <p class="px-4 py-2 text-xs text-zinc-600 italic">No tables found</p>
                     }
                 }
+            }
+        } @else if (workspaceHost.activeProviderId() === 'redis') {
+            @if (redisWorkspace.connectionSession(); as session) {
+                <div class="px-3 pt-3 pb-2">
+                    <p class="text-xs font-medium uppercase tracking-wider text-zinc-500">Keyspace</p>
+                    <p class="mt-1 truncate text-sm text-zinc-200">{{ session.target.connectionName }}</p>
+                    <p class="truncate text-xs text-zinc-500">{{ session.target.host }}:{{ session.target.port }} · DB {{ session.target.database }}</p>
+                </div>
+            }
+            @for (key of redisWorkspace.keys(); track key) {
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors"
+                    [class]="redisWorkspace.selectedKey() === key ? 'bg-red-500/10 text-red-200' : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100'"
+                    (click)="selectRedisKey(key)"
+                >
+                    <span class="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400/70"></span>
+                    <span class="truncate">{{ key }}</span>
+                </button>
             }
         } @else {
             @for (schema of workspaceStore.schemas(); track schema.alias) {

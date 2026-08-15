@@ -100,6 +100,22 @@ Connection settings:
 - host: `127.0.0.1`
 - port: `6379`
 
+### Manual Quarry Test Flow
+
+1. Start the local services and Quarry.
+2. Open **Connect to Redis** from the welcome screen.
+3. Use host `127.0.0.1`, port `6379`, database `0`, and leave TLS/password disabled for the
+   disposable fixture.
+4. Connect, then use the **Command runner** to create values such as
+   `SET quarry:greeting "hello from Quarry" EX 300`.
+5. Return to **Key browser**, scan `quarry:*`, inspect the typed value, edit the string/TTL, and
+   delete it when finished.
+
+Remote Redis/Valkey servers use the same form; enable TLS for `rediss://` endpoints and use the
+ACL username when the server requires one. Redis command execution is intentionally explicit:
+Quarry does not restrict commands because operators commonly need provider-specific commands,
+but destructive commands remain the user's responsibility.
+
 ## Notes
 
 - Change host ports if you already have local services running.

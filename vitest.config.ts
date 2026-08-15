@@ -12,6 +12,10 @@ export default defineConfig({
                 find: '@quarrydb/shared/sql-identifiers',
                 replacement: resolve(__dirname, './packages/shared/src/sql-identifiers.ts'),
             },
+            {
+                find: '@quarrydb/shared/redis-connection-target',
+                replacement: resolve(__dirname, './packages/shared/src/redis-connection-target.ts'),
+            },
             { find: '@quarrydb/shared', replacement: resolve(__dirname, './packages/shared/src/index.ts') },
         ],
     },

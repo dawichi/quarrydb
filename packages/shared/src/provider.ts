@@ -1,6 +1,6 @@
-export type ProviderId = 'sqlite' | 'mysql'
+export type ProviderId = 'sqlite' | 'mysql' | 'redis'
 
-export type ProviderKind = 'relational'
+export type ProviderKind = 'relational' | 'key-value'
 
 export type ProviderCapability =
     | 'recent_items'
@@ -12,3 +12,6 @@ export type ProviderCapability =
     | 'ddl_manager'
     | 'query_history'
     | 'export_results'
+    | 'key_value_browser'
+    | 'key_value_editor'
+    | 'redis_command_runner'

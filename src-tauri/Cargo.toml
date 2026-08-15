@@ -22,8 +22,11 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite", "mysql"] }
+redis = { version = "1.5.0", default-features = false, features = ["json", "streams", "tls-rustls-webpki-roots"] }
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 keyring = { version = "3.6.3", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+base64 = "0.22"
+url = "2"

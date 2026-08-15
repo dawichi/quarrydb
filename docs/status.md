@@ -44,6 +44,8 @@ shipped publicly with auto-updates working.
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
 | Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
+| Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews, string/TTL editing, deletion, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN and previews |
+| Testing — Redis native provider | ✅ Rust URL/target tests, frontend invoke contract tests, command parser tests, optional Docker-backed live protocol test |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
 | MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, password-prompt session restoration, and opt-in OS-backed password storage with runtime fallback |
 | MySQL staged row editing | ✅ Primary-key guarded update/delete staging, review, transactional apply, and rollback coverage |
@@ -57,16 +59,18 @@ shipped publicly with auto-updates working.
 See `docs/roadmap.md` for the long-term phased view. This list is the near-term, concrete
 slice of that.
 
-1. **MySQL v1 productization** — promote the current preview into a supported browse/query
-   provider, with export, reconnect, password-prompt session restoration, and opt-in secure
-   secret storage now in place; final packaged-platform UX remains.
+1. **MySQL v1 productization** — promote the current preview card into a fully supported
+   browse/query provider; export, reconnect, password-prompt session restoration, secure secret
+   storage, transactional edits, and visual pipeline execution are now in place.
 2. **MySQL relational features** — staged row editing and a provider-owned visual pipeline
    with WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and RAW SQL are shipped, including
    session persistence and full-result export; adapter/store execution coverage is now in
    place, with broader live integration scenarios remaining.
-3. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
+3. **Redis depth** — add focused collection editors, keyspace export, and cluster/ACL workflows
+   only when their operational UX and safety boundaries are specified.
+4. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
    menu bars where the environment supports it.
-4. **Performance at scale** — especially important once provider breadth starts growing.
+5. **Performance at scale** — especially important once provider breadth starts growing.
 
 ## Intentionally Deferred
 

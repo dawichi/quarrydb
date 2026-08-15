@@ -5,7 +5,7 @@
 <h1 align="center">Quarry</h1>
 
 <p align="center">
-  A local SQLite UI manager with a visual, composable query builder.<br/>
+  A local-first database UI manager for SQLite, MySQL, and Redis with a visual, composable query builder.<br/>
   Each pipeline step shows its intermediate result — like <code>.filter().map()</code>, but for SQL.
 </p>
 
@@ -13,7 +13,7 @@
 
 ## What it does
 
-Quarry lets you open local `.db` files, browse their data, and build queries by stacking steps in a visual pipeline. Every step in the pipeline (filter, select columns, join another table, sort, etc.) shows a live preview of its output inline. The full CTE-based SQL it generates is always visible and copyable.
+Quarry lets you open local `.db` files, connect to MySQL servers, or browse Redis/Valkey keyspaces. SQLite and MySQL support a visual pipeline where every step shows a live preview; Redis has a type-aware key browser and command runner. Generated SQL is always visible and copyable.
 
 Target audience: developers who work with SQLite data and want something faster than writing raw SQL from scratch, but more transparent than a GUI that hides what it's doing.
 
@@ -41,7 +41,7 @@ The desktop frontend. Built with Angular 20 Signals, styled with Tailwind CSS v4
 
 ### `src-tauri/` — Tauri shell
 
-Rust backend. Handles the native window, menus, file dialogs, OS keyring integration, export file writes, and the `tauri-plugin-sql` bridge.
+Rust backend. Handles the native window, menus, file dialogs, OS keyring integration, export file writes, the `tauri-plugin-sql` bridge, and the Redis/Valkey socket boundary.
 
 ### `landing/` — Astro site
 

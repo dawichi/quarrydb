@@ -47,6 +47,18 @@ describe('load', () => {
         expect(service.load()).toEqual([])
     })
 
+    it('drops malformed persisted provider entries instead of trusting the JSON shape', () => {
+        localStorage.setItem(
+            'quarry_recent_items',
+            JSON.stringify([
+                sqliteItem('/tmp/valid.db'),
+                { id: 'bad', providerId: 'redis', label: 'Bad', openedAt: 'yesterday', resource: {} },
+            ]),
+        )
+
+        expect(service.load()).toEqual([sqliteItem('/tmp/valid.db')])
+    })
+
     it('migrates legacy recent files into provider-aware recent items', () => {
         localStorage.setItem(
             'quarry_recent_files',

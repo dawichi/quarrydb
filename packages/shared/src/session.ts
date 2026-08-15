@@ -1,6 +1,7 @@
 import type { PipelineStep } from './index'
 import type { MysqlConnectionTarget } from './mysql-connection-target'
 import type { ProviderId } from './provider'
+import type { RedisConnectionTarget } from './redis-connection-target'
 
 export type WorkspaceTab = 'browse' | 'query' | 'edit'
 export type MysqlWorkspaceTab = WorkspaceTab | 'pipeline'
@@ -76,4 +77,17 @@ export interface MysqlPersistedSession extends PersistedSessionBase {
     pipeline: MysqlPipelineSessionState
 }
 
-export type PersistedSession = SqlitePersistedSession | MysqlPersistedSession
+export type RedisWorkspaceTab = 'keys' | 'command'
+
+export interface RedisWorkspaceSessionState extends RedisConnectionTarget {
+    selectedKey?: string | null
+    keyPattern?: string
+    activeTab?: RedisWorkspaceTab
+}
+
+export interface RedisPersistedSession extends PersistedSessionBase {
+    providerId: 'redis'
+    workspace: RedisWorkspaceSessionState
+}
+
+export type PersistedSession = SqlitePersistedSession | MysqlPersistedSession | RedisPersistedSession

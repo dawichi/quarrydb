@@ -171,4 +171,5 @@ export interface Workspace {
 }
 
 export * from './pipeline-sql'
+export * from './redis-connection-target'
 export * from './sql-identifiers'

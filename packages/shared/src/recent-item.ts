@@ -1,5 +1,6 @@
 import type { MysqlConnectionTarget } from './mysql-connection-target'
 import type { ProviderId } from './provider'
+import type { RedisConnectionTarget } from './redis-connection-target'
 
 export interface RecentItemBase {
     id: string
@@ -21,4 +22,9 @@ export interface MysqlRecentItem extends RecentItemBase {
     resource: MysqlConnectionTarget
 }
 
-export type RecentItem = SqliteRecentItem | MysqlRecentItem
+export interface RedisRecentItem extends RecentItemBase {
+    providerId: 'redis'
+    resource: RedisConnectionTarget
+}
+
+export type RecentItem = SqliteRecentItem | MysqlRecentItem | RedisRecentItem

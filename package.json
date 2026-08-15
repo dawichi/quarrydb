@@ -19,6 +19,7 @@
     "dev:services:down": "docker compose -f docker-compose.local-test-services.yml down",
     "dev:services:logs": "docker compose -f docker-compose.local-test-services.yml logs -f",
     "test:mysql": "bash scripts/test-mysql.sh",
+    "test:redis": "bash scripts/test-redis.sh",
     "audit:dependencies": "bun audit --audit-level=critical && bun pm untrusted",
     "lint": "biome lint src/ packages/",
     "format": "biome format --write src/ packages/",

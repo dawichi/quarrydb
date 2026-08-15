@@ -9,9 +9,15 @@ export class MysqlConnectionProfilesService {
         try {
             const raw = localStorage.getItem(STORAGE_KEY)
             if (!raw) return []
-            const profiles = (JSON.parse(raw) as Array<MysqlConnectionProfile & { password?: string }>).map(
-                ({ password: _password, ...profile }) => profile,
-            )
+            const parsed: unknown = JSON.parse(raw)
+            if (!Array.isArray(parsed)) return []
+            const profiles = parsed
+                .map((value) => {
+                    if (!value || typeof value !== 'object') return null
+                    const { password: _password, ...profile } = value as MysqlConnectionProfile & { password?: string }
+                    return this.isProfile(profile) ? profile : null
+                })
+                .filter((profile): profile is MysqlConnectionProfile => profile !== null)
             this.persist(profiles)
             return profiles
         } catch {
@@ -51,5 +57,19 @@ export class MysqlConnectionProfilesService {
 
     private persist(profiles: MysqlConnectionProfile[]): void {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
+    }
+
+    private isProfile(value: unknown): value is MysqlConnectionProfile {
+        if (!value || typeof value !== 'object') return false
+        const profile = value as Partial<MysqlConnectionProfile>
+        return (
+            typeof profile.id === 'string' &&
+            typeof profile.name === 'string' &&
+            typeof profile.host === 'string' &&
+            Number.isInteger(profile.port) &&
+            typeof profile.username === 'string' &&
+            Number.isFinite(profile.createdAt) &&
+            Number.isFinite(profile.updatedAt)
+        )
     }
 }

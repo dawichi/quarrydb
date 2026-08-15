@@ -8,7 +8,7 @@
 | Frontend | Angular 20 + TypeScript + Signals |
 | Styling | Tailwind CSS v4 (SCSS only for animations/keyframes) |
 | State | Angular Signals (no NgRx) |
-| Current data provider | SQLite via `tauri-plugin-sql` |
+| Data providers | SQLite and MySQL via `tauri-plugin-sql`; Redis/Valkey via typed Tauri commands |
 | Auto-updates | `tauri-plugin-updater` (GitHub Releases) |
 | Package manager | Bun |
 | Linter / Formatter | Biome (`bun run check`) |
@@ -27,7 +27,7 @@ quarrydb/
 │       │                 # welcome, update-check-modal, update-banner
 │       └── shared/       # cross-feature directives
 ├── src-tauri/            # Rust shell (Tauri standard location)
-│                         # Today: no custom Rust commands — SQLite access goes through tauri-plugin-sql
+│                         # SQL plugin for SQLite/MySQL plus typed Redis/keyring/file commands
 ├── landing/              # Astro site for quarrydb.app
 └── packages/
     └── shared/           # Shared TypeScript types (PipelineStep & variants),
@@ -105,6 +105,10 @@ Today, several paths are provider-specific even when they live under shared-look
 - the schema browser assumes SQLite tables/views/triggers
 - the query pipeline assumes SQLite dialect and source-selection rules
 - DDL flows assume SQLite-specific behavior
+- `RedisWorkspaceStore` owns SCAN/key/value state and never routes Redis through SQL or the
+  relational pipeline
+- Redis sockets are opened only by the native Rust command boundary; the webview uses typed
+  invoke payloads and does not open arbitrary TCP connections
 
 These assumptions were correct for the first product phase. The next architectural step is
 to move them behind a provider boundary rather than treating them as universal app behavior.

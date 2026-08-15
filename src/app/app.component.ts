@@ -8,6 +8,7 @@ import { CreateTableModalComponent } from './features/create-table-modal/create-
 import { EditModeComponent } from './features/edit-mode/edit-mode.component'
 import { MysqlWorkspaceComponent } from './features/mysql-workspace/mysql-workspace.component'
 import { PipelineBuilderComponent } from './features/pipeline-builder/pipeline-builder.component'
+import { RedisWorkspaceComponent } from './features/redis-workspace/redis-workspace.component'
 import { TableSettingsModalComponent } from './features/table-settings-modal/table-settings-modal.component'
 import { TableViewerComponent } from './features/table-viewer/table-viewer.component'
 import { TriggerModalComponent } from './features/trigger-modal/trigger-modal.component'
@@ -25,6 +26,7 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
         WelcomeComponent,
         TableViewerComponent,
         MysqlWorkspaceComponent,
+        RedisWorkspaceComponent,
         PipelineBuilderComponent,
         EditModeComponent,
         TutorialOverlayComponent,

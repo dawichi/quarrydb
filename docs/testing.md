@@ -7,6 +7,7 @@ bun run check       # Biome lint + formatting check
 bun run test:run    # Vitest unit and SQLite integration tests
 bun run test:e2e    # Playwright browser tests against Angular
 bun run test:mysql  # Real MySQL provider integration tests via Docker
+bun run test:redis  # Redis provider integration tests when Docker is available
 bun run build       # Production Angular bundle
 bun run build:landing # Production Astro landing bundle
 ```
@@ -44,6 +45,11 @@ integration suite starts the disposable MySQL 8 container, exercises the real pr
 adapter through a `mysql2` test transport, and stops the container afterward. It covers
 schema discovery, metadata, sample seeding, paging, type normalization, raw expressions,
 and joined query previews.
+
+Redis native command tests run at the Rust unit boundary in every local/CI run. The Docker Redis
+fixture is reserved for the protocol integration suite because it requires a live server; when
+Docker is unavailable, the suite reports that fact without pretending the remote protocol was
+tested.
 
 ## Native shell boundary
 

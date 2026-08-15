@@ -25,6 +25,7 @@ canonical [`AGENTS.md`](AGENTS.md), then read the relevant file(s) here.
 | [roadmap.md](roadmap.md) | Long-term vision and phased checkpoints for the SQLite-first → multi-engine transition |
 | [multi-engine-architecture.md](multi-engine-architecture.md) | Provider model for evolving Quarry from a SQLite-first app into a broader database manager |
 | [mysql-provider-plan.md](mysql-provider-plan.md) | Scope, UI model, connection model, and non-goals for MySQL as Quarry's second provider |
+| [redis-provider-plan.md](redis-provider-plan.md) | Key/value provider scope, native boundary, supported Redis types, and test strategy |
 | [provider-contract-plan.md](provider-contract-plan.md) | Proposed TypeScript contracts for provider identity, recent items, workspace payloads, capabilities, and backend adapters |
 | [provider-refactor-checklist.md](provider-refactor-checklist.md) | File-by-file implementation checklist for moving the app from SQLite-global state to a provider-based shell |
 | [local-test-services.md](local-test-services.md) | Optional Docker-based local MySQL/Postgres/Redis setup for manual provider testing during development |

@@ -97,6 +97,27 @@ describe('MysqlConnectionProfilesService', () => {
         expect(localStorage.getItem('quarry_mysql_connection_profiles')).not.toContain('secret')
     })
 
+    it('drops malformed persisted profiles instead of trusting the JSON shape', () => {
+        localStorage.setItem(
+            'quarry_mysql_connection_profiles',
+            JSON.stringify([
+                {
+                    id: 'valid',
+                    name: 'Main',
+                    host: 'localhost',
+                    port: 3306,
+                    username: 'root',
+                    createdAt: 1,
+                    updatedAt: 1,
+                },
+                { id: 'invalid', name: 'Broken', host: 'localhost', port: '3306', createdAt: 1 },
+            ]),
+        )
+
+        expect(service.load()).toHaveLength(1)
+        expect(service.load()[0]?.id).toBe('valid')
+    })
+
     it('upserts profiles by id and keeps the newest copy first', () => {
         service.upsert({
             id: 'a',

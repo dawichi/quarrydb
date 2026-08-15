@@ -40,6 +40,8 @@
 
                 @if (workspaceHost.activeProviderId() === 'mysql') {
                     <app-mysql-workspace />
+                } @else if (workspaceHost.activeProviderId() === 'redis') {
+                    <app-redis-workspace />
                 } @else {
                     @if (workspaceStore.selectedTable()) {
                         <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
