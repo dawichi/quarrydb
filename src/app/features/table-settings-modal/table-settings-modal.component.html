@@ -327,9 +327,10 @@
 
                         <!-- Index name -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">Index name</label>
+                            <label for="index-name" class="text-xs text-zinc-400">Index name</label>
                             <input
                                 type="text"
+                                id="index-name"
                                 autocomplete="off"
                                 spellcheck="false"
                                 class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono"
@@ -341,7 +342,7 @@
 
                         <!-- Column selection -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">Columns <span class="text-zinc-600">(ordered)</span></label>
+                            <span class="text-xs text-zinc-400">Columns <span class="text-zinc-600">(ordered)</span></span>
                             <div class="space-y-1">
                                 @for (col of tableColumns(); track col.name) {
                                     <label class="flex items-center gap-2.5 cursor-pointer group">
@@ -513,9 +514,10 @@
 
                         <!-- Column name -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">Column name</label>
+                            <label for="alter-column-name" class="text-xs text-zinc-400">Column name</label>
                             <input
                                 type="text"
+                                id="alter-column-name"
                                 autocomplete="off"
                                 spellcheck="false"
                                 class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono"
@@ -528,8 +530,9 @@
                         <!-- Type + NOT NULL row -->
                         <div class="flex gap-3">
                             <div class="space-y-1.5 flex-1">
-                                <label class="text-xs text-zinc-400">Type</label>
+                                <label for="alter-column-type" class="text-xs text-zinc-400">Type</label>
                                 <select
+                                    id="alter-column-type"
                                     class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 focus:outline-none"
                                     [value]="alterColType()"
                                     (change)="alterColType.set($any($event.target).value)"
@@ -540,10 +543,11 @@
                                 </select>
                             </div>
                             <div class="space-y-1.5 flex-shrink-0 flex flex-col">
-                                <label class="text-xs text-zinc-400">Not null</label>
+                                <label for="alter-column-not-null" class="text-xs text-zinc-400">Not null</label>
                                 <div class="flex-1 flex items-center">
                                     <input
                                         type="checkbox"
+                                        id="alter-column-not-null"
                                         class="rounded border-zinc-600 bg-zinc-800 text-sky-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                                         [checked]="alterColNotNull()"
                                         (change)="alterColNotNull.set($any($event.target).checked)"
@@ -554,9 +558,10 @@
 
                         <!-- Default value -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">Default value <span class="text-zinc-600">(optional)</span></label>
+                            <label for="alter-column-default" class="text-xs text-zinc-400">Default value <span class="text-zinc-600">(optional)</span></label>
                             <input
                                 type="text"
+                                id="alter-column-default"
                                 autocomplete="off"
                                 spellcheck="false"
                                 class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono"
@@ -631,9 +636,10 @@
 
                         <!-- New name -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">New name</label>
+                            <label for="rename-table-name" class="text-xs text-zinc-400">New name</label>
                             <input
                                 type="text"
+                                id="rename-table-name"
                                 autocomplete="off"
                                 spellcheck="false"
                                 class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono"
@@ -707,9 +713,10 @@
 
                         <!-- New name -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">New name</label>
+                            <label for="rename-index-name" class="text-xs text-zinc-400">New name</label>
                             <input
                                 type="text"
+                                id="rename-index-name"
                                 autocomplete="off"
                                 spellcheck="false"
                                 class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono"
@@ -791,15 +798,16 @@
 
                         <!-- SQL script preview -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">Rebuild script</label>
+                            <span class="text-xs text-zinc-400">Rebuild script</span>
                             <pre class="px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-400 font-mono whitespace-pre-wrap break-all">{{ generatedDropColumnScript().join(';\n') }}</pre>
                         </div>
 
                         <!-- Confirm input -->
                         <div class="space-y-1.5">
-                            <label class="text-xs text-zinc-400">Type <span class="font-mono text-zinc-300">{{ dropColTarget() }}</span> to confirm</label>
+                            <label for="drop-column-confirm" class="text-xs text-zinc-400">Type <span class="font-mono text-zinc-300">{{ dropColTarget() }}</span> to confirm</label>
                             <input
                                 type="text"
+                                id="drop-column-confirm"
                                 autocomplete="off"
                                 spellcheck="false"
                                 class="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 focus:border-zinc-500 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none font-mono"

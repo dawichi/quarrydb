@@ -12,6 +12,8 @@ canonical [`AGENTS.md`](AGENTS.md), then read the relevant file(s) here.
 | [project-standards.yml](project-standards.yml) | Pinned shared standards, compliance states, exceptions, and deferred work |
 | [TODO.md](TODO.md) | Prioritized standards and maturity backlog |
 | [adr/README.md](adr/README.md) | Durable architectural and policy decisions |
+| [adr/0001-trust-boundaries-and-provider-data.md](adr/0001-trust-boundaries-and-provider-data.md) | Trust boundaries, secrets, provider data ownership, and explicit expensive operations |
+| [dependency-security.md](dependency-security.md) | Dependency audit gates, overrides, and vulnerability response |
 
 ## Project Context
 

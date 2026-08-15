@@ -84,9 +84,10 @@
 
                 <!-- Table name -->
                 <div class="space-y-1.5">
-                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider">Table name</label>
+                    <label for="create-table-name" class="text-[10px] text-zinc-500 uppercase tracking-wider">Table name</label>
                     <input
                         type="text"
+                        id="create-table-name"
                         placeholder="my_table"
                         class="w-full px-3 py-2 rounded-md bg-zinc-800 border text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none transition-colors"
                         [class]="tableNameExists()

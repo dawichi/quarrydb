@@ -78,7 +78,7 @@ describe('buildDropColumnScript', () => {
 
     it('creates the new table with only remaining columns', () => {
         const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], [], [])
-        const create = stmts.find((s) => s.startsWith('CREATE TABLE'))!
+        const create = stmts.find((s) => s.startsWith('CREATE TABLE')) ?? ''
         expect(create).toContain('"__quarry_new_users"')
         expect(create).toContain('"id" INTEGER PRIMARY KEY')
         expect(create).toContain('"name" TEXT NOT NULL')
@@ -87,13 +87,13 @@ describe('buildDropColumnScript', () => {
 
     it('copies only the remaining columns in the INSERT', () => {
         const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], [], [])
-        const insert = stmts.find((s) => s.startsWith('INSERT INTO'))!
+        const insert = stmts.find((s) => s.startsWith('INSERT INTO')) ?? ''
         expect(insert).toBe('INSERT INTO "__quarry_new_users" SELECT "id", "name" FROM "users"')
     })
 
     it('includes DEFAULT in the CREATE TABLE when present', () => {
         const stmts = buildDropColumnScript('stats', 'email', [idCol, scoreCol], [], [])
-        const create = stmts.find((s) => s.startsWith('CREATE TABLE'))!
+        const create = stmts.find((s) => s.startsWith('CREATE TABLE')) ?? ''
         expect(create).toContain('"score" REAL NOT NULL DEFAULT 0.0')
     })
 
@@ -103,7 +103,7 @@ describe('buildDropColumnScript', () => {
             { column: 'name', referencesTable: 'labels', referencesColumn: 'id' },
         ]
         const stmts = buildDropColumnScript('users', 'email', [idCol, nameCol], fks, [])
-        const create = stmts.find((s) => s.startsWith('CREATE TABLE'))!
+        const create = stmts.find((s) => s.startsWith('CREATE TABLE')) ?? ''
         expect(create).not.toContain('domains')
         expect(create).toContain('FOREIGN KEY ("name") REFERENCES "labels" ("id")')
     })

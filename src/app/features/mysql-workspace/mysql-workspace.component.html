@@ -130,8 +130,9 @@
     } @else if (activeView() === 'query') {
         <div class="flex min-h-0 flex-1 flex-col">
             <div class="border-b border-zinc-800 bg-zinc-950/40 p-4">
-                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">SQL</label>
+                <label for="mysql-query-sql" class="block text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">SQL</label>
                 <textarea
+                    id="mysql-query-sql"
                     class="mt-2 h-40 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-3 font-mono text-sm text-zinc-100 outline-none transition-colors focus:border-sky-500"
                     [value]="store.querySql()"
                     (input)="store.querySql.set($any($event.target).value)"
