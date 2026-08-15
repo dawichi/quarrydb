@@ -1,29 +1,12 @@
 import { Injectable, inject } from '@angular/core'
-import type { PipelineStep } from '@quarrydb/shared'
-import type {
-    MysqlPersistedSession,
-    PersistedSession,
-    RedisPersistedSession,
-    SqlitePersistedSession,
-} from '@quarrydb/shared/session'
+import type { PersistedSession } from '@quarrydb/shared/session'
 import { MysqlProviderService } from '../providers/mysql-provider.service'
 import { ProviderRegistryService } from '../providers/provider-registry.service'
 import { RedisProviderService } from '../providers/redis-provider.service'
 import { PipelineStore } from '../store/pipeline.store'
 import { SqliteWorkspaceStore } from '../store/sqlite-workspace.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
-
-interface LegacyPersistedSession {
-    version: 1
-    databases: Array<{ path: string; alias: string }>
-    activeTab: 'browse' | 'query' | 'edit'
-    selectedTable: { schemaAlias: string; tableName: string } | null
-    pipeline: {
-        source: { path: string; alias: string; tableName: string; columns: string[] } | null
-        steps: PipelineStep[]
-        variableValues: Record<string, string>
-    }
-}
+import { isLegacyPersistedSession, isPersistedSession } from './session-validation'
 
 const SESSION_KEY = 'quarry_session'
 
@@ -111,16 +94,10 @@ export class SessionService {
     }
 
     private normalizePersistedSession(parsed: unknown): PersistedSession | null {
-        if (this.isSqlitePersistedSession(parsed)) {
+        if (isPersistedSession(parsed)) {
             return parsed
         }
-        if (this.isMysqlPersistedSession(parsed)) {
-            return parsed
-        }
-        if (this.isRedisPersistedSession(parsed)) {
-            return parsed
-        }
-        if (this.isLegacyPersistedSession(parsed)) {
+        if (isLegacyPersistedSession(parsed)) {
             return {
                 version: 1,
                 providerId: 'sqlite',
@@ -135,56 +112,5 @@ export class SessionService {
             }
         }
         return null
-    }
-
-    private isSqlitePersistedSession(parsed: unknown): parsed is SqlitePersistedSession {
-        if (!parsed || typeof parsed !== 'object') return false
-        const candidate = parsed as Partial<SqlitePersistedSession>
-        return (
-            candidate.version === 1 &&
-            candidate.providerId === 'sqlite' &&
-            !!candidate.workspace &&
-            Array.isArray(candidate.workspace.databases) &&
-            candidate.workspace.databases.length > 0 &&
-            !!candidate.pipeline
-        )
-    }
-
-    private isMysqlPersistedSession(parsed: unknown): parsed is MysqlPersistedSession {
-        if (!parsed || typeof parsed !== 'object') return false
-        const candidate = parsed as Partial<MysqlPersistedSession>
-        return (
-            candidate.version === 1 &&
-            candidate.providerId === 'mysql' &&
-            !!candidate.workspace &&
-            typeof candidate.workspace.connectionId === 'string' &&
-            typeof candidate.workspace.connectionName === 'string' &&
-            typeof candidate.workspace.host === 'string' &&
-            typeof candidate.workspace.port === 'number' &&
-            !!candidate.pipeline
-        )
-    }
-
-    private isLegacyPersistedSession(parsed: unknown): parsed is LegacyPersistedSession {
-        if (!parsed || typeof parsed !== 'object') return false
-        const candidate = parsed as Partial<LegacyPersistedSession>
-        return candidate.version === 1 && Array.isArray(candidate.databases) && candidate.databases.length > 0
-    }
-
-    private isRedisPersistedSession(parsed: unknown): parsed is RedisPersistedSession {
-        if (!parsed || typeof parsed !== 'object') return false
-        const candidate = parsed as Partial<RedisPersistedSession>
-        const workspace = candidate.workspace
-        return (
-            candidate.version === 1 &&
-            candidate.providerId === 'redis' &&
-            !!workspace &&
-            typeof workspace.connectionId === 'string' &&
-            typeof workspace.connectionName === 'string' &&
-            typeof workspace.host === 'string' &&
-            Number.isInteger(workspace.port) &&
-            Number.isInteger(workspace.database) &&
-            typeof workspace.tls === 'boolean'
-        )
     }
 }
