@@ -56,14 +56,15 @@ export class ProviderRegistryService {
     }
 
     getHomeLaunchActions(): HomeLaunchAction[] {
-        return [
-            ...this.getLaunchActions().map((action) => ({
-                ...action,
+        return this.availableLaunchProviders().map((provider) => {
+            if (provider.id === 'mysql') return this.mysqlProvider.homeLaunchAction
+            if (provider.id === 'redis') return this.redisProvider.homeLaunchAction
+            return {
+                ...provider.launchAction,
                 status: 'available' as const,
-                badgeLabel: action.name,
-            })),
-            this.mysqlProvider.homeLaunchAction,
-        ]
+                badgeLabel: provider.launchAction.name,
+            }
+        })
     }
 
     getProviderDisplayAction(providerId: ProviderId): HomeLaunchAction {
@@ -82,7 +83,7 @@ export class ProviderRegistryService {
     }
 
     private availableLaunchProviders(): ProviderDefinition[] {
-        return [this.sqliteProvider, this.redisProvider]
+        return [this.sqliteProvider, this.mysqlProvider, this.redisProvider]
     }
 
     private getProvider(providerId: ProviderId): ProviderDefinition {

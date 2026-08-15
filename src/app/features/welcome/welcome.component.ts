@@ -54,7 +54,7 @@ export class WelcomeComponent {
     protected reopenRecentItem(item: RecentItem): void {
         if (!this.canReopenRecentItem(item)) {
             if (item.providerId === 'mysql') {
-                this.mysqlProvider.previewRecentItem(item)
+                this.mysqlProvider.prepareRecentItem(item)
             }
             return
         }
@@ -182,6 +182,6 @@ export class WelcomeComponent {
     }
 
     private providerIdForAction(action: HomeLaunchAction): ProviderId {
-        return action.id === 'mysql-preview' ? 'mysql' : action.id
+        return action.id
     }
 }

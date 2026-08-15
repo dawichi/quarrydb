@@ -55,28 +55,21 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     readonly launchAction = {
         id: 'mysql' as const,
         name: 'MySQL',
-        description: 'Connect to a saved MySQL server profile once the second provider lands.',
+        description: 'Connect to a MySQL server, browse schemas, edit rows, and build visual queries.',
         icon: 'mysql-server' as const,
         openLabel: 'Connect to MySQL',
-        openHint: 'Saved profile flow is in progress.',
+        openHint: 'Local and remote MySQL servers are supported through saved connection profiles.',
     }
     readonly availability = {
-        canOpenFromHome: false,
+        canOpenFromHome: true,
         canOpenRecentItems: true,
         canRestoreSession: true,
     }
 
     readonly homeLaunchAction: HomeLaunchAction = {
-        id: 'mysql-preview',
-        status: 'planned',
-        name: 'MySQL',
-        description: 'MySQL provider: saved profiles, schema browsing, row editing, exports, and raw SQL.',
-        icon: 'mysql-server',
-        openLabel: 'Connect to MySQL',
-        openHint: 'Preview provider: saved connections, browse, and raw SQL.',
-        badgeLabel: 'Preview',
-        availabilityNote:
-            'Preview quality: browse, stage row edits, export results, run raw SQL, and build MySQL visual pipelines.',
+        ...this.launchAction,
+        status: 'available',
+        badgeLabel: 'MySQL',
     }
 
     createDraft(): MysqlConnectionProfileDraft {
@@ -96,11 +89,11 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     }
 
     async openSample(): Promise<void> {
-        throw this.notAvailableYet()
+        throw this.providerError('A MySQL sample database is not bundled. Configure a saved server profile instead.')
     }
 
     async openRecentItem(item: RecentItem): Promise<void> {
-        this.previewRecentItem(item)
+        this.prepareRecentItem(item)
         if (this.hasPasswordForWorkspaceDraft()) {
             await this.connectWorkspaceDraft()
             return
@@ -232,7 +225,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     async connectWorkspaceDraft(): Promise<void> {
         const request = this.buildConnectRequestFromWorkspaceDraft()
         if (!request) {
-            throw this.notAvailableYet('MySQL connect target is not ready yet')
+            throw this.providerError('MySQL connect target is not ready yet')
         }
 
         this.host.isLoading.set(true)
@@ -261,15 +254,15 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             await this.workspace.openWorkspace(session, schemas, this.workspaceDraft())
             this.restorePendingPipeline(session)
         } catch (error) {
-            throw this.notAvailableYet(this.describeError(error))
+            throw this.providerError(this.describeError(error))
         } finally {
             this.host.isLoading.set(false)
         }
     }
 
-    previewRecentItem(item: RecentItem): boolean {
+    prepareRecentItem(item: RecentItem): boolean {
         if (item.providerId !== 'mysql') {
-            throw new Error(`MySQL provider cannot preview recent item for provider ${item.providerId}`)
+            throw new Error(`MySQL provider cannot prepare recent item for provider ${item.providerId}`)
         }
         this.workspaceDraft.set(createMysqlWorkspaceDraftFromRecentItem(item))
         this.syncDraftPassword(item.resource.connectionId)
@@ -329,7 +322,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         }
     }
 
-    private notAvailableYet(message = 'MySQL provider is not available yet'): Error {
+    private providerError(message: string): Error {
         const error = new Error(message)
         this.host.error.set(error.message)
         return error

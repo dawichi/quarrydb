@@ -12,17 +12,10 @@ export interface ProviderLaunchAction {
     sampleLabel?: string
 }
 
-export type HomeLaunchAction =
-    | (ProviderLaunchAction & {
-          status: 'available'
-          badgeLabel?: string
-      })
-    | (Omit<ProviderLaunchAction, 'id'> & {
-          id: 'mysql-preview'
-          status: 'planned'
-          badgeLabel: string
-          availabilityNote: string
-      })
+export type HomeLaunchAction = ProviderLaunchAction & {
+    status: 'available'
+    badgeLabel?: string
+}
 
 export interface ProviderAvailability {
     canOpenFromHome: boolean

@@ -43,26 +43,25 @@ describe('ProviderRegistryService', () => {
         launchAction: {
             id: 'mysql' as const,
             name: 'MySQL',
-            description: 'Connect to a saved MySQL server profile once the second provider lands.',
+            description: 'Connect to a MySQL server, browse schemas, edit rows, and build visual queries.',
             icon: 'mysql-server' as const,
             openLabel: 'Connect to MySQL' as const,
-            openHint: 'Saved profile flow is in progress.',
+            openHint: 'Local and remote MySQL servers are supported through saved connection profiles.',
         },
         availability: {
-            canOpenFromHome: false,
+            canOpenFromHome: true,
             canOpenRecentItems: true,
             canRestoreSession: true,
         },
         homeLaunchAction: {
-            id: 'mysql-preview' as const,
-            status: 'planned' as const,
+            id: 'mysql' as const,
+            status: 'available' as const,
             name: 'MySQL',
-            description: 'Connect to a saved MySQL server profile once the second provider lands.',
+            description: 'Connect to a MySQL server, browse schemas, edit rows, and build visual queries.',
             icon: 'mysql-server' as const,
             openLabel: 'Connect to MySQL' as const,
-            openHint: 'Planned provider: saved connections, browse, and raw SQL.',
-            badgeLabel: 'Planned' as const,
-            availabilityNote: 'MySQL support is not shipped yet.',
+            openHint: 'Local and remote MySQL servers are supported through saved connection profiles.',
+            badgeLabel: 'MySQL' as const,
         },
         openFromHome: vi.fn(),
         openSample: vi.fn(),
@@ -130,7 +129,11 @@ describe('ProviderRegistryService', () => {
     })
 
     it('exposes provider launch actions for the shell and welcome screen', () => {
-        expect(registry.getLaunchActions()).toEqual([sqliteProvider.launchAction, redisProvider.launchAction])
+        expect(registry.getLaunchActions()).toEqual([
+            sqliteProvider.launchAction,
+            mysqlProvider.launchAction,
+            redisProvider.launchAction,
+        ])
         expect(registry.getHomeLaunchActions()).toEqual([
             {
                 ...sqliteProvider.launchAction,
@@ -138,12 +141,12 @@ describe('ProviderRegistryService', () => {
                 badgeLabel: 'SQLite',
             },
             {
+                ...mysqlProvider.homeLaunchAction,
+            },
+            {
                 ...redisProvider.launchAction,
                 status: 'available',
                 badgeLabel: 'Redis',
-            },
-            {
-                ...mysqlProvider.homeLaunchAction,
             },
         ])
         expect(registry.getProviderLabel('sqlite')).toBe('SQLite')

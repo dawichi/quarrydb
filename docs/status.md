@@ -4,9 +4,9 @@ Quick reference for where the project stands. Update this after each significant
 
 ## Current Status
 
-**The SQLite-first product core is feature-complete enough to start the multi-engine
-pivot.** The pipeline builder MVP is done, schema management is in place, and v0.1.x has
-shipped publicly with auto-updates working.
+**The SQLite-first product core and the first usable MySQL/Redis verticals are shipped.**
+The pipeline builder MVP is done, schema management is in place, and the v0.2.0 direction
+is release hardening, scale, and provider-specific depth rather than provider discovery.
 
 ## Implementation Status
 
@@ -59,14 +59,12 @@ shipped publicly with auto-updates working.
 See `docs/roadmap.md` for the long-term phased view. This list is the near-term, concrete
 slice of that.
 
-1. **MySQL v1 productization** — promote the current preview card into a fully supported
-   browse/query provider; export, reconnect, password-prompt session restoration, secure secret
-   storage, transactional edits, and visual pipeline execution are now in place.
-2. **MySQL relational features** — staged row editing and a provider-owned visual pipeline
-   with WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and RAW SQL are shipped, including
-   session persistence and full-result export; adapter/store execution coverage is now in
-   place, with live integration coverage for filtering/sorting, generated pipelines, export, and
-   transactional edits.
+1. **MySQL 0.2.0 release candidate** — keep the supported browse/query provider stable while
+   completing release acceptance, documentation reconciliation, and scale/failure hardening.
+2. **MySQL relational depth** — staged row editing and a provider-owned visual pipeline with
+   WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and RAW SQL are shipped, including session
+   persistence and full-result export; the remaining work is operational polish and edge-case
+   coverage rather than a new provider foundation.
 3. **Redis depth** — add focused collection editors and cluster/ACL workflows only when their
    operational UX and safety boundaries are specified; bounded JSON keyspace export is now in
    place for diagnostics and migration assistance.
@@ -175,3 +173,4 @@ multiple features.
 | 2026-08-15 | Redis depth slice: added a pattern-scoped native keyspace JSON export capped at 500 typed previews, normalized native TTL fields in the frontend adapter, and added export contract coverage |
 | 2026-08-15 | Redis safety slice: added explicit typed list/set/sorted-set/hash/stream mutations with native input guards, refresh-after-write behavior, and live protocol coverage |
 | 2026-08-15 | Native shell QA: documented the release-candidate checklist for installers, menus, dialogs, keyring, updater replacement, and provider boundaries where OS-native automation is not available |
+| 2026-08-15 | MySQL product surface: promoted MySQL to a supported home/recent/session provider, removed preview-only launch semantics, and aligned the connection UX and provider contracts |

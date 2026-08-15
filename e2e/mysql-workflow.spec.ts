@@ -13,7 +13,7 @@ test('connects to MySQL and exports a browsed table', async ({ page }) => {
     await page.getByLabel('Default database').fill('quarry_demo')
     await page.getByRole('button', { name: 'Save & connect' }).click()
 
-    await expect(page.getByText('MySQL Preview', { exact: true })).toBeVisible()
+    await expect(page.getByText('MySQL Workspace', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'products' }).first()).toBeVisible()
     await page.getByRole('button', { name: 'products' }).first().click()
     await expect(page.getByText('2 rows')).toBeVisible()

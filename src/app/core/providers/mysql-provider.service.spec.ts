@@ -13,21 +13,15 @@ describe('MysqlProviderService', () => {
     const launchAction = {
         id: 'mysql' as const,
         name: 'MySQL',
-        description: 'Connect to a saved MySQL server profile once the second provider lands.',
+        description: 'Connect to a MySQL server, browse schemas, edit rows, and build visual queries.',
         icon: 'mysql-server' as const,
         openLabel: 'Connect to MySQL' as const,
-        openHint: 'Saved profile flow is in progress.',
+        openHint: 'Local and remote MySQL servers are supported through saved connection profiles.',
     }
     const homeLaunchAction = {
-        id: 'mysql-preview' as const,
-        status: 'planned' as const,
-        name: 'MySQL',
-        description: 'Connect to a saved MySQL server profile once the second provider lands.',
-        icon: 'mysql-server' as const,
-        openLabel: 'Connect to MySQL' as const,
-        openHint: 'Planned provider: saved connections, browse, and raw SQL.',
-        badgeLabel: 'Planned' as const,
-        availabilityNote: 'MySQL support is not shipped yet.',
+        ...launchAction,
+        status: 'available' as const,
+        badgeLabel: 'MySQL' as const,
     }
     const profiles = {
         load: vi.fn(),
@@ -120,7 +114,7 @@ describe('MysqlProviderService', () => {
             capabilities,
             launchAction,
             availability: {
-                canOpenFromHome: false,
+                canOpenFromHome: true,
                 canOpenRecentItems: true,
                 canRestoreSession: true,
             },
@@ -147,7 +141,7 @@ describe('MysqlProviderService', () => {
         expect(service.capabilities).toEqual(capabilities)
         expect(service.launchAction).toEqual(launchAction)
         expect(service.availability).toEqual({
-            canOpenFromHome: false,
+            canOpenFromHome: true,
             canOpenRecentItems: true,
             canRestoreSession: true,
         })
@@ -371,9 +365,9 @@ describe('MysqlProviderService', () => {
         expect(service.workspaceDraft()).toBeNull()
     })
 
-    it('previews a MySQL recent item into the pending workspace draft', () => {
+    it('prepares a MySQL recent item into the pending workspace draft', () => {
         expect(
-            service.previewRecentItem({
+            service.prepareRecentItem({
                 id: 'mysql:mysql-1',
                 providerId: 'mysql',
                 label: 'Analytics',
@@ -594,7 +588,7 @@ describe('MysqlProviderService', () => {
         expect(errorSet).toHaveBeenCalledWith(null)
     })
 
-    it('previews a recent item without auto-connecting when no password is available', async () => {
+    it('prepares a recent item without auto-connecting when no password is available', async () => {
         const item = {
             id: 'mysql:mysql-1',
             providerId: 'mysql' as const,
@@ -785,7 +779,7 @@ describe('MysqlProviderService', () => {
         expect(secrets.set).toHaveBeenCalledWith('mysql-1', 'secret')
     })
 
-    it('fails shell entrypoints with a consistent unavailable error', async () => {
+    it('reports actionable errors from shell entrypoints', async () => {
         backend.listSchemas.mockRejectedValue(new Error('MySQL backend adapter is not implemented yet'))
         profiles.find.mockReturnValue({
             id: 'mysql-1',
@@ -804,7 +798,7 @@ describe('MysqlProviderService', () => {
         }))
 
         await expect(service.openFromHome()).rejects.toThrow('MySQL connect target is not ready yet')
-        await expect(service.openSample()).rejects.toThrow('MySQL provider is not available yet')
+        await expect(service.openSample()).rejects.toThrow('A MySQL sample database is not bundled')
         await service.openRecentItem({
             id: 'mysql:mysql-1',
             providerId: 'mysql',
@@ -839,7 +833,9 @@ describe('MysqlProviderService', () => {
         })
 
         expect(errorSet).toHaveBeenCalledWith('MySQL connect target is not ready yet')
-        expect(errorSet).toHaveBeenCalledWith('MySQL provider is not available yet')
+        expect(errorSet).toHaveBeenCalledWith(
+            'A MySQL sample database is not bundled. Configure a saved server profile instead.',
+        )
         expect(errorSet).toHaveBeenCalledWith('Enter the MySQL password to reconnect to this saved profile.')
         expect(errorSet).toHaveBeenCalledWith(
             'MySQL connection restored. Re-enter the password below to reopen the workspace.',

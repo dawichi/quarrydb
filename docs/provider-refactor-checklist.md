@@ -37,14 +37,14 @@ These are the main files that currently encode SQLite as the app-wide default:
 - [src/app/features/welcome/welcome.component.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/features/welcome/welcome.component.ts:1)
   - now opens through the provider registry, but still presents a SQLite-first launcher
 - [src/app/core/services/menu.service.ts](/Users/dawichi/Documents/GitHub/quarrydb/src/app/core/services/menu.service.ts:1)
-  - now routes through the provider registry, but currently only `sqlite` is registered
+  - routes native shell entrypoints through the provider registry; the default menu action remains SQLite because it opens a file picker
 
 These files are not wrong. They are just the first refactor seam.
 
 ## Current Progress Snapshot
 
-As of 2026-06-11, the original refactor goal is largely complete for the SQLite path and
-the first real MySQL preview path now exists:
+As of 2026-08-15, the original refactor goal is complete for the SQLite path and the first
+usable MySQL path is supported in the product surface:
 
 - shared provider, recent-item, session, capability, and MySQL connection-target types are in place
 - shell entrypoints route through `ProviderRegistryService`
@@ -52,9 +52,10 @@ the first real MySQL preview path now exists:
 - welcome/home renders provider-owned launcher metadata and recent-item visuals
 - MySQL owns saved connection profiles, recent-item/session shapes, a workspace draft, and a backend-facing connect request
 - `MysqlBackendAdapterService` now performs a real `tauri-plugin-sql` MySQL connection attempt and schema-name listing
-- MySQL is still a preview flow, not a production-ready provider: connection, sidebar,
-  browse, sample seeding, and raw-query integration work, while export, editing, and
-  visual pipeline support remain outside the current preview scope
+- MySQL is a supported provider: saved connections, schema/table browsing, raw SQL, exports,
+  staged edits, visual pipelines, session restore, runtime/OS-backed secrets, and live
+  integration coverage are in place; remaining work is release hardening and deeper server
+  administration, which stays intentionally outside v1
 
 ## Refactor Principles
 

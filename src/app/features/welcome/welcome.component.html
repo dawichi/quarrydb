@@ -138,7 +138,7 @@
                         </div>
 
                         <div class="mt-5 flex flex-wrap items-center gap-3">
-                            @if (isAvailableAction(action)) {
+                            @if (isAvailableAction(action) && action.id !== 'mysql') {
                                 <button
                                     type="button"
                                     class="flex items-center gap-2.5 rounded-lg bg-sky-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-sky-400 active:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -165,19 +165,28 @@
                                 }
                             } @else {
                                 <div class="flex flex-col gap-4 w-full">
-                                    <div class="flex flex-wrap items-center gap-3">
-                                        <button
-                                            type="button"
-                                            class="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-200 opacity-80 cursor-not-allowed"
-                                            disabled
-                                        >
-                                            <svg lucideDatabase aria-hidden="true" class="w-4 h-4" [strokeWidth]="2"></svg>
-                                            {{ action.openLabel }}
-                                        </button>
-                                        <p class="text-sm text-zinc-500">{{ action.availabilityNote }}</p>
-                                    </div>
+                                    @if (action.id === 'mysql') {
+                                        <div class="flex flex-wrap items-center gap-3 rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3">
+                                            <svg lucideServer aria-hidden="true" class="w-4 h-4 text-sky-300" [strokeWidth]="1.8"></svg>
+                                            <p class="text-sm text-zinc-300">
+                                                Configure a saved profile below, then use <span class="font-medium text-zinc-100">Save &amp; connect</span> to open the workspace.
+                                            </p>
+                                        </div>
+                                    } @else {
+                                        <div class="flex flex-wrap items-center gap-3">
+                                            <button
+                                                type="button"
+                                                class="flex items-center gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-200 opacity-80 cursor-not-allowed"
+                                                disabled
+                                            >
+                                                <svg lucideDatabase aria-hidden="true" class="w-4 h-4" [strokeWidth]="2"></svg>
+                                                {{ action.openLabel }}
+                                            </button>
+                                            <p class="text-sm text-zinc-500">This provider is not available from the welcome screen yet.</p>
+                                        </div>
+                                    }
 
-                                    @if (action.id === 'mysql-preview') {
+                                    @if (action.id === 'mysql') {
                                         <div class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
                                             <div class="flex items-center gap-2">
                                                 <svg lucideServer aria-hidden="true" class="w-4 h-4 text-zinc-500" [strokeWidth]="1.8"></svg>
@@ -343,7 +352,7 @@
                                                         </button>
                                                     </div>
                                                     <p class="mt-3 text-xs text-amber-200/80">
-                                                        This draft is the MySQL open target. The preview can browse tables and run raw SQL once a connection succeeds.
+                                                        This draft is the MySQL open target. The workspace can browse tables and run raw SQL once a connection succeeds.
                                                     </p>
 
                                                     <div class="mt-4">
@@ -398,7 +407,7 @@
                                                         @if (mysqlConnectionSession(); as session) {
                                                             <div class="mt-4 rounded-lg border border-sky-500/20 bg-sky-500/5 p-3">
                                                                 <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300">
-                                                                    Provisional session
+                                                                    Active session
                                                                 </p>
                                                                 <div class="mt-3 grid gap-2 text-xs text-zinc-300 md:grid-cols-2">
                                                                     <span>Connection: {{ session.target.connectionName }}</span>

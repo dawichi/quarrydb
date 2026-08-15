@@ -83,8 +83,8 @@ The initial bar is practical, not maximal:
 - adapt shared relational UI where it fits
 - preserve Quarry's transparency and local-first UX
 
-This phase is complete for the v1 scope. The current work is hardening, deeper MySQL browsing,
-and operational coverage.
+This phase is complete for the v1 scope. The current work is release-candidate hardening,
+deeper MySQL browsing, and operational coverage.
 
 ### Phase 4 — Production-grade polish
 

@@ -11,7 +11,7 @@ test.describe('welcome screen', () => {
         await expect(page.getByRole('heading', { name: 'Connect to MySQL' })).toBeVisible()
         await expect(page.getByRole('heading', { name: 'Connect to Redis' })).toBeVisible()
         await expect(
-            page.getByText('Preview quality: browse, stage row edits, export results, run raw SQL, and build MySQL visual pipelines.'),
+            page.getByText('Configure a saved profile below, then use Save & connect to open the workspace.'),
         ).toBeVisible()
     })
 
