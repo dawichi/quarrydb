@@ -42,7 +42,7 @@ shipped publicly with auto-updates working.
 | Testing — integration tests for pipeline run/export and edit-mode transactions (8 tests) | ✅ Done |
 | Query history (opt-in) | ✅ Done |
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
-| Testing — Playwright E2E | 🟡 Angular welcome, browse/query, edit/apply, and export flows plus Astro landing smoke coverage; native OS flows pending |
+| Testing — Playwright E2E | 🟡 Angular welcome, browse/query, edit/apply, and export flows plus Astro landing smoke coverage; native OS flows covered by release checklist |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, server-side filtering/sorting, expressions, joins, and transactional edits |
 | Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews and collection edits, string/TTL editing, deletion, bounded JSON export, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN/previews/export |
 | Testing — Redis native provider | ✅ 5 Rust boundary tests, frontend invoke contract tests, command parser tests, and Docker-backed live protocol test covering typed previews in CI |
@@ -71,7 +71,8 @@ slice of that.
    operational UX and safety boundaries are specified; bounded JSON keyspace export is now in
    place for diagnostics and migration assistance.
 4. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
-   menu bars where the environment supports it.
+   menu bars where dedicated platform runners justify it; the per-release smoke checklist is now
+   documented.
 5. **Performance at scale** — especially important once provider breadth starts growing.
 
 ## Intentionally Deferred
@@ -173,3 +174,4 @@ multiple features.
 | 2026-08-15 | Landing/CI hardening: added deterministic Astro browser smoke tests, separate Angular/Astro Playwright artifact directories, and CI failure artifact upload |
 | 2026-08-15 | Redis depth slice: added a pattern-scoped native keyspace JSON export capped at 500 typed previews, normalized native TTL fields in the frontend adapter, and added export contract coverage |
 | 2026-08-15 | Redis safety slice: added explicit typed list/set/sorted-set/hash/stream mutations with native input guards, refresh-after-write behavior, and live protocol coverage |
+| 2026-08-15 | Native shell QA: documented the release-candidate checklist for installers, menus, dialogs, keyring, updater replacement, and provider boundaries where OS-native automation is not available |

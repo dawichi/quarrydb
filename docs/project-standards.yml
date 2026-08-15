@@ -36,7 +36,7 @@ scope_notes:
 compliance:
   rules:
     - {id: DOC-001, status: compliant, evidence: docs/AGENTS.md, priority: medium, next_action: keep canonical instructions current}
-    - {id: DOC-002, status: compliant, evidence: docs/README.md including recovery-runbook.md, priority: medium, next_action: maintain the index when docs move}
+    - {id: DOC-002, status: compliant, evidence: docs/README.md including recovery-runbook.md and native-shell-smoke-checklist.md, priority: medium, next_action: maintain the index when docs move}
     - {id: DOC-003, status: partial, evidence: README.md and docs/, priority: high, next_action: continue reconciling historical planning docs with shipped provider state}
     - {id: DOC-004, status: unknown, evidence: maintained Markdown links have not yet had a dedicated checker, priority: medium, next_action: add a repository link check}
     - {id: DOC-005, status: partial, evidence: README.md, docs/architecture.md, docs/status.md, src/, priority: high, next_action: reconcile remaining historical provider plans}
@@ -78,7 +78,7 @@ compliance:
     - {id: DEP-007, status: compliant, evidence: package.json and bun.lock, priority: low, next_action: continue using Bun consistently}
 
     - {id: CI-001, status: compliant, evidence: .github/workflows/ci.yml, priority: high, next_action: keep PR and main validation active}
-    - {id: CI-002, status: partial, evidence: CI check/test/e2e/build/landing/dependency and Rust audit gates; native shell remains outside CI, priority: high, next_action: add native smoke when platform drivers are operationally justified}
+    - {id: CI-002, status: partial, evidence: CI check/test/e2e/build/landing/dependency and Rust audit gates plus native-shell-smoke-checklist.md; native shell remains platform-host dependent, priority: high, next_action: add native smoke when platform drivers are operationally justified}
     - {id: CI-003, status: compliant, evidence: frozen Bun installs plus pinned Bun and Rust toolchains in CI/release, priority: high, next_action: preserve reproducible inputs}
     - {id: CI-004, status: unknown, evidence: branch protection is repository-host configuration, priority: high, next_action: verify required checks in GitHub settings}
     - {id: CI-005, status: partial, evidence: release workflow permissions and signing secret usage, priority: high, next_action: narrow permissions and review trusted tag paths}
@@ -124,7 +124,7 @@ compliance:
     - {id: ANGULAR-007, status: partial, evidence: root stores and provider-owned stores, priority: high, next_action: document ownership and reset lifecycle}
     - {id: ANGULAR-008, status: compliant, evidence: shared SQL and store/service unit tests, priority: high, next_action: preserve pure logic extraction}
     - {id: ANGULAR-010, status: partial, evidence: updater interval and component timers, priority: medium, next_action: make reactive lifecycles cancellable}
-    - {id: ANGULAR-011, status: partial, evidence: Playwright critical flows but native shell excluded, priority: high, next_action: add native smoke coverage where feasible}
+    - {id: ANGULAR-011, status: partial, evidence: Playwright critical flows, Rust boundary tests, release workflow, and native-shell-smoke-checklist.md; OS-native behavior remains host-dependent, priority: high, next_action: automate on dedicated platform runners if justified}
     - {id: ANGULAR-012, status: compliant, evidence: tsconfig angularCompilerOptions, priority: high, next_action: preserve strict templates and injection}
     - {id: ANGULAR-014, status: compliant, evidence: loading/error/empty signals and templates, priority: high, next_action: preserve explicit async states}
     - {id: ANGULAR-015, status: partial, evidence: provider stores plus global localStorage services, priority: medium, next_action: document scope and reset behavior}

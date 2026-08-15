@@ -15,6 +15,7 @@ canonical [`AGENTS.md`](AGENTS.md), then read the relevant file(s) here.
 | [adr/0001-trust-boundaries-and-provider-data.md](adr/0001-trust-boundaries-and-provider-data.md) | Trust boundaries, secrets, provider data ownership, and explicit expensive operations |
 | [dependency-security.md](dependency-security.md) | Dependency audit gates, overrides, and vulnerability response |
 | [recovery-runbook.md](recovery-runbook.md) | Data ownership, backup boundaries, export limits, and provider recovery guidance |
+| [native-shell-smoke-checklist.md](native-shell-smoke-checklist.md) | Platform-specific Tauri install, menu, dialog, keyring, and updater smoke checks |
 
 ## Project Context
 

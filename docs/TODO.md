@@ -48,9 +48,13 @@ recorded in `docs/status.md` or an ADR; do not silently delete unresolved items.
 
 ### QRY-008 [Medium] Native shell smoke coverage
 
-- **Status:** Planned
+- **Status:** Completed
 - **Affected area:** Tauri webview, OS dialogs, menus, updater
-- **Evidence:** browser tests mock IPC and Rust tests cover native Redis boundaries; no automated
-  macOS/Windows native-driver suite is configured.
-- **Risk:** platform-specific dialogs or capability wiring can regress outside browser tests.
-- **Next action:** add a small `tauri-driver` smoke suite or retain a per-release manual checklist.
+- **Evidence:** `docs/native-shell-smoke-checklist.md` defines the platform-specific release
+  smoke layer and its relationship to automated browser, Rust, provider, build, and updater
+  checks.
+- **Risk:** platform-specific dialogs, keyring behavior, installer behavior, and updater
+  replacement still require a disposable macOS/Windows host; no native-driver suite is forced
+  into the cross-platform CI job.
+- **Next action:** add `tauri-driver` coverage only when dedicated platform runners justify its
+  maintenance cost.
