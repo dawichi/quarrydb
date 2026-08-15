@@ -54,7 +54,7 @@
   "devDependencies": {
     "@angular/build": "^20.3.34",
     "@angular/cli": "^20.3.34",
-    "@angular/compiler-cli": "^20.3.28",
+    "@angular/compiler-cli": "^22.1.1",
     "@biomejs/biome": "^2.5.8",
     "@playwright/test": "^1.62.1",
     "@resvg/resvg-js": "^2.6.2",
