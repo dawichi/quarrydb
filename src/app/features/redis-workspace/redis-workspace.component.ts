@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core'
+import type { RedisCollectionKind, RedisCollectionOperation } from '../../core/providers/redis-backend-adapter'
 import { parseRedisCommand } from '../../core/providers/redis-command-parser'
 import type { RedisConnectionProfileDraft } from '../../core/providers/redis-connection-profile'
 import { RedisProviderService } from '../../core/providers/redis-provider.service'
@@ -18,6 +19,10 @@ export class RedisWorkspaceComponent {
     protected readonly command = signal('PING')
     protected readonly valueDraft = signal('')
     protected readonly ttlDraft = signal('')
+    protected readonly collectionOperation = signal<RedisCollectionOperation>('push_right')
+    protected readonly collectionField = signal('')
+    protected readonly collectionValue = signal('')
+    protected readonly collectionScore = signal('')
     protected readonly activeTab = signal<'keys' | 'command'>('keys')
 
     protected profiles() {
@@ -58,6 +63,10 @@ export class RedisWorkspaceComponent {
             const details = this.store.keyDetails()
             this.valueDraft.set(typeof details?.value === 'string' ? details.value : '')
             this.ttlDraft.set(details && details.ttlMs > 0 ? String(details.ttlMs) : '')
+            this.collectionOperation.set(this.defaultCollectionOperation(details?.kind))
+            this.collectionField.set('')
+            this.collectionValue.set('')
+            this.collectionScore.set('')
         })
     }
 
@@ -68,6 +77,27 @@ export class RedisWorkspaceComponent {
         const ttlMs = ttl ? Number(ttl) : null
         if (ttlMs !== null && (!Number.isInteger(ttlMs) || ttlMs <= 0)) return
         void this.store.setString(details.key, this.valueDraft(), ttlMs)
+    }
+
+    protected mutateCollection(): void {
+        const details = this.store.keyDetails()
+        if (!details || details.kind === 'string') return
+        const kind = details.kind
+        if (!this.isCollectionKind(kind)) return
+        const operation = this.collectionOperation()
+        const scoreText = this.collectionScore().trim()
+        const score = scoreText ? Number(scoreText) : null
+        if (kind === 'zset' && operation === 'upsert' && (score === null || !Number.isFinite(score))) {
+            this.store.error.set('Enter a finite sorted-set score.')
+            return
+        }
+        void this.store.mutateCollection(
+            kind,
+            operation,
+            kind === 'hash' || kind === 'stream' ? this.collectionField() : null,
+            this.collectionValue(),
+            score,
+        )
     }
 
     protected runCommand(): void {
@@ -94,5 +124,26 @@ export class RedisWorkspaceComponent {
     protected backHome(): void {
         this.provider.clearWorkspace()
         this.host.clearWorkspace()
+    }
+
+    private defaultCollectionOperation(kind: string | undefined): RedisCollectionOperation {
+        switch (kind) {
+            case 'list':
+                return 'push_right'
+            case 'set':
+                return 'add'
+            case 'zset':
+                return 'upsert'
+            case 'hash':
+                return 'set'
+            case 'stream':
+                return 'append'
+            default:
+                return 'push_right'
+        }
+    }
+
+    private isCollectionKind(kind: string): kind is RedisCollectionKind {
+        return kind === 'list' || kind === 'set' || kind === 'zset' || kind === 'hash' || kind === 'stream'
     }
 }

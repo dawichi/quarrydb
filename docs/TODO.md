@@ -39,12 +39,12 @@ recorded in `docs/status.md` or an ADR; do not silently delete unresolved items.
 - **Status:** In progress
 - **Affected area:** Redis/Valkey workspace
 - **Evidence:** connection, key browsing, typed previews, string editing, TTL, deletion, and
-  command execution, plus bounded pattern-scoped JSON keyspace export, are implemented;
-  collection editors, cluster, ACL, and restore workflows are not.
+  command execution, bounded pattern-scoped JSON keyspace export, and safe typed collection edits
+  are implemented; cluster, ACL, and restore workflows are not.
 - **Risk:** Redis is useful for inspection and targeted operations but not yet a full keyspace
   administration tool.
-- **Next action:** Add focused list/set/hash/sorted-set editors only after defining mutation
-  confirmation, conflict, and per-type preview limits.
+- **Next action:** Define cluster/ACL/restore scope only after real usage validates the current
+  bounded key browser and typed mutation workflows.
 
 ### QRY-008 [Medium] Native shell smoke coverage
 

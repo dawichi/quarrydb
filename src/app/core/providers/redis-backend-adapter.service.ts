@@ -3,6 +3,8 @@ import type { RedisConnectionTarget } from '@quarrydb/shared/redis-connection-ta
 import { invoke } from '@tauri-apps/api/core'
 import type {
     RedisBackendAdapter,
+    RedisCollectionKind,
+    RedisCollectionOperation,
     RedisConnectionSession,
     RedisConnectRequest,
     RedisKeyDetails,
@@ -76,6 +78,26 @@ export class RedisBackendAdapterService implements RedisBackendAdapter {
             maxKeys,
         })
         return details.map((item) => this.mapKeyDetails(item))
+    }
+
+    async mutateCollection(
+        session: RedisConnectionSession,
+        key: string,
+        kind: RedisCollectionKind,
+        operation: RedisCollectionOperation,
+        field: string | null,
+        value: string | null,
+        score: number | null,
+    ): Promise<number> {
+        return invoke<number>('redis_mutate_collection', {
+            target: this.nativeTargetFromSession(session),
+            key,
+            kind,
+            operation,
+            field,
+            value,
+            score,
+        })
     }
 
     async setString(session: RedisConnectionSession, key: string, value: string, ttlMs: number | null): Promise<void> {

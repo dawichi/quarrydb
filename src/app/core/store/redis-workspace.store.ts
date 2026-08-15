@@ -1,5 +1,10 @@
 import { Injectable, inject, signal } from '@angular/core'
-import type { RedisConnectionSession, RedisKeyDetails } from '../providers/redis-backend-adapter'
+import type {
+    RedisCollectionKind,
+    RedisCollectionOperation,
+    RedisConnectionSession,
+    RedisKeyDetails,
+} from '../providers/redis-backend-adapter'
 import { RedisBackendAdapterService } from '../providers/redis-backend-adapter.service'
 import { serializeRedisKeyspace } from '../providers/redis-export'
 import { ExportService } from '../services/export.service'
@@ -129,6 +134,28 @@ export class RedisWorkspaceStore {
         try {
             const details = await this.backend.exportKeyspace(session, this.pattern(), maxKeys)
             await this.exportService.saveFile(serializeRedisKeyspace(details), 'redis-keyspace.json', 'json')
+        } catch (error) {
+            this.error.set(this.describeError(error))
+        } finally {
+            this.isMutating.set(false)
+        }
+    }
+
+    async mutateCollection(
+        kind: RedisCollectionKind,
+        operation: RedisCollectionOperation,
+        field: string | null,
+        value: string | null,
+        score: number | null,
+    ): Promise<void> {
+        const session = this.connectionSession()
+        const key = this.selectedKey()
+        if (!session || !key || this.isMutating()) return
+        this.isMutating.set(true)
+        this.error.set(null)
+        try {
+            await this.backend.mutateCollection(session, key, kind, operation, field, value, score)
+            await this.selectKey(key)
         } catch (error) {
             this.error.set(this.describeError(error))
         } finally {

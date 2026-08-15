@@ -341,6 +341,122 @@ fn redis_export_keyspace(
 }
 
 #[tauri::command]
+fn redis_mutate_collection(
+    target: RedisConnectionTarget,
+    key: String,
+    kind: String,
+    operation: String,
+    field: Option<String>,
+    value: Option<String>,
+    score: Option<f64>,
+) -> Result<i64, String> {
+    if key.is_empty() {
+        return Err("Redis key cannot be empty".to_string());
+    }
+    if kind != "list" && kind != "set" && kind != "zset" && kind != "hash" && kind != "stream" {
+        return Err("Redis collection mutation type is not supported".to_string());
+    }
+    if key.len() > 64 * 1024 {
+        return Err("Redis key is too large".to_string());
+    }
+    let value = value.filter(|item| item.len() <= 64 * 1024);
+    let field = field.filter(|item| item.len() <= 64 * 1024);
+    match (kind.as_str(), operation.as_str()) {
+        ("list", "push_left") | ("list", "push_right") | ("set", "add") | ("set", "remove")
+            if value.is_some() => {}
+        ("zset", "upsert") if value.is_some() && score.is_some_and(f64::is_finite) => {}
+        ("zset", "remove") if value.is_some() => {}
+        ("hash", "set") if field.is_some() && value.is_some() => {}
+        ("hash", "remove") if field.is_some() => {}
+        ("stream", "append") if field.is_some() && value.is_some() => {}
+        _ => return Err("Redis collection mutation arguments are invalid".to_string()),
+    }
+    let mut connection = redis_connection(&target)?;
+
+    let result =
+        match (kind.as_str(), operation.as_str()) {
+            ("list", "push_left") | ("list", "push_right") => {
+                let value = value
+                    .ok_or_else(|| "Redis list value cannot be empty or too large".to_string())?;
+                let command_name = if operation == "push_left" {
+                    "LPUSH"
+                } else {
+                    "RPUSH"
+                };
+                redis::cmd(command_name)
+                    .arg(&key)
+                    .arg(value)
+                    .query::<i64>(&mut connection)
+                    .map_err(|error| format!("Redis list mutation failed: {error}"))?
+            }
+            ("set", "add") | ("set", "remove") => {
+                let value = value
+                    .ok_or_else(|| "Redis set member cannot be empty or too large".to_string())?;
+                let command_name = if operation == "add" { "SADD" } else { "SREM" };
+                redis::cmd(command_name)
+                    .arg(&key)
+                    .arg(value)
+                    .query::<i64>(&mut connection)
+                    .map_err(|error| format!("Redis set mutation failed: {error}"))?
+            }
+            ("zset", "upsert") | ("zset", "remove") => {
+                let member = value.ok_or_else(|| {
+                    "Redis sorted-set member cannot be empty or too large".to_string()
+                })?;
+                let command_name = if operation == "upsert" {
+                    "ZADD"
+                } else {
+                    "ZREM"
+                };
+                let mut command = redis::cmd(command_name);
+                command.arg(&key);
+                if operation == "upsert" {
+                    let score = score.filter(|item| item.is_finite()).ok_or_else(|| {
+                        "Redis sorted-set score must be a finite number".to_string()
+                    })?;
+                    command.arg(score);
+                }
+                command
+                    .arg(member)
+                    .query::<i64>(&mut connection)
+                    .map_err(|error| format!("Redis sorted-set mutation failed: {error}"))?
+            }
+            ("hash", "set") | ("hash", "remove") => {
+                let field = field
+                    .ok_or_else(|| "Redis hash field cannot be empty or too large".to_string())?;
+                let command_name = if operation == "set" { "HSET" } else { "HDEL" };
+                let mut command = redis::cmd(command_name);
+                command.arg(&key).arg(field);
+                if operation == "set" {
+                    command.arg(value.ok_or_else(|| {
+                        "Redis hash value cannot be empty or too large".to_string()
+                    })?);
+                }
+                command
+                    .query::<i64>(&mut connection)
+                    .map_err(|error| format!("Redis hash mutation failed: {error}"))?
+            }
+            ("stream", "append") => {
+                let field = field
+                    .ok_or_else(|| "Redis stream field cannot be empty or too large".to_string())?;
+                let value = value
+                    .ok_or_else(|| "Redis stream value cannot be empty or too large".to_string())?;
+                redis::cmd("XADD")
+                    .arg(&key)
+                    .arg("*")
+                    .arg(field)
+                    .arg(value)
+                    .query::<String>(&mut connection)
+                    .map(|_| 1)
+                    .map_err(|error| format!("Redis stream mutation failed: {error}"))?
+            }
+            _ => return Err("Redis collection mutation operation is not supported".to_string()),
+        };
+
+    Ok(result)
+}
+
+#[tauri::command]
 fn redis_set_string(
     target: RedisConnectionTarget,
     key: String,
@@ -542,6 +658,7 @@ pub fn run() {
             redis_scan_keys,
             redis_get_key,
             redis_export_keyspace,
+            redis_mutate_collection,
             redis_set_string,
             redis_delete_key,
             redis_run_command
@@ -553,8 +670,9 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        redis_connect, redis_delete_key, redis_export_keyspace, redis_get_key, redis_run_command,
-        redis_scan_keys, redis_set_string, redis_url, RedisConnectionTarget,
+        redis_connect, redis_delete_key, redis_export_keyspace, redis_get_key,
+        redis_mutate_collection, redis_run_command, redis_scan_keys, redis_set_string, redis_url,
+        RedisConnectionTarget,
     };
     use std::env;
 
@@ -616,6 +734,30 @@ mod tests {
     #[test]
     fn rejects_empty_keyspace_export_limits_before_connecting() {
         assert!(redis_export_keyspace(target(), None, 0).is_err());
+    }
+
+    #[test]
+    fn rejects_unsupported_collection_mutations_before_connecting() {
+        assert!(redis_mutate_collection(
+            target(),
+            "key".to_string(),
+            "string".to_string(),
+            "set".to_string(),
+            None,
+            Some("value".to_string()),
+            None,
+        )
+        .is_err());
+        assert!(redis_mutate_collection(
+            target(),
+            "key".to_string(),
+            "zset".to_string(),
+            "upsert".to_string(),
+            None,
+            Some("member".to_string()),
+            Some(f64::NAN),
+        )
+        .is_err());
     }
 
     #[test]
@@ -692,9 +834,114 @@ mod tests {
             .query(&mut connection)
             .expect("XADD should work");
 
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                list_key.to_string(),
+                "list".to_string(),
+                "push_right".to_string(),
+                None,
+                Some("third".to_string()),
+                None,
+            )
+            .expect("list mutation should work"),
+            3
+        );
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                set_key.to_string(),
+                "set".to_string(),
+                "add".to_string(),
+                None,
+                Some("gamma".to_string()),
+                None,
+            )
+            .expect("set add should work"),
+            1
+        );
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                set_key.to_string(),
+                "set".to_string(),
+                "remove".to_string(),
+                None,
+                Some("gamma".to_string()),
+                None,
+            )
+            .expect("set remove should work"),
+            1
+        );
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                zset_key.to_string(),
+                "zset".to_string(),
+                "upsert".to_string(),
+                None,
+                Some("third".to_string()),
+                Some(3.5),
+            )
+            .expect("sorted-set upsert should work"),
+            1
+        );
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                zset_key.to_string(),
+                "zset".to_string(),
+                "remove".to_string(),
+                None,
+                Some("third".to_string()),
+                None,
+            )
+            .expect("sorted-set remove should work"),
+            1
+        );
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                hash_key.to_string(),
+                "hash".to_string(),
+                "set".to_string(),
+                Some("other".to_string()),
+                Some("value".to_string()),
+                None,
+            )
+            .expect("hash set should work"),
+            1
+        );
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                hash_key.to_string(),
+                "hash".to_string(),
+                "remove".to_string(),
+                Some("other".to_string()),
+                None,
+                None,
+            )
+            .expect("hash remove should work"),
+            1
+        );
+        assert_eq!(
+            redis_mutate_collection(
+                target.clone(),
+                stream_key.to_string(),
+                "stream".to_string(),
+                "append".to_string(),
+                Some("second".to_string()),
+                Some("value".to_string()),
+                None,
+            )
+            .expect("stream append should work"),
+            1
+        );
+
         let list = redis_get_key(target.clone(), list_key.to_string()).expect("LRANGE should work");
         assert_eq!(list.kind, "list");
-        assert_eq!(list.value, serde_json::json!(["first", "second"]));
+        assert_eq!(list.value, serde_json::json!(["first", "second", "third"]));
 
         let set = redis_get_key(target.clone(), set_key.to_string()).expect("SMEMBERS should work");
         assert_eq!(set.kind, "set");
@@ -712,7 +959,7 @@ mod tests {
         let stream =
             redis_get_key(target.clone(), stream_key.to_string()).expect("XRANGE should work");
         assert_eq!(stream.kind, "stream");
-        assert_eq!(stream.value.as_array().map(Vec::len), Some(1));
+        assert_eq!(stream.value.as_array().map(Vec::len), Some(2));
 
         let scan = redis_scan_keys(target.clone(), 0, Some("quarry:native:*".to_string()), 100)
             .expect("SCAN should work");

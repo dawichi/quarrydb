@@ -31,11 +31,24 @@ export interface RedisKeyDetails {
     value: unknown
 }
 
+export type RedisCollectionKind = 'list' | 'set' | 'zset' | 'hash' | 'stream'
+
+export type RedisCollectionOperation = 'push_left' | 'push_right' | 'add' | 'remove' | 'upsert' | 'set' | 'append'
+
 export interface RedisBackendAdapter {
     connect(request: RedisConnectRequest): Promise<RedisConnectionSession>
     scanKeys(session: RedisConnectionSession, cursor: number, pattern: string, count?: number): Promise<RedisScanResult>
     getKey(session: RedisConnectionSession, key: string): Promise<RedisKeyDetails>
     exportKeyspace(session: RedisConnectionSession, pattern: string, maxKeys?: number): Promise<RedisKeyDetails[]>
+    mutateCollection(
+        session: RedisConnectionSession,
+        key: string,
+        kind: RedisCollectionKind,
+        operation: RedisCollectionOperation,
+        field: string | null,
+        value: string | null,
+        score: number | null,
+    ): Promise<number>
     setString(session: RedisConnectionSession, key: string, value: string, ttlMs: number | null): Promise<void>
     deleteKey(session: RedisConnectionSession, key: string): Promise<number>
     runCommand(session: RedisConnectionSession, args: string[]): Promise<unknown>

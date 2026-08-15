@@ -44,7 +44,7 @@ shipped publicly with auto-updates working.
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
 | Testing — Playwright E2E | 🟡 Angular welcome, browse/query, edit/apply, and export flows plus Astro landing smoke coverage; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, server-side filtering/sorting, expressions, joins, and transactional edits |
-| Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews, string/TTL editing, deletion, bounded JSON export, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN/previews/export |
+| Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews and collection edits, string/TTL editing, deletion, bounded JSON export, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN/previews/export |
 | Testing — Redis native provider | ✅ 5 Rust boundary tests, frontend invoke contract tests, command parser tests, and Docker-backed live protocol test covering typed previews in CI |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
 | MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, password-prompt session restoration, and opt-in OS-backed password storage with runtime fallback |
@@ -172,3 +172,4 @@ multiple features.
 | 2026-08-15 | Provider safety and integration hardening: redacted credential-bearing errors, added MySQL live browse filter/sort coverage, and expanded Redis live previews across string/list/set/sorted-set/hash/stream values |
 | 2026-08-15 | Landing/CI hardening: added deterministic Astro browser smoke tests, separate Angular/Astro Playwright artifact directories, and CI failure artifact upload |
 | 2026-08-15 | Redis depth slice: added a pattern-scoped native keyspace JSON export capped at 500 typed previews, normalized native TTL fields in the frontend adapter, and added export contract coverage |
+| 2026-08-15 | Redis safety slice: added explicit typed list/set/sorted-set/hash/stream mutations with native input guards, refresh-after-write behavior, and live protocol coverage |

@@ -80,4 +80,19 @@ describe('RedisBackendAdapterService', () => {
             maxKeys: 25,
         })
     })
+
+    it('passes typed collection mutations to the native boundary', async () => {
+        invoke.mockResolvedValue(1)
+
+        await expect(service.mutateCollection(session, 'scores', 'zset', 'upsert', null, 'Ada', 42)).resolves.toBe(1)
+        expect(invoke).toHaveBeenCalledWith('redis_mutate_collection', {
+            target: { ...session.target, password: 'secret' },
+            key: 'scores',
+            kind: 'zset',
+            operation: 'upsert',
+            field: null,
+            value: 'Ada',
+            score: 42,
+        })
+    })
 })
