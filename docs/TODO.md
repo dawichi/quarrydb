@@ -36,15 +36,15 @@ recorded in `docs/status.md` or an ADR; do not silently delete unresolved items.
 
 ### QRY-007 [High] Redis provider depth
 
-- **Status:** Planned
+- **Status:** In progress
 - **Affected area:** Redis/Valkey workspace
 - **Evidence:** connection, key browsing, typed previews, string editing, TTL, deletion, and
-  command execution are implemented; collection editors, export, cluster, and ACL workflows
-  are not.
+  command execution, plus bounded pattern-scoped JSON keyspace export, are implemented;
+  collection editors, cluster, ACL, and restore workflows are not.
 - **Risk:** Redis is useful for inspection and targeted operations but not yet a full keyspace
   administration tool.
-- **Next action:** Add focused collection editors and bounded keyspace export after real usage
-  validates the workflows.
+- **Next action:** Add focused list/set/hash/sorted-set editors only after defining mutation
+  confirmation, conflict, and per-type preview limits.
 
 ### QRY-008 [Medium] Native shell smoke coverage
 

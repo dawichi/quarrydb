@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::Emitter;
@@ -264,26 +265,79 @@ fn redis_scan_keys(
 }
 
 #[tauri::command]
-fn redis_get_key(target: RedisConnectionTarget, key: String) -> Result<RedisKeyDetails, String> {
+fn redis_key_details(
+    connection: &mut redis::Connection,
+    key: &str,
+) -> Result<RedisKeyDetails, String> {
     if key.is_empty() {
         return Err("Redis key cannot be empty".to_string());
     }
-    let mut connection = redis_connection(&target)?;
     let kind: String = redis::cmd("TYPE")
         .arg(&key)
-        .query(&mut connection)
+        .query(connection)
         .map_err(|error| format!("Redis TYPE failed: {error}"))?;
     let ttl_ms: i64 = redis::cmd("PTTL")
         .arg(&key)
-        .query(&mut connection)
+        .query(connection)
         .map_err(|error| format!("Redis PTTL failed: {error}"))?;
-    let value = redis_read_value(&mut connection, &key, &kind)?;
+    let value = redis_read_value(connection, key, &kind)?;
     Ok(RedisKeyDetails {
-        key,
+        key: key.to_string(),
         kind,
         ttl_ms,
         value,
     })
+}
+
+#[tauri::command]
+fn redis_get_key(target: RedisConnectionTarget, key: String) -> Result<RedisKeyDetails, String> {
+    let mut connection = redis_connection(&target)?;
+    redis_key_details(&mut connection, &key)
+}
+
+#[tauri::command]
+fn redis_export_keyspace(
+    target: RedisConnectionTarget,
+    pattern: Option<String>,
+    max_keys: u32,
+) -> Result<Vec<RedisKeyDetails>, String> {
+    if max_keys == 0 {
+        return Err("Redis export limit must be positive".to_string());
+    }
+    let safe_max_keys = max_keys.clamp(1, 500) as usize;
+    let pattern = pattern.filter(|value| !value.is_empty());
+    let mut connection = redis_connection(&target)?;
+    let mut cursor = 0;
+    let mut seen = HashSet::new();
+    let mut details = Vec::new();
+
+    loop {
+        let mut command = redis::cmd("SCAN");
+        command.arg(cursor).arg("COUNT").arg(100);
+        if let Some(pattern) = &pattern {
+            command.arg("MATCH").arg(pattern);
+        }
+        let (next_cursor, keys) = command
+            .query::<(u64, Vec<String>)>(&mut connection)
+            .map_err(|error| format!("Redis key export scan failed: {error}"))?;
+
+        for key in keys {
+            if details.len() >= safe_max_keys {
+                break;
+            }
+            if seen.insert(key.clone()) {
+                details.push(redis_key_details(&mut connection, &key)?);
+            }
+        }
+
+        if details.len() >= safe_max_keys || next_cursor == 0 {
+            break;
+        }
+        cursor = next_cursor;
+    }
+
+    details.sort_by(|left, right| left.key.cmp(&right.key));
+    Ok(details)
 }
 
 #[tauri::command]
@@ -487,6 +541,7 @@ pub fn run() {
             redis_connect,
             redis_scan_keys,
             redis_get_key,
+            redis_export_keyspace,
             redis_set_string,
             redis_delete_key,
             redis_run_command
@@ -498,8 +553,8 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        redis_connect, redis_delete_key, redis_get_key, redis_run_command, redis_scan_keys,
-        redis_set_string, redis_url, RedisConnectionTarget,
+        redis_connect, redis_delete_key, redis_export_keyspace, redis_get_key, redis_run_command,
+        redis_scan_keys, redis_set_string, redis_url, RedisConnectionTarget,
     };
     use std::env;
 
@@ -556,6 +611,11 @@ mod tests {
         .is_err());
         assert!(redis_delete_key(target.clone(), String::new()).is_err());
         assert!(redis_run_command(target, Vec::new()).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_keyspace_export_limits_before_connecting() {
+        assert!(redis_export_keyspace(target(), None, 0).is_err());
     }
 
     #[test]

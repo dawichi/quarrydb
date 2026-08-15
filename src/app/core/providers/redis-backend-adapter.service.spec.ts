@@ -39,10 +39,15 @@ describe('RedisBackendAdapterService', () => {
         })
     })
 
-    it('reuses the runtime-only password for subsequent native operations', async () => {
+    it('maps native key detail fields and reuses the runtime-only password', async () => {
         invoke.mockResolvedValue({ key: 'greeting', kind: 'string', ttl_ms: -1, value: 'hello' })
 
-        await service.getKey(session, 'greeting')
+        await expect(service.getKey(session, 'greeting')).resolves.toEqual({
+            key: 'greeting',
+            kind: 'string',
+            ttlMs: -1,
+            value: 'hello',
+        })
 
         expect(invoke).toHaveBeenCalledWith('redis_get_key', {
             target: { ...session.target, password: 'secret' },
@@ -56,6 +61,23 @@ describe('RedisBackendAdapterService', () => {
         await expect(service.scanKeys(session, 0, 'users:*', 100)).resolves.toEqual({
             cursor: 7,
             keys: [{ key: 'users:1' }, { key: 'users:2' }],
+        })
+    })
+
+    it('maps bounded native keyspace exports and normalizes empty patterns', async () => {
+        invoke.mockResolvedValue([
+            { key: 'users:1', kind: 'hash', ttl_ms: 5000, value: ['name', 'Ada'] },
+            { key: 'queue', kind: 'list', ttl_ms: -1, value: ['first'] },
+        ])
+
+        await expect(service.exportKeyspace(session, '  ', 25)).resolves.toEqual([
+            { key: 'users:1', kind: 'hash', ttlMs: 5000, value: ['name', 'Ada'] },
+            { key: 'queue', kind: 'list', ttlMs: -1, value: ['first'] },
+        ])
+        expect(invoke).toHaveBeenCalledWith('redis_export_keyspace', {
+            target: { ...session.target, password: 'secret' },
+            pattern: null,
+            maxKeys: 25,
         })
     })
 })

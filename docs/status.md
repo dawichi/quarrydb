@@ -44,7 +44,7 @@ shipped publicly with auto-updates working.
 | Testing — Vitest unit tests for query history service (15 tests) | ✅ Done |
 | Testing — Playwright E2E | 🟡 Angular welcome, browse/query, edit/apply, and export flows plus Astro landing smoke coverage; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, server-side filtering/sorting, expressions, joins, and transactional edits |
-| Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews, string/TTL editing, deletion, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN and previews |
+| Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews, string/TTL editing, deletion, bounded JSON export, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN/previews/export |
 | Testing — Redis native provider | ✅ 5 Rust boundary tests, frontend invoke contract tests, command parser tests, and Docker-backed live protocol test covering typed previews in CI |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
 | MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, password-prompt session restoration, and opt-in OS-backed password storage with runtime fallback |
@@ -67,8 +67,9 @@ slice of that.
    session persistence and full-result export; adapter/store execution coverage is now in
    place, with live integration coverage for filtering/sorting, generated pipelines, export, and
    transactional edits.
-3. **Redis depth** — add focused collection editors, keyspace export, and cluster/ACL workflows
-   only when their operational UX and safety boundaries are specified.
+3. **Redis depth** — add focused collection editors and cluster/ACL workflows only when their
+   operational UX and safety boundaries are specified; bounded JSON keyspace export is now in
+   place for diagnostics and migration assistance.
 4. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
    menu bars where the environment supports it.
 5. **Performance at scale** — especially important once provider breadth starts growing.
@@ -170,3 +171,4 @@ multiple features.
 | 2026-08-15 | Session persistence hardening: added recursive versioned validation for SQLite, MySQL, Redis, nested pipeline steps, legacy sessions, and malformed-state regression fixtures |
 | 2026-08-15 | Provider safety and integration hardening: redacted credential-bearing errors, added MySQL live browse filter/sort coverage, and expanded Redis live previews across string/list/set/sorted-set/hash/stream values |
 | 2026-08-15 | Landing/CI hardening: added deterministic Astro browser smoke tests, separate Angular/Astro Playwright artifact directories, and CI failure artifact upload |
+| 2026-08-15 | Redis depth slice: added a pattern-scoped native keyspace JSON export capped at 500 typed previews, normalized native TTL fields in the frontend adapter, and added export contract coverage |

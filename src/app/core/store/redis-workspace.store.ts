@@ -1,11 +1,14 @@
 import { Injectable, inject, signal } from '@angular/core'
 import type { RedisConnectionSession, RedisKeyDetails } from '../providers/redis-backend-adapter'
 import { RedisBackendAdapterService } from '../providers/redis-backend-adapter.service'
+import { serializeRedisKeyspace } from '../providers/redis-export'
+import { ExportService } from '../services/export.service'
 import { describeSafeError } from '../services/safe-error'
 
 @Injectable({ providedIn: 'root' })
 export class RedisWorkspaceStore {
     private readonly backend = inject(RedisBackendAdapterService)
+    private readonly exportService = inject(ExportService)
 
     readonly connectionSession = signal<RedisConnectionSession | null>(null)
     readonly keys = signal<string[]>([])
@@ -111,6 +114,21 @@ export class RedisWorkspaceStore {
         this.error.set(null)
         try {
             this.commandOutput.set(await this.backend.runCommand(session, args))
+        } catch (error) {
+            this.error.set(this.describeError(error))
+        } finally {
+            this.isMutating.set(false)
+        }
+    }
+
+    async exportKeyspace(maxKeys = 500): Promise<void> {
+        const session = this.connectionSession()
+        if (!session || this.isMutating()) return
+        this.isMutating.set(true)
+        this.error.set(null)
+        try {
+            const details = await this.backend.exportKeyspace(session, this.pattern(), maxKeys)
+            await this.exportService.saveFile(serializeRedisKeyspace(details), 'redis-keyspace.json', 'json')
         } catch (error) {
             this.error.set(this.describeError(error))
         } finally {

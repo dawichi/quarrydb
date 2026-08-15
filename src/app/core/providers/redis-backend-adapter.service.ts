@@ -23,6 +23,13 @@ interface NativeRedisScanResult {
     keys: string[]
 }
 
+interface NativeRedisKeyDetails {
+    key: string
+    kind: string
+    ttl_ms: number
+    value: unknown
+}
+
 @Injectable({ providedIn: 'root' })
 export class RedisBackendAdapterService implements RedisBackendAdapter {
     async connect(request: RedisConnectRequest): Promise<RedisConnectionSession> {
@@ -55,10 +62,20 @@ export class RedisBackendAdapterService implements RedisBackendAdapter {
     }
 
     async getKey(session: RedisConnectionSession, key: string): Promise<RedisKeyDetails> {
-        return invoke<RedisKeyDetails>('redis_get_key', {
+        const details = await invoke<NativeRedisKeyDetails>('redis_get_key', {
             target: this.nativeTargetFromSession(session),
             key,
         })
+        return this.mapKeyDetails(details)
+    }
+
+    async exportKeyspace(session: RedisConnectionSession, pattern: string, maxKeys = 500): Promise<RedisKeyDetails[]> {
+        const details = await invoke<NativeRedisKeyDetails[]>('redis_export_keyspace', {
+            target: this.nativeTargetFromSession(session),
+            pattern: pattern.trim() || null,
+            maxKeys,
+        })
+        return details.map((item) => this.mapKeyDetails(item))
     }
 
     async setString(session: RedisConnectionSession, key: string, value: string, ttlMs: number | null): Promise<void> {
@@ -92,5 +109,14 @@ export class RedisBackendAdapterService implements RedisBackendAdapter {
         // The provider service attaches the runtime password to the target only while invoking
         // native work. Persisted targets never contain this field.
         return { ...session.target, password: session.password }
+    }
+
+    private mapKeyDetails(details: NativeRedisKeyDetails): RedisKeyDetails {
+        return {
+            key: details.key,
+            kind: details.kind,
+            ttlMs: details.ttl_ms,
+            value: details.value,
+        }
     }
 }

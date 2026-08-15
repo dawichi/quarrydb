@@ -35,6 +35,7 @@ export interface RedisBackendAdapter {
     connect(request: RedisConnectRequest): Promise<RedisConnectionSession>
     scanKeys(session: RedisConnectionSession, cursor: number, pattern: string, count?: number): Promise<RedisScanResult>
     getKey(session: RedisConnectionSession, key: string): Promise<RedisKeyDetails>
+    exportKeyspace(session: RedisConnectionSession, pattern: string, maxKeys?: number): Promise<RedisKeyDetails[]>
     setString(session: RedisConnectionSession, key: string, value: string, ttlMs: number | null): Promise<void>
     deleteKey(session: RedisConnectionSession, key: string): Promise<number>
     runCommand(session: RedisConnectionSession, args: string[]): Promise<unknown>
