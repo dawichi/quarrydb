@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@angular/common": "^20.3.28",
-    "@angular/compiler": "^20.3.28",
+    "@angular/compiler": "^22.1.1",
     "@angular/core": "^20.3.28",
     "@angular/forms": "^20.3.28",
     "@angular/platform-browser": "^20.3.28",
