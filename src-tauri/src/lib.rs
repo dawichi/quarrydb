@@ -542,6 +542,23 @@ mod tests {
     }
 
     #[test]
+    fn rejects_invalid_mutation_and_command_inputs_before_connecting() {
+        let target = target();
+        assert!(
+            redis_set_string(target.clone(), String::new(), "value".to_string(), None).is_err()
+        );
+        assert!(redis_set_string(
+            target.clone(),
+            "key".to_string(),
+            "value".to_string(),
+            Some(0)
+        )
+        .is_err());
+        assert!(redis_delete_key(target.clone(), String::new()).is_err());
+        assert!(redis_run_command(target, Vec::new()).is_err());
+    }
+
+    #[test]
     fn exercises_the_native_provider_against_a_live_server_when_requested() {
         if env::var("QUARRY_REDIS_INTEGRATION").as_deref() != Ok("1") {
             return;
