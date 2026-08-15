@@ -53,7 +53,7 @@ compliance:
     - {id: TEST-005, status: compliant, evidence: docs/testing.md, malformed persistence specs, hostile identifier integration specs, and native Redis boundary tests, priority: high, next_action: preserve boundary regression coverage}
     - {id: TEST-006, status: compliant, evidence: package.json and .github/workflows/ci.yml, priority: medium, next_action: keep test commands runnable in CI}
     - {id: TEST-007, status: compliant, evidence: e2e fixtures, Docker-backed MySQL tests, Redis typed-preview live harness, and CI-provisioned services, priority: high, next_action: keep provider service versions reproducible}
-    - {id: TEST-008, status: compliant, evidence: Vitest suite, 7 Rust tests, 11 Playwright tests across Angular and Astro, and CI workflow, priority: high, next_action: retain an automated baseline}
+    - {id: TEST-008, status: compliant, evidence: Vitest suite, 7 Rust tests, 12 Playwright tests across Angular and Astro, and CI workflow, priority: high, next_action: retain an automated baseline}
 
     - {id: TS-001, status: compliant, evidence: tsconfig.json, priority: high, next_action: preserve strict checking}
     - {id: TS-002, status: compliant, evidence: Biome check and source review, priority: high, next_action: avoid undocumented any}

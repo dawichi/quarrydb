@@ -65,27 +65,31 @@
                         <div class="flex flex-1 items-center justify-center text-sm text-zinc-600">Loading Redis workspace…</div>
                     }
                 } @else {
-                    @if (workspaceStore.selectedTable()) {
-                        <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
-                            @for (tab of tabs; track tab) {
-                                <button
-                                    type="button"
-                                    class="px-3 py-2.5 text-xs font-medium transition-colors capitalize border-b-2 -mb-px"
-                                    [class]="workspaceStore.activeTab() === tab
-                                        ? 'text-zinc-100 border-sky-500'
-                                        : 'text-zinc-500 border-transparent hover:text-zinc-300'"
-                                    (click)="workspaceStore.setActiveTab(tab)"
-                                >{{ tab }}</button>
-                            }
-                        </div>
-                    }
+                    @defer (on immediate) {
+                        @if (workspaceStore.selectedTable()) {
+                            <div class="flex items-center gap-0 border-b border-zinc-800 bg-zinc-900 px-3 flex-shrink-0">
+                                @for (tab of tabs; track tab) {
+                                    <button
+                                        type="button"
+                                        class="px-3 py-2.5 text-xs font-medium transition-colors capitalize border-b-2 -mb-px"
+                                        [class]="workspaceStore.activeTab() === tab
+                                            ? 'text-zinc-100 border-sky-500'
+                                            : 'text-zinc-500 border-transparent hover:text-zinc-300'"
+                                        (click)="workspaceStore.setActiveTab(tab)"
+                                    >{{ tab }}</button>
+                                }
+                            </div>
+                        }
 
-                    @if (workspaceStore.activeTab() === 'browse') {
-                        <app-table-viewer />
-                    } @else if (workspaceStore.activeTab() === 'edit') {
-                        <app-edit-mode />
-                    } @else {
-                        <app-pipeline-builder />
+                        @if (workspaceStore.activeTab() === 'browse') {
+                            <app-table-viewer />
+                        } @else if (workspaceStore.activeTab() === 'edit') {
+                            <app-edit-mode />
+                        } @else {
+                            <app-pipeline-builder />
+                        }
+                    } @placeholder {
+                        <div class="flex flex-1 items-center justify-center text-sm text-zinc-600">Loading SQLite workspace…</div>
                     }
                 }
 
