@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
+import { describeSafeError } from '../services/safe-error'
 import { MysqlPipelineStore } from '../store/mysql-pipeline.store'
 import { MysqlWorkspaceStore } from '../store/mysql-workspace.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
@@ -335,34 +336,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     }
 
     private describeError(error: unknown): string {
-        if (error instanceof Error && error.message.trim()) {
-            return error.message
-        }
-
-        if (typeof error === 'string' && error.trim()) {
-            return error
-        }
-
-        if (error && typeof error === 'object') {
-            const candidate = error as { message?: unknown; error?: unknown; details?: unknown }
-            if (typeof candidate.message === 'string' && candidate.message.trim()) {
-                return candidate.message
-            }
-            if (typeof candidate.error === 'string' && candidate.error.trim()) {
-                return candidate.error
-            }
-            if (typeof candidate.details === 'string' && candidate.details.trim()) {
-                return candidate.details
-            }
-
-            try {
-                return JSON.stringify(error)
-            } catch {
-                return 'Unknown MySQL error'
-            }
-        }
-
-        return 'Unknown MySQL error'
+        return describeSafeError(error, 'Unknown MySQL error')
     }
 
     private createWorkspaceDraftFromProfile(profile: MysqlConnectionProfile) {

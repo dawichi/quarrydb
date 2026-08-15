@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 import type { Column } from '@quarrydb/shared'
 import { quoteIdentifier } from '@quarrydb/shared/sql-identifiers'
 import Database from '@tauri-apps/plugin-sql'
+import { describeSafeError } from '../services/safe-error'
 import type {
     MysqlBackendAdapter,
     MysqlConnectionSession,
@@ -524,15 +525,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     }
 
     private describeError(error: unknown): string {
-        if (error instanceof Error && error.message.trim()) {
-            return error.message
-        }
-
-        if (typeof error === 'string' && error.trim()) {
-            return error
-        }
-
-        return 'Unknown MySQL adapter error'
+        return describeSafeError(error, 'Unknown MySQL adapter error')
     }
 
     private toSafeNonNegativeInt(value: number): number {

@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core'
 import type { RedisConnectionSession, RedisKeyDetails } from '../providers/redis-backend-adapter'
 import { RedisBackendAdapterService } from '../providers/redis-backend-adapter.service'
+import { describeSafeError } from '../services/safe-error'
 
 @Injectable({ providedIn: 'root' })
 export class RedisWorkspaceStore {
@@ -128,6 +129,6 @@ export class RedisWorkspaceStore {
     }
 
     private describeError(error: unknown): string {
-        return error instanceof Error && error.message ? error.message : String(error)
+        return describeSafeError(error, 'Unknown Redis error')
     }
 }
