@@ -5,12 +5,14 @@ recorded in `docs/status.md` or an ADR; do not silently delete unresolved items.
 
 ### QRY-004 [High] DATA-001 — Define ownership and recovery boundaries
 
-- **Status:** In progress
+- **Status:** Completed
 - **Affected area:** SQLite, MySQL, Redis, localStorage, keyring, exports
-- **Evidence:** `docs/adr/0001-trust-boundaries-and-provider-data.md` defines ownership and
-  secret boundaries, but there is no backup/restore UI or provider recovery runbook.
-- **Risk:** Users may mistake exports or transactions for durable backup and recovery.
-- **Next action:** Add explicit backup/recovery guidance and provider-specific failure runbooks.
+- **Evidence:** `docs/recovery-runbook.md` defines provider ownership, backup/recovery authority,
+  export limits, credential recovery, and failure handling for SQLite, MySQL, Redis, and local
+  metadata.
+- **Risk:** Quarry still has no backup scheduler, restore wizard, or provider-native snapshot
+  integration; users must operate those through their filesystem/server tooling.
+- **Next action:** Add provider-specific backup/restore UX only if product scope warrants it.
 
 ### QRY-005 [Medium] ANGULAR-006 — Deepen runtime validation
 

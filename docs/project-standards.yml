@@ -36,7 +36,7 @@ scope_notes:
 compliance:
   rules:
     - {id: DOC-001, status: compliant, evidence: docs/AGENTS.md, priority: medium, next_action: keep canonical instructions current}
-    - {id: DOC-002, status: compliant, evidence: docs/README.md, priority: medium, next_action: maintain the index when docs move}
+    - {id: DOC-002, status: compliant, evidence: docs/README.md including recovery-runbook.md, priority: medium, next_action: maintain the index when docs move}
     - {id: DOC-003, status: partial, evidence: README.md and docs/, priority: high, next_action: continue reconciling historical planning docs with shipped provider state}
     - {id: DOC-004, status: unknown, evidence: maintained Markdown links have not yet had a dedicated checker, priority: medium, next_action: add a repository link check}
     - {id: DOC-005, status: partial, evidence: README.md, docs/architecture.md, docs/status.md, src/, priority: high, next_action: reconcile remaining historical provider plans}
@@ -94,16 +94,16 @@ compliance:
     - {id: SEC-008, status: partial, evidence: integration and provider tests, priority: high, next_action: add rejection and hostile-input coverage}
     - {id: SEC-009, status: compliant, evidence: docs/dependency-security.md and CI audit gates, priority: medium, next_action: keep response guidance current}
 
-    - {id: DATA-001, status: partial, evidence: workspace/session docs and local persistence services, priority: high, next_action: define ownership and lifecycle for every persisted dataset}
+    - {id: DATA-001, status: compliant, evidence: docs/adr/0001-trust-boundaries-and-provider-data.md and docs/recovery-runbook.md define ownership, recovery authority, and lifecycle boundaries for provider and local datasets, priority: high, next_action: preserve explicit boundaries when adding persisted data}
     - {id: DATA-002, status: partial, evidence: session versioning but no general local-state migration policy, priority: medium, next_action: standardize persisted-state versions and migrations}
     - {id: DATA-003, status: compliant, evidence: edit and DDL transactions with integration tests, priority: critical, next_action: preserve transaction and rollback guarantees}
     - {id: DATA-004, status: partial, evidence: provider sessions, runtime credentials, and remote connections, priority: high, next_action: document consistency and failure behavior}
     - {id: DATA-005, status: partial, evidence: preview limits but uncapped counts, raw queries, and exports, priority: high, next_action: bound or explicitly confirm expensive operations}
-    - {id: DATA-007, status: partial, evidence: user-owned DBs and destructive operations, priority: critical, next_action: document backup responsibility and recovery options}
+    - {id: DATA-007, status: partial, evidence: user-owned DBs, destructive-operation boundaries, and docs/recovery-runbook.md, priority: critical, next_action: add backup/restore UX only if the product takes on that responsibility}
 
     - {id: OPS-002, status: partial, evidence: CI/release/local provider environments, priority: medium, next_action: document explicit environment boundaries}
     - {id: OPS-003, status: partial, evidence: SQLite/MySQL calls and updater polling, priority: high, next_action: add timeout/cancellation policy where supported}
-    - {id: OPS-009, status: partial, evidence: release and local-service troubleshooting docs, priority: high, next_action: add provider and data recovery runbooks}
+    - {id: OPS-009, status: compliant, evidence: docs/recovery-runbook.md and local provider troubleshooting docs, priority: high, next_action: keep runbook aligned with provider capabilities}
 
     - {id: A11Y-001, status: partial, evidence: semantic controls in Angular and Astro templates, priority: high, next_action: audit representative critical views}
     - {id: A11Y-002, status: partial, evidence: focus styles and Playwright flows, priority: high, next_action: add keyboard-only critical-flow review}

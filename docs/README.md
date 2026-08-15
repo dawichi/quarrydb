@@ -14,6 +14,7 @@ canonical [`AGENTS.md`](AGENTS.md), then read the relevant file(s) here.
 | [adr/README.md](adr/README.md) | Durable architectural and policy decisions |
 | [adr/0001-trust-boundaries-and-provider-data.md](adr/0001-trust-boundaries-and-provider-data.md) | Trust boundaries, secrets, provider data ownership, and explicit expensive operations |
 | [dependency-security.md](dependency-security.md) | Dependency audit gates, overrides, and vulnerability response |
+| [recovery-runbook.md](recovery-runbook.md) | Data ownership, backup boundaries, export limits, and provider recovery guidance |
 
 ## Project Context
 
