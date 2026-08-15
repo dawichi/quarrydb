@@ -26,8 +26,12 @@ export class RedisWorkspaceStore {
     readonly isMutating = signal(false)
     readonly error = signal<string | null>(null)
     readonly commandOutput = signal<unknown>(null)
+    private keyScanRequestId = 0
+    private keyDetailsRequestId = 0
 
     setSession(session: RedisConnectionSession): void {
+        this.keyScanRequestId += 1
+        this.keyDetailsRequestId += 1
         this.connectionSession.set(session)
         this.keys.set([])
         this.cursor.set(0)
@@ -39,11 +43,20 @@ export class RedisWorkspaceStore {
 
     async loadKeys(reset = false): Promise<void> {
         const session = this.connectionSession()
-        if (!session || this.isLoadingKeys()) return
+        if (!session || (!reset && this.isLoadingKeys())) return
+        const requestId = ++this.keyScanRequestId
+        const requestPattern = this.pattern()
         this.isLoadingKeys.set(true)
         this.error.set(null)
         try {
-            const result = await this.backend.scanKeys(session, reset ? 0 : this.cursor(), this.pattern())
+            const result = await this.backend.scanKeys(session, reset ? 0 : this.cursor(), requestPattern)
+            if (
+                requestId !== this.keyScanRequestId ||
+                session !== this.connectionSession() ||
+                requestPattern !== this.pattern()
+            ) {
+                return
+            }
             const existing = reset ? [] : this.keys()
             const keys = [...new Set([...existing, ...result.keys.map((item) => item.key)])].sort((a, b) =>
                 a.localeCompare(b),
@@ -51,9 +64,10 @@ export class RedisWorkspaceStore {
             this.keys.set(keys)
             this.cursor.set(result.cursor)
         } catch (error) {
+            if (requestId !== this.keyScanRequestId || session !== this.connectionSession()) return
             this.error.set(this.describeError(error))
         } finally {
-            this.isLoadingKeys.set(false)
+            if (requestId === this.keyScanRequestId) this.isLoadingKeys.set(false)
         }
     }
 
@@ -64,16 +78,32 @@ export class RedisWorkspaceStore {
 
     async selectKey(key: string): Promise<void> {
         const session = this.connectionSession()
-        if (!session || this.isLoadingKey()) return
+        if (!session) return
+        const requestId = ++this.keyDetailsRequestId
         this.selectedKey.set(key)
         this.isLoadingKey.set(true)
         this.error.set(null)
         try {
-            this.keyDetails.set(await this.backend.getKey(session, key))
+            const details = await this.backend.getKey(session, key)
+            if (
+                requestId !== this.keyDetailsRequestId ||
+                session !== this.connectionSession() ||
+                key !== this.selectedKey()
+            ) {
+                return
+            }
+            this.keyDetails.set(details)
         } catch (error) {
+            if (
+                requestId !== this.keyDetailsRequestId ||
+                session !== this.connectionSession() ||
+                key !== this.selectedKey()
+            ) {
+                return
+            }
             this.error.set(this.describeError(error))
         } finally {
-            this.isLoadingKey.set(false)
+            if (requestId === this.keyDetailsRequestId) this.isLoadingKey.set(false)
         }
     }
 
@@ -164,6 +194,11 @@ export class RedisWorkspaceStore {
     }
 
     clear(): void {
+        this.keyScanRequestId += 1
+        this.keyDetailsRequestId += 1
+        this.isLoadingKeys.set(false)
+        this.isLoadingKey.set(false)
+        this.isMutating.set(false)
         this.connectionSession.set(null)
         this.keys.set([])
         this.selectedKey.set(null)

@@ -21,6 +21,8 @@ export class MysqlWorkspaceStore {
     private readonly exportService = inject(ExportService)
     readonly editStore = inject(EditStore)
     private rowOffset = 0
+    private schemaRequestId = 0
+    private rowsRequestId = 0
 
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
     readonly schemas = signal<MysqlSchemaSummary[]>([])
@@ -57,7 +59,14 @@ export class MysqlWorkspaceStore {
         schemas: MysqlSchemaSummary[],
         draft: MysqlWorkspaceDraft | null,
     ): Promise<void> {
+        this.schemaRequestId += 1
+        this.rowsRequestId += 1
         this.connectionSession.set(session)
+        this.isLoadingTables.set(false)
+        this.isLoadingRows.set(false)
+        this.isRunningQuery.set(false)
+        this.isSeedingSampleData.set(false)
+        this.isExporting.set(false)
         this.schemas.set(schemas)
         this.activeTab.set(draft?.activeTab ?? 'browse')
         this.querySql.set(this.defaultQueryForDraft(draft))
@@ -94,6 +103,8 @@ export class MysqlWorkspaceStore {
     }
 
     clear(): void {
+        this.schemaRequestId += 1
+        this.rowsRequestId += 1
         this.connectionSession.set(null)
         this.schemas.set([])
         this.selectedSchemaName.set(null)
@@ -130,10 +141,12 @@ export class MysqlWorkspaceStore {
             return
         }
 
+        const requestId = ++this.schemaRequestId
         this.isLoadingTables.set(true)
         this.host.error.set(null)
         try {
             const tables = await this.backend.listTables(session, schemaName)
+            if (requestId !== this.schemaRequestId || session !== this.connectionSession()) return
             this.selectedSchemaName.set(schemaName)
             this.tables.set(tables)
 
@@ -148,13 +161,15 @@ export class MysqlWorkspaceStore {
                 this.browseSortDirection.set('asc')
             }
         } catch (error) {
+            if (requestId !== this.schemaRequestId || session !== this.connectionSession()) return
             this.host.error.set(this.describeError(error, 'Failed to load MySQL tables'))
         } finally {
-            this.isLoadingTables.set(false)
+            if (requestId === this.schemaRequestId) this.isLoadingTables.set(false)
         }
     }
 
     async selectTable(schemaName: string, tableName: string): Promise<void> {
+        this.rowsRequestId += 1
         if (this.selectedTable()?.schemaName !== schemaName || this.selectedTable()?.tableName !== tableName) {
             this.editStore.clearAll()
         }
@@ -313,6 +328,7 @@ export class MysqlWorkspaceStore {
         }
 
         const offset = reset ? 0 : this.rowOffset
+        const requestId = ++this.rowsRequestId
         this.isLoadingRows.set(true)
         this.host.error.set(null)
         try {
@@ -328,14 +344,22 @@ export class MysqlWorkspaceStore {
                     sortDirection: this.browseSortDirection(),
                 },
             )
+            if (
+                requestId !== this.rowsRequestId ||
+                session !== this.connectionSession() ||
+                selected !== this.selectedTable()
+            ) {
+                return
+            }
             this.tableColumns.set(result.columns)
             this.tableRowTotal.set(result.total)
             this.tableRows.update((rows) => (reset ? result.rows : [...rows, ...result.rows]))
             this.rowOffset = offset + result.rows.length
         } catch (error) {
+            if (requestId !== this.rowsRequestId || session !== this.connectionSession()) return
             this.host.error.set(this.describeError(error, 'Failed to load MySQL rows'))
         } finally {
-            this.isLoadingRows.set(false)
+            if (requestId === this.rowsRequestId) this.isLoadingRows.set(false)
         }
     }
 
