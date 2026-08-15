@@ -171,3 +171,4 @@ export interface Workspace {
 }
 
 export * from './pipeline-sql'
+export * from './sql-identifiers'

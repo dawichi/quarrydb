@@ -14,6 +14,10 @@ describe('buildPipelineSql dialects', () => {
         expect(buildPipelineSql('warehouse.users', [], {}, 'mysql')).toBe('SELECT * FROM `warehouse`.`users`')
     })
 
+    it('keeps hostile identifier text inside quoted boundaries', () => {
+        expect(buildPipelineSql('users"; DROP TABLE users;--', [])).toBe('SELECT * FROM "users""; DROP TABLE users;--"')
+    })
+
     it('uses MySQL quoting for aliases, ordering, grouping, and joins', () => {
         const sql = buildPipelineSql(
             'warehouse.users',

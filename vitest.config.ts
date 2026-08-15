@@ -8,6 +8,10 @@ export default defineConfig({
                 find: '@quarrydb/shared/pipeline-sql',
                 replacement: resolve(__dirname, './packages/shared/src/pipeline-sql.ts'),
             },
+            {
+                find: '@quarrydb/shared/sql-identifiers',
+                replacement: resolve(__dirname, './packages/shared/src/sql-identifiers.ts'),
+            },
             { find: '@quarrydb/shared', replacement: resolve(__dirname, './packages/shared/src/index.ts') },
         ],
     },
