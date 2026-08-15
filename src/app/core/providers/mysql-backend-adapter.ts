@@ -34,6 +34,12 @@ export interface MysqlQueryResult {
     lastInsertId?: number
 }
 
+export interface MysqlTableBrowseOptions {
+    filter?: string
+    sortColumn?: string
+    sortDirection?: 'asc' | 'desc'
+}
+
 export interface MysqlBackendAdapter {
     connect(request: MysqlConnectRequest): Promise<MysqlConnectionSession>
     listSchemas(session: MysqlConnectionSession): Promise<MysqlSchemaSummary[]>
@@ -45,6 +51,7 @@ export interface MysqlBackendAdapter {
         tableName: string,
         limit: number,
         offset: number,
+        options?: MysqlTableBrowseOptions,
     ): Promise<{ rows: Record<string, unknown>[]; columns: string[]; total: number }>
     fetchTableRows(
         session: MysqlConnectionSession,

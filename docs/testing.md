@@ -40,16 +40,16 @@ Install the browser once on a new machine:
 bunx playwright install chromium
 ```
 
-GitHub Actions runs the same checks on pushes to `main` and pull requests. The MySQL
-integration suite starts the disposable MySQL 8 container, exercises the real provider
-adapter through a `mysql2` test transport, and stops the container afterward. It covers
+GitHub Actions runs the same checks on pushes to `main` and pull requests. The MySQL and Redis
+integration suites start disposable containers, exercise the real provider boundaries, and stop
+them afterward. MySQL uses a `mysql2` test transport and covers
 schema discovery, metadata, sample seeding, paging, type normalization, raw expressions,
-and joined query previews.
+and joined query previews. Redis exercises the native Rust command against a live local server.
 
-Redis native command tests run at the Rust unit boundary in every local/CI run. The Docker Redis
-fixture is reserved for the protocol integration suite because it requires a live server; when
-Docker is unavailable, the suite reports that fact without pretending the remote protocol was
-tested.
+Redis native command tests run at the Rust unit boundary in every local run. CI also provisions
+Redis and runs the live protocol test. On a developer machine, `bun run test:redis` provisions the
+same fixture; when Docker is unavailable, it reports that fact without pretending the remote
+protocol was tested.
 
 ## Native shell boundary
 

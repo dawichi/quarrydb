@@ -33,16 +33,35 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.92.0
+
+      - name: Audit Rust dependencies
+        working-directory: src-tauri
+        run: |
+          cargo install cargo-audit --locked --version 0.22.2
+          cargo audit --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195 --ignore RUSTSEC-2026-0235 --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0190 --ignore RUSTSEC-2026-0221
+
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium
 
-      - name: Start MySQL
-        run: docker compose -f docker-compose.local-test-services.yml up -d mysql
+      - name: Start MySQL and Redis
+        run: docker compose -f docker-compose.local-test-services.yml up -d mysql redis
 
       - name: Wait for MySQL
         run: |
           for attempt in {1..30}; do
             if docker exec quarry-mysql mysqladmin ping -h localhost -uroot -pquarry --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Wait for Redis
+        run: |
+          for attempt in {1..30}; do
+            if docker exec quarry-redis redis-cli ping | grep -q PONG; then
               exit 0
             fi
             sleep 2
@@ -57,6 +76,12 @@ jobs:
 
       - name: Run unit and integration tests
         run: bun run test:run && QUARRY_MYSQL_INTEGRATION=1 bun run vitest run src/app/core/integration/mysql-provider.integration.spec.ts
+
+      - name: Run native Redis integration test
+        working-directory: src-tauri
+        env:
+          QUARRY_REDIS_INTEGRATION: '1'
+        run: cargo test exercises_the_native_provider_against_a_live_server_when_requested
 
       - name: Run browser tests
         run: bun run test:e2e

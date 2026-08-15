@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnInit, signal, untracked } from '@angular/core'
+import { Component, effect, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core'
 import { MenuService } from './core/services/menu.service'
 import { SessionService } from './core/services/session.service'
 import { UpdaterService } from './core/services/updater.service'
@@ -39,7 +39,7 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
     ],
     templateUrl: './app.component.html',
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnDestroy, OnInit {
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly workspaceHost = inject(WorkspaceHostStore)
     protected readonly workspaceStore = inject(SqliteWorkspaceStore)
@@ -66,5 +66,9 @@ export class AppComponent implements OnInit {
         this.isRestoring.set(false)
         void this.updaterSvc.checkForUpdate()
         this.updaterSvc.startPolling()
+    }
+
+    ngOnDestroy(): void {
+        this.updaterSvc.stopPolling()
     }
 }

@@ -48,6 +48,7 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 @Injectable({ providedIn: 'root' })
 export class UpdaterService {
+    private pollHandle: ReturnType<typeof setInterval> | null = null
     readonly pending = signal<PendingUpdate | null>(null)
 
     /**
@@ -66,7 +67,14 @@ export class UpdaterService {
      * `checkForUpdate` path — no modal feedback, just the passive banner if one is found.
      */
     startPolling(): void {
-        setInterval(() => void this.checkForUpdate(), POLL_INTERVAL_MS)
+        if (this.pollHandle) return
+        this.pollHandle = setInterval(() => void this.checkForUpdate(), POLL_INTERVAL_MS)
+    }
+
+    stopPolling(): void {
+        if (!this.pollHandle) return
+        clearInterval(this.pollHandle)
+        this.pollHandle = null
     }
 
     async checkForUpdate(): Promise<void> {

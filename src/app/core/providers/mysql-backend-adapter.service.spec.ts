@@ -311,7 +311,13 @@ describe('MysqlBackendAdapterService', () => {
             source: 'saved_profile',
         })
 
-        await expect(service.queryTableRows(session, 'quarry_demo', 'orders', 100, 0)).resolves.toEqual({
+        await expect(
+            service.queryTableRows(session, 'quarry_demo', 'orders', 100, 0, {
+                filter: 'odd',
+                sortColumn: 'total',
+                sortDirection: 'desc',
+            }),
+        ).resolves.toEqual({
             rows: [{ id: 1, total: '1389.98' }],
             columns: ['id', 'total'],
             total: 10,
@@ -330,10 +336,15 @@ describe('MysqlBackendAdapterService', () => {
                  ORDER BY ordinal_position`,
             ['quarry_demo', 'orders'],
         )
-        expect(select).toHaveBeenNthCalledWith(2, 'SELECT COUNT(*) as count FROM `quarry_demo`.`orders`')
+        expect(select).toHaveBeenNthCalledWith(
+            2,
+            'SELECT COUNT(*) as count FROM `quarry_demo`.`orders` WHERE CAST(`id` AS CHAR) LIKE ? OR CAST(`total` AS CHAR) LIKE ?',
+            ['%odd%', '%odd%'],
+        )
         expect(select).toHaveBeenNthCalledWith(
             3,
-            'SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` LIMIT 100 OFFSET 0',
+            'SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` WHERE CAST(`id` AS CHAR) LIKE ? OR CAST(`total` AS CHAR) LIKE ? ORDER BY `total` DESC LIMIT 100 OFFSET 0',
+            ['%odd%', '%odd%'],
         )
     })
 

@@ -37,9 +37,9 @@ compliance:
   rules:
     - {id: DOC-001, status: compliant, evidence: docs/AGENTS.md, priority: medium, next_action: keep canonical instructions current}
     - {id: DOC-002, status: compliant, evidence: docs/README.md, priority: medium, next_action: maintain the index when docs move}
-    - {id: DOC-003, status: partial, evidence: README.md and docs/, priority: high, next_action: remove duplicate and stale current-state facts}
+    - {id: DOC-003, status: partial, evidence: README.md and docs/, priority: high, next_action: continue reconciling historical planning docs with shipped provider state}
     - {id: DOC-004, status: unknown, evidence: maintained Markdown links have not yet had a dedicated checker, priority: medium, next_action: add a repository link check}
-    - {id: DOC-005, status: partial, evidence: README.md, docs/architecture.md, src/, priority: high, next_action: reconcile renamed services, versions, and provider status}
+    - {id: DOC-005, status: partial, evidence: README.md, docs/architecture.md, docs/status.md, src/, priority: high, next_action: reconcile remaining historical provider plans}
     - {id: DOC-006, status: partial, evidence: docs/status.md and planning docs, priority: low, next_action: separate durable decisions from historical task notes during documentation cleanup}
     - {id: DOC-007, status: compliant, evidence: docs/ and project source, priority: medium, next_action: keep project facts local}
     - {id: DOC-008, status: compliant, evidence: this contract, priority: medium, next_action: record future exceptions here}
@@ -50,16 +50,16 @@ compliance:
     - {id: TEST-002, status: compliant, evidence: regression tests across provider and updater changes, priority: high, next_action: add tests for each reproducible boundary defect}
     - {id: TEST-003, status: compliant, evidence: vitest.config.ts, Playwright fixtures, Docker fixture, priority: high, next_action: keep external boundaries controlled}
     - {id: TEST-004, status: partial, evidence: representative unit and browser assertions, priority: medium, next_action: prefer user-visible and contract outcomes over implementation details}
-    - {id: TEST-005, status: partial, evidence: docs/testing.md, priority: high, next_action: cover native shell, malformed persistence, and hostile identifiers}
+    - {id: TEST-005, status: compliant, evidence: docs/testing.md, malformed persistence specs, hostile identifier integration specs, and native Redis boundary tests, priority: high, next_action: preserve boundary regression coverage}
     - {id: TEST-006, status: compliant, evidence: package.json and .github/workflows/ci.yml, priority: medium, next_action: keep test commands runnable in CI}
-    - {id: TEST-007, status: compliant, evidence: e2e fixtures and Docker-backed MySQL tests, priority: high, next_action: add controlled Redis integration tests}
+    - {id: TEST-007, status: partial, evidence: e2e fixtures, Docker-backed MySQL tests, and optional Redis live harness, priority: high, next_action: run the Redis live suite in CI when a Redis service is provisioned}
     - {id: TEST-008, status: compliant, evidence: 208 passing Vitest tests and CI workflow, priority: high, next_action: retain an automated baseline}
 
     - {id: TS-001, status: compliant, evidence: tsconfig.json, priority: high, next_action: preserve strict checking}
     - {id: TS-002, status: compliant, evidence: Biome check and source review, priority: high, next_action: avoid undocumented any}
     - {id: TS-003, status: compliant, evidence: shared provider contracts and typed services, priority: medium, next_action: keep provider interfaces explicit}
-    - {id: TS-004, status: compliant, evidence: shared discriminated unions and provider state types, priority: medium, next_action: model Redis states precisely}
-    - {id: TS-005, status: partial, evidence: localStorage and landing/src/lib/releases.ts runtime casts, priority: high, next_action: add runtime validators and malformed-data tests}
+    - {id: TS-004, status: compliant, evidence: shared discriminated unions and provider state types, priority: medium, next_action: preserve provider-specific state contracts}
+    - {id: TS-005, status: partial, evidence: localStorage validators/tests and landing/src/lib/releases.ts runtime validation, priority: high, next_action: add versioned session validators and migrations}
     - {id: TS-007, status: compliant, evidence: tsconfig.json, biome.json, package.json, priority: medium, next_action: keep tool configuration committed}
     - {id: TS-008, status: compliant, evidence: biome.json and package scripts, priority: medium, next_action: add a non-mutating CI check command}
     - {id: TS-009, status: partial, evidence: tsconfig.json, priority: medium, next_action: evaluate noUncheckedIndexedAccess migration}
@@ -70,29 +70,29 @@ compliance:
     - {id: STYLE-004, status: compliant, evidence: package.json and docs/conventions/styling.md, priority: low, next_action: avoid competing systems}
 
     - {id: DEP-001, status: compliant, evidence: bun.lock and src-tauri/Cargo.lock, priority: high, next_action: keep lockfiles synchronized}
-    - {id: DEP-002, status: partial, evidence: CI uses frozen install but release does not, priority: high, next_action: freeze release installation}
-    - {id: DEP-003, status: partial, evidence: CI pins Bun but local and release toolchains are not fully pinned, priority: high, next_action: pin Bun and Rust consistently}
+    - {id: DEP-002, status: compliant, evidence: CI and release use Bun frozen installs and committed lockfiles, priority: high, next_action: keep lockfile changes reviewed}
+    - {id: DEP-003, status: compliant, evidence: packageManager, rust-toolchain.toml, and pinned CI/release toolchains, priority: high, next_action: update toolchains deliberately}
     - {id: DEP-004, status: compliant, evidence: bun pm untrusted reports zero untrusted dependencies, priority: high, next_action: review trusted scripts when dependencies change}
     - {id: DEP-005, status: unknown, evidence: direct dependency ownership has not had a dedicated audit, priority: medium, next_action: audit direct dependencies}
-    - {id: DEP-006, status: gap, evidence: bun pm scan reports no security scanner configured, priority: high, next_action: add JS and Rust vulnerability scanning}
+    - {id: DEP-006, status: partial, evidence: Bun audit gate, dependency-review action, cargo-audit CI gate, and docs/dependency-security.md, priority: high, next_action: keep advisories reviewed and add local cargo-audit convenience if needed}
     - {id: DEP-007, status: compliant, evidence: package.json and bun.lock, priority: low, next_action: continue using Bun consistently}
 
     - {id: CI-001, status: compliant, evidence: .github/workflows/ci.yml, priority: high, next_action: keep PR and main validation active}
-    - {id: CI-002, status: partial, evidence: CI check/test/e2e/build but no landing/native/security gates, priority: high, next_action: complete applicable gates}
-    - {id: CI-003, status: partial, evidence: frozen CI install, floating release install and Rust stable, priority: high, next_action: make all pipelines reproducible}
+    - {id: CI-002, status: partial, evidence: CI check/test/e2e/build/landing/dependency and Rust audit gates; native shell remains outside CI, priority: high, next_action: add native smoke when platform drivers are operationally justified}
+    - {id: CI-003, status: compliant, evidence: frozen Bun installs plus pinned Bun and Rust toolchains in CI/release, priority: high, next_action: preserve reproducible inputs}
     - {id: CI-004, status: unknown, evidence: branch protection is repository-host configuration, priority: high, next_action: verify required checks in GitHub settings}
     - {id: CI-005, status: partial, evidence: release workflow permissions and signing secret usage, priority: high, next_action: narrow permissions and review trusted tag paths}
     - {id: CI-006, status: partial, evidence: Rust cache only in release workflow, priority: low, next_action: add appropriate caching and concurrency controls}
     - {id: CI-007, status: partial, evidence: Playwright retains local artifacts but CI does not upload reports, priority: low, next_action: retain failure diagnostics in CI}
 
-    - {id: SEC-001, status: partial, evidence: docs/architecture.md and Tauri capabilities, priority: high, next_action: write a trust-boundary and threat note}
+    - {id: SEC-001, status: compliant, evidence: docs/adr/0001-trust-boundaries-and-provider-data.md, Tauri capabilities, and explicit webview CSP, priority: high, next_action: revisit when new native commands are added}
     - {id: SEC-002, status: compliant, evidence: keyring service, ignored test keys, CI secrets, priority: high, next_action: keep secrets out of persisted app state}
-    - {id: SEC-004, status: partial, evidence: SQLite identifier interpolation and runtime-controlled metadata, priority: critical, next_action: centralize quoting and validate boundaries}
+    - {id: SEC-004, status: compliant, evidence: shared dialect-aware quoting, SQLite/MySQL hostile metadata tests, and parameterized values, priority: critical, next_action: preserve the quote helper for future relational providers}
     - {id: SEC-005, status: partial, evidence: keyring, localStorage session/history, MySQL credentials, priority: high, next_action: document retention and sensitive-data handling}
     - {id: SEC-006, status: partial, evidence: user-facing catches and provider errors, priority: high, next_action: audit redaction and safe error descriptions}
     - {id: SEC-007, status: partial, evidence: Tauri capability permissions, priority: high, next_action: document and minimize permissions}
     - {id: SEC-008, status: partial, evidence: integration and provider tests, priority: high, next_action: add rejection and hostile-input coverage}
-    - {id: SEC-009, status: gap, evidence: no documented vulnerability-response workflow, priority: medium, next_action: add dependency/security response instructions}
+    - {id: SEC-009, status: compliant, evidence: docs/dependency-security.md and CI audit gates, priority: medium, next_action: keep response guidance current}
 
     - {id: DATA-001, status: partial, evidence: workspace/session docs and local persistence services, priority: high, next_action: define ownership and lifecycle for every persisted dataset}
     - {id: DATA-002, status: partial, evidence: session versioning but no general local-state migration policy, priority: medium, next_action: standardize persisted-state versions and migrations}
@@ -132,7 +132,7 @@ compliance:
     - {id: ASTRO-001, status: compliant, evidence: landing/ Astro pages and config, priority: low, next_action: keep Astro primary}
     - {id: ASTRO-002, status: compliant, evidence: static landing configuration, priority: low, next_action: document deployment strategy}
     - {id: ASTRO-003, status: compliant, evidence: limited release/demo browser scripts, priority: medium, next_action: keep client JS narrow}
-    - {id: ASTRO-005, status: partial, evidence: GitHub release response is cast without runtime validation, priority: high, next_action: validate fetch and cache boundaries}
+    - {id: ASTRO-005, status: compliant, evidence: landing/src/lib/releases.ts response/schema validation and release-loader tests, priority: high, next_action: preserve external payload validation}
     - {id: ASTRO-006, status: partial, evidence: semantic markup and metadata in index.astro, priority: medium, next_action: complete public accessibility metadata}
     - {id: ASTRO-007, status: compliant, evidence: interactive demo and release widget have explicit browser purposes, priority: low, next_action: preserve justified islands/scripts}
     - {id: ASTRO-009, status: compliant, evidence: single deterministic page and static config, priority: low, next_action: keep builds deterministic}
@@ -157,19 +157,7 @@ exceptions:
     compensating_control: OS user permissions and provider-native database credentials
 
 deferred_work:
-  - id: QRY-STD-001
-    rule: DEP-006
-    priority: high
-    next_action: configure JavaScript and Rust dependency vulnerability scanning in CI
-  - id: QRY-STD-002
-    rule: SEC-001
-    priority: high
-    next_action: document Tauri, filesystem, database, updater, keyring, and provider trust boundaries
-  - id: QRY-STD-003
-    rule: SEC-004
-    priority: critical
-    next_action: centralize identifier quoting and add hostile metadata tests
   - id: QRY-STD-004
     rule: DATA-001
     priority: high
-    next_action: document ownership, retention, backup, and recovery for user databases and app-local persistence
+    next_action: document provider-specific backup, retention, destructive-operation recovery, and failure runbooks

@@ -14,6 +14,10 @@ The boundaries are:
 
 - Tauri IPC is the privileged boundary for OS integration, the keyring, file export, updates,
   and non-SQL providers such as Redis.
+- The desktop webview uses an explicit content-security policy. Inline styles remain allowed
+  because the current Tailwind/Angular bundle needs them, while scripts, objects, frames, and
+  network destinations are otherwise restricted to the app, Tauri IPC, and the updater's
+  explicitly user-triggered native flow.
 - SQLite databases and exported files remain user-owned data. Quarry must not silently copy them
   to a service or include them in telemetry.
 - MySQL and Redis credentials are runtime secrets. Connection profiles and sessions persist

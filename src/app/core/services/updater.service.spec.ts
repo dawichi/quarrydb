@@ -123,6 +123,16 @@ describe('startPolling', () => {
         vi.advanceTimersByTime(4 * 60 * 1000)
         expect(checkMock).toHaveBeenCalledTimes(2)
     })
+
+    it('does not create duplicate pollers and can stop the poller', () => {
+        vi.useFakeTimers()
+        service.startPolling()
+        service.startPolling()
+        service.stopPolling()
+
+        vi.advanceTimersByTime(4 * 60 * 1000)
+        expect(checkMock).not.toHaveBeenCalled()
+    })
 })
 
 // ─── checkManually (menu: "Check for Updates…" — feeds the shared modal) ──────

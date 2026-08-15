@@ -1,7 +1,7 @@
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::Emitter;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::Emitter;
 
 const MYSQL_KEYRING_SERVICE: &str = "dev.quarrydb.app.mysql";
 const REDIS_KEYRING_SERVICE: &str = "dev.quarrydb.app.redis";
@@ -94,7 +94,10 @@ struct RedisKeyDetails {
 
 fn redis_url(target: &RedisConnectionTarget) -> Result<String, String> {
     let host = target.host.trim();
-    if host.is_empty() || host.bytes().any(|byte| byte == 0) || host.chars().any(char::is_whitespace) {
+    if host.is_empty()
+        || host.bytes().any(|byte| byte == 0)
+        || host.chars().any(char::is_whitespace)
+    {
         return Err("Redis host must be a non-empty hostname or IP address".to_string());
     }
     if host.contains(['/', '?', '#', '@', '\\']) {
@@ -110,8 +113,11 @@ fn redis_url(target: &RedisConnectionTarget) -> Result<String, String> {
         host.to_string()
     };
     let scheme = if target.tls { "rediss" } else { "redis" };
-    let mut url = url::Url::parse(&format!("{scheme}://{host_for_url}:{}/{}", target.port, target.database))
-        .map_err(|error| format!("Invalid Redis connection target: {error}"))?;
+    let mut url = url::Url::parse(&format!(
+        "{scheme}://{host_for_url}:{}/{}",
+        target.port, target.database
+    ))
+    .map_err(|error| format!("Invalid Redis connection target: {error}"))?;
     if target.username.is_some() || target.password.is_some() {
         url.set_username(target.username.as_deref().unwrap_or(""))
             .map_err(|_| "Redis username could not be encoded".to_string())?;
@@ -122,7 +128,8 @@ fn redis_url(target: &RedisConnectionTarget) -> Result<String, String> {
 }
 
 fn redis_connection(target: &RedisConnectionTarget) -> Result<redis::Connection, String> {
-    let client = redis::Client::open(redis_url(target)?).map_err(|error| "Redis client setup failed: ".to_string() + &error.to_string())?;
+    let client = redis::Client::open(redis_url(target)?)
+        .map_err(|error| "Redis client setup failed: ".to_string() + &error.to_string())?;
     client
         .get_connection_with_timeout(Duration::from_secs(10))
         .map_err(|error| "Redis connection failed: ".to_string() + &error.to_string())
@@ -143,7 +150,12 @@ fn redis_value_json(value: redis::Value) -> serde_json::Value {
         redis::Value::Map(values) => serde_json::Value::Object(
             values
                 .into_iter()
-                .filter_map(|(key, value)| redis_value_json(key).as_str().map(str::to_owned).map(|key| (key, redis_value_json(value))))
+                .filter_map(|(key, value)| {
+                    redis_value_json(key)
+                        .as_str()
+                        .map(str::to_owned)
+                        .map(|key| (key, redis_value_json(value)))
+                })
                 .collect(),
         ),
         redis::Value::Attribute { data, .. } => redis_value_json(*data),
@@ -170,7 +182,11 @@ fn redis_info_value(info: &str, key: &str) -> Option<String> {
     })
 }
 
-fn redis_read_value(connection: &mut redis::Connection, key: &str, kind: &str) -> Result<serde_json::Value, String> {
+fn redis_read_value(
+    connection: &mut redis::Connection,
+    key: &str,
+    kind: &str,
+) -> Result<serde_json::Value, String> {
     let mut command = match kind {
         "string" => redis::cmd("GET"),
         "list" => redis::cmd("LRANGE"),
@@ -178,7 +194,11 @@ fn redis_read_value(connection: &mut redis::Connection, key: &str, kind: &str) -
         "zset" => redis::cmd("ZRANGE"),
         "hash" => redis::cmd("HGETALL"),
         "stream" => redis::cmd("XRANGE"),
-        _ => return Ok(serde_json::json!({"message": "Value preview is not available for this Redis type"})),
+        _ => {
+            return Ok(
+                serde_json::json!({"message": "Value preview is not available for this Redis type"}),
+            )
+        }
     };
     match kind {
         "string" | "set" | "hash" => {
@@ -221,7 +241,12 @@ fn redis_connect(target: RedisConnectionTarget) -> Result<RedisConnectionInfo, S
 }
 
 #[tauri::command]
-fn redis_scan_keys(target: RedisConnectionTarget, cursor: u64, pattern: Option<String>, count: u32) -> Result<RedisScanResult, String> {
+fn redis_scan_keys(
+    target: RedisConnectionTarget,
+    cursor: u64,
+    pattern: Option<String>,
+    count: u32,
+) -> Result<RedisScanResult, String> {
     let mut connection = redis_connection(&target)?;
     let safe_count = count.clamp(1, 500);
     let mut command = redis::cmd("SCAN");
@@ -232,7 +257,10 @@ fn redis_scan_keys(target: RedisConnectionTarget, cursor: u64, pattern: Option<S
     let (next_cursor, keys) = command
         .query::<(u64, Vec<String>)>(&mut connection)
         .map_err(|error| format!("Redis key scan failed: {error}"))?;
-    Ok(RedisScanResult { cursor: next_cursor, keys })
+    Ok(RedisScanResult {
+        cursor: next_cursor,
+        keys,
+    })
 }
 
 #[tauri::command]
@@ -250,11 +278,21 @@ fn redis_get_key(target: RedisConnectionTarget, key: String) -> Result<RedisKeyD
         .query(&mut connection)
         .map_err(|error| format!("Redis PTTL failed: {error}"))?;
     let value = redis_read_value(&mut connection, &key, &kind)?;
-    Ok(RedisKeyDetails { key, kind, ttl_ms, value })
+    Ok(RedisKeyDetails {
+        key,
+        kind,
+        ttl_ms,
+        value,
+    })
 }
 
 #[tauri::command]
-fn redis_set_string(target: RedisConnectionTarget, key: String, value: String, ttl_ms: Option<i64>) -> Result<(), String> {
+fn redis_set_string(
+    target: RedisConnectionTarget,
+    key: String,
+    value: String,
+    ttl_ms: Option<i64>,
+) -> Result<(), String> {
     if key.is_empty() {
         return Err("Redis key cannot be empty".to_string());
     }
@@ -286,7 +324,10 @@ fn redis_delete_key(target: RedisConnectionTarget, key: String) -> Result<i64, S
 }
 
 #[tauri::command]
-fn redis_run_command(target: RedisConnectionTarget, args: Vec<String>) -> Result<serde_json::Value, String> {
+fn redis_run_command(
+    target: RedisConnectionTarget,
+    args: Vec<String>,
+) -> Result<serde_json::Value, String> {
     if args.is_empty() || args[0].trim().is_empty() {
         return Err("Redis command cannot be empty".to_string());
     }
@@ -306,6 +347,12 @@ fn redis_run_command(target: RedisConnectionTarget, args: Vec<String>) -> Result
 
 #[tauri::command]
 fn write_text_file(path: String, content: String, ext: String) -> Result<(), String> {
+    if !matches!(ext.as_str(), "csv" | "json" | "sql" | "md") {
+        return Err("Unsupported export extension".to_string());
+    }
+    if path.trim().is_empty() {
+        return Err("Export path cannot be empty".to_string());
+    }
     // macOS save dialogs hide the extension visually but append it in the returned path.
     // This guard catches the rare case where the OS returns the path without extension.
     let final_path = if !path.ends_with(&format!(".{ext}")) {
@@ -450,7 +497,10 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{redis_connect, redis_delete_key, redis_get_key, redis_run_command, redis_scan_keys, redis_set_string, redis_url, RedisConnectionTarget};
+    use super::{
+        redis_connect, redis_delete_key, redis_get_key, redis_run_command, redis_scan_keys,
+        redis_set_string, redis_url, RedisConnectionTarget,
+    };
     use std::env;
 
     fn target() -> RedisConnectionTarget {
@@ -498,7 +548,10 @@ mod tests {
         }
         let target = RedisConnectionTarget {
             host: env::var("QUARRY_REDIS_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
-            port: env::var("QUARRY_REDIS_PORT").ok().and_then(|port| port.parse().ok()).unwrap_or(6379),
+            port: env::var("QUARRY_REDIS_PORT")
+                .ok()
+                .and_then(|port| port.parse().ok())
+                .unwrap_or(6379),
             database: 0,
             tls: false,
             username: None,
@@ -506,13 +559,21 @@ mod tests {
         };
         let _ = redis_connect(target.clone()).expect("Redis should accept PING");
         let key = "quarry:native:test".to_string();
-        redis_set_string(target.clone(), key.clone(), "hello".to_string(), Some(60_000)).expect("SET should work");
+        redis_set_string(
+            target.clone(),
+            key.clone(),
+            "hello".to_string(),
+            Some(60_000),
+        )
+        .expect("SET should work");
         let details = redis_get_key(target.clone(), key.clone()).expect("GET should work");
         assert_eq!(details.kind, "string");
         assert_eq!(details.value, serde_json::json!("hello"));
-        let scan = redis_scan_keys(target.clone(), 0, Some("quarry:native:*".to_string()), 100).expect("SCAN should work");
+        let scan = redis_scan_keys(target.clone(), 0, Some("quarry:native:*".to_string()), 100)
+            .expect("SCAN should work");
         assert!(scan.keys.contains(&key));
-        let output = redis_run_command(target.clone(), vec!["PING".to_string()]).expect("command should work");
+        let output = redis_run_command(target.clone(), vec!["PING".to_string()])
+            .expect("command should work");
         assert_eq!(output, serde_json::json!("PONG"));
         assert_eq!(redis_delete_key(target, key).expect("DEL should work"), 1);
     }

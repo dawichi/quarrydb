@@ -233,7 +233,12 @@ export class MysqlPipelineStore {
             case 'json':
                 return this.exportService.toJson(rows)
             case 'sql':
-                return this.exportService.toSqlInserts(this.source()?.tableName ?? 'pipeline_result', columns, rows)
+                return this.exportService.toSqlInserts(
+                    this.source()?.tableName ?? 'pipeline_result',
+                    columns,
+                    rows,
+                    'mysql',
+                )
             case 'md':
                 return this.exportService.toMarkdown(columns, rows)
         }

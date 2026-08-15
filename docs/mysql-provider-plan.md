@@ -2,6 +2,9 @@
 
 This document defines the scope and boundaries for **MySQL as Quarry's second provider**.
 
+The v1 scope below is now implemented. Treat the remaining non-goals as deliberate limits, and
+use `docs/status.md` for the current implementation state.
+
 It exists to keep the first non-SQLite provider practical. The goal is to validate the new
 provider architecture with a real relational engine, not to accidentally build a full
 MySQL administration suite in one pass.

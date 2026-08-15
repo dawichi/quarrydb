@@ -1,5 +1,6 @@
 import { Component, effect, inject, signal } from '@angular/core'
 import type { MysqlWorkspaceTab } from '@quarrydb/shared/session'
+import type { MysqlTableBrowseOptions } from '../../core/providers/mysql-backend-adapter'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
 import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
@@ -19,6 +20,9 @@ export class MysqlWorkspaceComponent {
     protected readonly tabs: MysqlWorkspaceTab[] = ['browse', 'query', 'edit', 'pipeline']
     protected readonly activeView = signal<'browse' | 'query' | 'edit' | 'pipeline'>('browse')
     protected readonly showExportMenu = signal(false)
+    protected readonly browseFilterInput = signal('')
+    protected readonly browseSortInput = signal('')
+    protected readonly browseSortDirectionInput = signal<'asc' | 'desc'>('asc')
 
     constructor() {
         effect(() => {
@@ -43,6 +47,15 @@ export class MysqlWorkspaceComponent {
 
     protected selectedSchemaLabel(): string {
         return this.store.selectedSchemaName() ?? 'current schema'
+    }
+
+    protected applyBrowseOptions(): void {
+        const options: MysqlTableBrowseOptions = {
+            filter: this.browseFilterInput(),
+            sortColumn: this.browseSortInput() || undefined,
+            sortDirection: this.browseSortDirectionInput(),
+        }
+        this.store.applyBrowseOptions(options)
     }
 
     protected exportAs(format: ExportFormat): void {

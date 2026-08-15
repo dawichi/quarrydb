@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core'
+import { quoteIdentifier, quoteQualifiedIdentifier, type SqlIdentifierDialect } from '@quarrydb/shared/sql-identifiers'
 import { invoke } from '@tauri-apps/api/core'
 import { save } from '@tauri-apps/plugin-dialog'
 
@@ -24,8 +25,13 @@ export class ExportService {
         return JSON.stringify(rows, null, 2)
     }
 
-    toSqlInserts(tableName: string, columns: string[], rows: Record<string, unknown>[]): string {
-        const colList = columns.map((c) => `"${c}"`).join(', ')
+    toSqlInserts(
+        tableName: string,
+        columns: string[],
+        rows: Record<string, unknown>[],
+        dialect: SqlIdentifierDialect = 'sqlite',
+    ): string {
+        const colList = columns.map((c) => quoteIdentifier(c, dialect)).join(', ')
         const escapeVal = (v: unknown): string => {
             if (v === null || v === undefined) return 'NULL'
             if (typeof v === 'number') return String(v)
@@ -35,7 +41,7 @@ export class ExportService {
         return rows
             .map((row) => {
                 const vals = columns.map((col) => escapeVal(row[col])).join(', ')
-                return `INSERT INTO "${tableName}" (${colList}) VALUES (${vals});`
+                return `INSERT INTO ${quoteQualifiedIdentifier(tableName, dialect)} (${colList}) VALUES (${vals});`
             })
             .join('\n')
     }

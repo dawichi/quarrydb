@@ -8,6 +8,7 @@ import type {
     MysqlDatabaseClient,
     MysqlQueryResult,
     MysqlSchemaSummary,
+    MysqlTableBrowseOptions,
     MysqlTableSummary,
 } from './mysql-backend-adapter'
 import type { MysqlConnectRequest } from './mysql-connect-request'
@@ -145,6 +146,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         tableName: string,
         limit: number,
         offset: number,
+        options: MysqlTableBrowseOptions = {},
     ): Promise<{ rows: Record<string, unknown>[]; columns: string[]; total: number }> {
         const db = await this.openDatabase(session)
         const source = `${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`
@@ -153,11 +155,24 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         try {
             const columns = await this.listColumns(db, schemaName, tableName)
             const selectList = this.buildPreviewSelectList(columns)
+            const filter = options.filter?.trim() ?? ''
+            const filterClause = filter
+                ? ` WHERE ${columns.map((column) => `CAST(${this.quoteIdentifier(column.name)} AS CHAR) LIKE ?`).join(' OR ')}`
+                : ''
+            const filterValues = filter ? columns.map(() => `%${filter}%`) : []
+            const sortColumn = columns.find((column) => column.name === options.sortColumn)?.name
+            const orderClause = sortColumn
+                ? ` ORDER BY ${this.quoteIdentifier(sortColumn)} ${options.sortDirection === 'desc' ? 'DESC' : 'ASC'}`
+                : ''
+            const countSql = `SELECT COUNT(*) as count FROM ${source}${filterClause}`
+            const rowsSql = `SELECT ${selectList} FROM ${source}${filterClause}${orderClause} LIMIT ${safeLimit} OFFSET ${safeOffset}`
             const [countRows, rows] = await Promise.all([
-                db.select<Array<{ count: number }>>(`SELECT COUNT(*) as count FROM ${source}`),
-                db.select<Record<string, unknown>[]>(
-                    `SELECT ${selectList} FROM ${source} LIMIT ${safeLimit} OFFSET ${safeOffset}`,
-                ),
+                filterValues.length
+                    ? db.select<Array<{ count: number }>>(countSql, filterValues)
+                    : db.select<Array<{ count: number }>>(countSql),
+                filterValues.length
+                    ? db.select<Record<string, unknown>[]>(rowsSql, filterValues)
+                    : db.select<Record<string, unknown>[]>(rowsSql),
             ])
             return {
                 rows,

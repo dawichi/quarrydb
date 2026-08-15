@@ -1,7 +1,9 @@
 # Roadmap
 
 This is the long-term map for Quarry — where `status.md` tracks "what's done and what's
-next," this file answers "what is this project trying to become, and in what order."
+next," this file answers "what is this project trying to become, and in what order." The
+SQLite, MySQL, and Redis verticals described below have now crossed their first usable bar;
+remaining work is depth and production polish, not provider discovery.
 
 ## Long-Term Vision
 
@@ -65,7 +67,8 @@ Core work in this phase:
 - isolate SQLite-only assumptions behind a SQLite provider boundary
 - identify which relational capabilities SQLite and MySQL can genuinely share
 
-This phase is architecture-first. It should happen before shipping MySQL connection support.
+This phase is complete. The provider registry, provider-aware recent/session state, and
+SQLite-specific boundary are shipped.
 
 ### Phase 3 — MySQL as the second provider
 
@@ -80,8 +83,8 @@ The initial bar is practical, not maximal:
 - adapt shared relational UI where it fits
 - preserve Quarry's transparency and local-first UX
 
-This phase should produce the first proof that Quarry is becoming a real multi-database
-manager rather than a SQLite app with bolt-ons.
+This phase is complete for the v1 scope. The current work is hardening, deeper MySQL browsing,
+and operational coverage.
 
 ### Phase 4 — Production-grade polish
 
@@ -101,7 +104,8 @@ to block the multi-engine pivot.
 Once the provider model and MySQL path are real, expand outward:
 
 - Postgres
-- Redis
+- Redis — initial local/remote TCP+TLS key/value workspace is shipped; collection editors,
+  keyspace export, and cluster/ACL workflows remain follow-up depth.
 - MongoDB
 - others only when a real workflow justifies them
 

@@ -1,7 +1,8 @@
 # Provider Contract Plan
 
-This document defines the **TypeScript-facing contract** for Quarry's provider model before
-implementation starts.
+This document defines the **TypeScript-facing contract** for Quarry's provider model. It was
+written before implementation and remains a boundary reference; shipped behavior is tracked in
+`docs/status.md` and the shared types under `packages/shared/`.
 
 The goal is to answer a very specific question:
 
@@ -69,7 +70,7 @@ These examples are illustrative. The exact names can shift, but the boundaries s
 ### Provider identity
 
 ```ts
-export type ProviderId = 'sqlite' | 'mysql'
+export type ProviderId = 'sqlite' | 'mysql' | 'redis'
 
 export type ProviderKind = 'relational' | 'key_value' | 'document'
 ```
@@ -77,7 +78,8 @@ export type ProviderKind = 'relational' | 'key_value' | 'document'
 Notes:
 
 - Start with only shipped/active providers in the union.
-- Add `redis`, `postgres`, `mongo` only when their implementation actually begins.
+- Redis is now implemented as a key/value provider and must remain outside relational adapter
+  contracts. Add future providers only when their implementation actually begins.
 - `ProviderKind` is useful for high-level grouping without pretending all relational or all
   non-relational providers share the same detailed UI.
 
@@ -130,7 +132,18 @@ export interface MysqlRecentItem extends RecentItemBase {
     }
 }
 
-export type RecentItem = SqliteRecentItem | MysqlRecentItem
+export interface RedisRecentItem extends RecentItemBase {
+    providerId: 'redis'
+    resource: {
+        connectionId: string
+        host: string
+        port: number
+        database: number
+        tls: boolean
+    }
+}
+
+export type RecentItem = SqliteRecentItem | MysqlRecentItem | RedisRecentItem
 ```
 
 Notes:

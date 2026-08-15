@@ -1,6 +1,11 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
 import type { MysqlWorkspaceSelection, MysqlWorkspaceTab } from '@quarrydb/shared/session'
-import type { MysqlConnectionSession, MysqlSchemaSummary, MysqlTableSummary } from '../providers/mysql-backend-adapter'
+import type {
+    MysqlConnectionSession,
+    MysqlSchemaSummary,
+    MysqlTableBrowseOptions,
+    MysqlTableSummary,
+} from '../providers/mysql-backend-adapter'
 import { MysqlBackendAdapterService } from '../providers/mysql-backend-adapter.service'
 import type { MysqlWorkspaceDraft } from '../providers/mysql-workspace-draft'
 import { type ExportFormat, ExportService } from '../services/export.service'
@@ -25,6 +30,9 @@ export class MysqlWorkspaceStore {
     readonly tableRows = signal<Record<string, unknown>[]>([])
     readonly tableColumns = signal<string[]>([])
     readonly tableRowTotal = signal(0)
+    readonly browseFilter = signal('')
+    readonly browseSortColumn = signal<string | null>(null)
+    readonly browseSortDirection = signal<'asc' | 'desc'>('asc')
     readonly activeTab = signal<MysqlWorkspaceTab>('browse')
     readonly querySql = signal('')
     readonly queryRows = signal<Record<string, unknown>[]>([])
@@ -94,6 +102,9 @@ export class MysqlWorkspaceStore {
         this.tableRows.set([])
         this.tableColumns.set([])
         this.tableRowTotal.set(0)
+        this.browseFilter.set('')
+        this.browseSortColumn.set(null)
+        this.browseSortDirection.set('asc')
         this.activeTab.set('browse')
         this.querySql.set('')
         this.queryRows.set([])
@@ -132,6 +143,9 @@ export class MysqlWorkspaceStore {
                 this.tableRows.set([])
                 this.tableColumns.set([])
                 this.tableRowTotal.set(0)
+                this.browseFilter.set('')
+                this.browseSortColumn.set(null)
+                this.browseSortDirection.set('asc')
             }
         } catch (error) {
             this.host.error.set(this.describeError(error, 'Failed to load MySQL tables'))
@@ -149,8 +163,18 @@ export class MysqlWorkspaceStore {
         }
 
         this.selectedTable.set({ schemaName, tableName })
+        this.browseFilter.set('')
+        this.browseSortColumn.set(null)
+        this.browseSortDirection.set('asc')
         this.querySql.set(`SELECT * FROM \`${schemaName}\`.\`${tableName}\` LIMIT ${this.PAGE_SIZE}`)
         await this.loadTableRows(true)
+    }
+
+    applyBrowseOptions(options: MysqlTableBrowseOptions): void {
+        this.browseFilter.set(options.filter?.trim() ?? '')
+        this.browseSortColumn.set(options.sortColumn ?? null)
+        this.browseSortDirection.set(options.sortDirection ?? 'asc')
+        void this.loadTableRows(true)
     }
 
     async applyPendingEdits(): Promise<boolean> {
@@ -298,6 +322,11 @@ export class MysqlWorkspaceStore {
                 selected.tableName,
                 this.PAGE_SIZE,
                 offset,
+                {
+                    filter: this.browseFilter(),
+                    sortColumn: this.browseSortColumn() ?? undefined,
+                    sortDirection: this.browseSortDirection(),
+                },
             )
             this.tableColumns.set(result.columns)
             this.tableRowTotal.set(result.total)
@@ -330,7 +359,7 @@ export class MysqlWorkspaceStore {
             case 'json':
                 return this.exportService.toJson(rows)
             case 'sql':
-                return this.exportService.toSqlInserts(tableName, columns, rows)
+                return this.exportService.toSqlInserts(tableName, columns, rows, 'mysql')
             case 'md':
                 return this.exportService.toMarkdown(columns, rows)
         }
