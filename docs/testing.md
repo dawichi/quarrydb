@@ -4,6 +4,7 @@ Quarry's local QA loop is split into fast logic tests and browser tests:
 
 ```bash
 bun run check       # Biome lint + formatting check
+bun run check:docs  # Verify maintained relative Markdown links
 bun run test:run    # Vitest unit and SQLite integration tests
 bun run test:e2e    # Playwright browser tests against Angular
 bun run test:landing # Playwright smoke tests against the Astro landing site

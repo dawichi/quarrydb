@@ -38,7 +38,7 @@ compliance:
     - {id: DOC-001, status: compliant, evidence: docs/AGENTS.md, priority: medium, next_action: keep canonical instructions current}
     - {id: DOC-002, status: compliant, evidence: docs/README.md including recovery-runbook.md and native-shell-smoke-checklist.md, priority: medium, next_action: maintain the index when docs move}
     - {id: DOC-003, status: partial, evidence: README.md and docs/, priority: high, next_action: continue reconciling historical planning docs with shipped provider state}
-    - {id: DOC-004, status: unknown, evidence: maintained Markdown links have not yet had a dedicated checker, priority: medium, next_action: add a repository link check}
+    - {id: DOC-004, status: compliant, evidence: scripts/check-doc-links.ts, package.json check:docs script, QA, and CI, priority: medium, next_action: preserve the local network-free link check}
     - {id: DOC-005, status: partial, evidence: README.md, docs/architecture.md, docs/status.md, src/, priority: high, next_action: reconcile remaining historical provider plans}
     - {id: DOC-006, status: partial, evidence: docs/status.md and planning docs, priority: low, next_action: separate durable decisions from historical task notes during documentation cleanup}
     - {id: DOC-007, status: compliant, evidence: docs/ and project source, priority: medium, next_action: keep project facts local}

@@ -69,7 +69,7 @@ jobs:
           exit 1
 
       - name: Check formatting and lint
-        run: bun run check:ci
+        run: bun run check:ci && bun run check:docs
 
       - name: Audit dependencies
         run: bun run audit:dependencies
