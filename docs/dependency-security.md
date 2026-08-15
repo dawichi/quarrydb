@@ -44,6 +44,8 @@ platform dependencies and cannot be removed by Quarry without changing those ups
 - `RUSTSEC-2023-0071` — `rsa` through SQLx MySQL authentication; RustSec lists no fixed release.
 - `RUSTSEC-2026-0190` and `RUSTSEC-2026-0221` — indirect `anyhow`/`event-listener` advisories
   owned by the Tauri/SQLx dependency graph.
+- `RUSTSEC-2024-0429` — `glib` through Tauri's GTK3 platform dependency; it is retained only
+  for the Linux/native dependency graph and is not used by the macOS/Windows release targets.
 
 These are explicit, reviewable exceptions rather than a disabled scanner. The command remains
 fail-closed for every other vulnerability; revisit each ignore when Tauri, SQLx, or the affected

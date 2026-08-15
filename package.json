@@ -20,7 +20,7 @@
     "dev:services:logs": "docker compose -f docker-compose.local-test-services.yml logs -f",
     "test:mysql": "bash scripts/test-mysql.sh",
     "test:redis": "bash scripts/test-redis.sh",
-    "audit:rust": "cd src-tauri && cargo audit --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195 --ignore RUSTSEC-2026-0235 --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0190 --ignore RUSTSEC-2026-0221",
+    "audit:rust": "cd src-tauri && cargo audit --deny unsound --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195 --ignore RUSTSEC-2026-0235 --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0190 --ignore RUSTSEC-2026-0221 --ignore RUSTSEC-2024-0429",
     "audit:dependencies": "bun audit --audit-level=critical && bun pm untrusted && bun run audit:rust",
     "lint": "biome lint src/ packages/",
     "format": "biome format --write src/ packages/",
