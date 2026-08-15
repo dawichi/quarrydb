@@ -6,11 +6,12 @@ test.describe('welcome screen', () => {
         await expect(page.getByRole('heading', { name: 'Quarry' })).toBeVisible()
     })
 
-    test('offers SQLite and MySQL provider entry points', async ({ page }) => {
+    test('offers SQLite, MySQL, and Redis provider entry points', async ({ page }) => {
         await expect(page.getByRole('heading', { name: 'Open SQLite file' })).toBeVisible()
         await expect(page.getByRole('heading', { name: 'Connect to MySQL' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Connect to Redis' })).toBeVisible()
         await expect(
-            page.getByText('Preview quality: browse, stage row edits, export results, and run raw SQL; visual pipelines remain SQLite-only.'),
+            page.getByText('Preview quality: browse, stage row edits, export results, run raw SQL, and build MySQL visual pipelines.'),
         ).toBeVisible()
     })
 

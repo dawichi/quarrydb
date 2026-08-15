@@ -55,11 +55,11 @@ function installSqliteFixture(): void {
         if (normalized.startsWith('PRAGMA table_info("products")')) return columns
         if (normalized.startsWith('PRAGMA table_info("customers")')) return []
         if (normalized.startsWith('PRAGMA foreign_key_list') || normalized.startsWith('PRAGMA index_list')) return []
-        if (normalized.startsWith('SELECT COUNT(*) as count FROM (')) {
+        if (normalized.startsWith('SELECT COUNT(*) AS count FROM (')) {
             const filtered = normalized.includes("category = 'Books'") ? products.filter((row) => row.category === 'Books') : products
             return [{ count: filtered.length }]
         }
-        if (normalized.startsWith('SELECT COUNT(*) as count FROM "products"')) return [{ count: products.length }]
+        if (normalized.startsWith('SELECT COUNT(*) AS count FROM "products"')) return [{ count: products.length }]
         if (normalized.includes('FROM "products"')) {
             const filtered = normalized.includes("category = 'Books'") ? products.filter((row) => row.category === 'Books') : products
             const limit = Number(values.length > 1 ? values[0] : (values[0] ?? 100))
