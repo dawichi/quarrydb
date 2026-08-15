@@ -45,7 +45,7 @@ shipped publicly with auto-updates working.
 | Testing — Playwright E2E | 🟡 Welcome, browse/query, edit/apply, and export flows; native OS flows pending |
 | Testing — real MySQL provider integration | ✅ Docker-backed adapter tests for schema, metadata, seed, paging, types, expressions, and joins |
 | Redis/Valkey provider — local/remote TCP + TLS connection, profiles, key browser, typed previews, string/TTL editing, deletion, command runner | ✅ Native Tauri adapter, Angular workspace, runtime-only/OS-backed secrets, session/recent persistence, bounded SCAN and previews |
-| Testing — Redis native provider | ✅ Rust URL/target tests, frontend invoke contract tests, command parser tests, optional Docker-backed live protocol test |
+| Testing — Redis native provider | ✅ 5 Rust boundary tests, frontend invoke contract tests, command parser tests, and Docker-backed live protocol test in CI |
 | MySQL export | ✅ Full-result adapter support, UI, integration coverage, and browser coverage |
 | MySQL reconnect UX | ✅ Direct save-and-connect, optional default database, explicit in-workspace reconnect, password-prompt session restoration, and opt-in OS-backed password storage with runtime fallback |
 | MySQL staged row editing | ✅ Primary-key guarded update/delete staging, review, transactional apply, and rollback coverage |

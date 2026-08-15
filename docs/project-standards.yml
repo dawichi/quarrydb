@@ -53,7 +53,7 @@ compliance:
     - {id: TEST-005, status: compliant, evidence: docs/testing.md, malformed persistence specs, hostile identifier integration specs, and native Redis boundary tests, priority: high, next_action: preserve boundary regression coverage}
     - {id: TEST-006, status: compliant, evidence: package.json and .github/workflows/ci.yml, priority: medium, next_action: keep test commands runnable in CI}
     - {id: TEST-007, status: partial, evidence: e2e fixtures, Docker-backed MySQL tests, and optional Redis live harness, priority: high, next_action: run the Redis live suite in CI when a Redis service is provisioned}
-    - {id: TEST-008, status: compliant, evidence: 208 passing Vitest tests and CI workflow, priority: high, next_action: retain an automated baseline}
+    - {id: TEST-008, status: compliant, evidence: 228 passing Vitest tests, 5 Rust tests, 9 Playwright tests, and CI workflow, priority: high, next_action: retain an automated baseline}
 
     - {id: TS-001, status: compliant, evidence: tsconfig.json, priority: high, next_action: preserve strict checking}
     - {id: TS-002, status: compliant, evidence: Biome check and source review, priority: high, next_action: avoid undocumented any}

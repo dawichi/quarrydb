@@ -32,6 +32,6 @@ editors remain follow-up work because they need distinct UX and stronger operati
 - Vitest covers command parsing, native invoke contracts, persistence/profile validation, and
   provider state transitions.
 - Rust unit tests cover URL construction, TLS/IPv6 formatting, and hostile target rejection.
-- Docker Redis integration is the next environment-dependent gate; it should exercise PING,
-  SCAN, typed values, TTL writes, deletion, and representative command execution when Docker is
-  available in CI.
+- CI provisions Docker Redis and exercises PING, SCAN, typed values, TTL writes, deletion, and
+  representative command execution through the native boundary. Local execution uses the same
+  `bun run test:redis` harness when Docker is available.
