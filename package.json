@@ -63,7 +63,7 @@
     "concurrently": "^10.0.5",
     "mysql2": "^3.23.3",
     "tailwindcss": "^4.3.3",
-    "typescript": "~5.8.3",
+    "typescript": "~7.0.2",
     "vitest": "^4.1.10"
   },
   "overrides": {
