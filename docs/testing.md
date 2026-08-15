@@ -6,6 +6,7 @@ Quarry's local QA loop is split into fast logic tests and browser tests:
 bun run check       # Biome lint + formatting check
 bun run test:run    # Vitest unit and SQLite integration tests
 bun run test:e2e    # Playwright browser tests against Angular
+bun run test:landing # Playwright smoke tests against the Astro landing site
 bun run test:mysql  # Real MySQL provider integration tests via Docker
 bun run test:redis  # Redis provider integration tests when Docker is available
 bun run build       # Production Angular bundle
@@ -33,6 +34,12 @@ SQLite browser fixture mocks only the Tauri IPC boundary, while real adapter beh
 tested separately against MySQL and SQLite integration fixtures.
 The Tauri native shell is deliberately not required for these tests, so native dialogs and
 menu registration do not block browser QA.
+
+The landing Playwright configuration builds the Astro site, starts its preview server, and
+uses a fresh Chromium context for each test. It covers the public page contract, release-link
+fallback when GitHub is unavailable, and the interactive demo's pipeline/SQL/result updates.
+The GitHub release API is stubbed in these tests so landing QA remains deterministic and does
+not consume a network-dependent rate limit.
 
 Install the browser once on a new machine:
 

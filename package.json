@@ -29,8 +29,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
+    "test:landing": "playwright test --config=playwright.landing.config.ts",
     "build:landing": "bun run --cwd landing build",
-    "qa": "bun run check:ci && bun run test:run && bun run test:e2e && bun run build && bun run build:landing"
+    "qa": "bun run check:ci && bun run test:run && bun run test:e2e && bun run test:landing && bun run build && bun run build:landing"
   },
   "dependencies": {
     "@angular/common": "^20.3.28",

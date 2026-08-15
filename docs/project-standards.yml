@@ -59,7 +59,7 @@ compliance:
     - {id: TS-002, status: compliant, evidence: Biome check and source review, priority: high, next_action: avoid undocumented any}
     - {id: TS-003, status: compliant, evidence: shared provider contracts and typed services, priority: medium, next_action: keep provider interfaces explicit}
     - {id: TS-004, status: compliant, evidence: shared discriminated unions and provider state types, priority: medium, next_action: preserve provider-specific state contracts}
-    - {id: TS-005, status: partial, evidence: localStorage validators/tests and landing/src/lib/releases.ts runtime validation, priority: high, next_action: add versioned session validators and migrations}
+    - {id: TS-005, status: compliant, evidence: localStorage validators, recursive versioned provider-session validation/tests, and landing/src/lib/releases.ts runtime validation, priority: high, next_action: add migrations only when persisted formats evolve}
     - {id: TS-007, status: compliant, evidence: tsconfig.json, biome.json, package.json, priority: medium, next_action: keep tool configuration committed}
     - {id: TS-008, status: compliant, evidence: biome.json and package scripts, priority: medium, next_action: add a non-mutating CI check command}
     - {id: TS-009, status: partial, evidence: tsconfig.json, priority: medium, next_action: evaluate noUncheckedIndexedAccess migration}
@@ -120,7 +120,7 @@ compliance:
     - {id: ANGULAR-002, status: partial, evidence: stores/services contain domain orchestration, priority: medium, next_action: extract independently testable provider rules where useful}
     - {id: ANGULAR-003, status: compliant, evidence: strict Angular configuration and typed inputs/outputs, priority: medium, next_action: preserve typed APIs}
     - {id: ANGULAR-004, status: compliant, evidence: explicit signal-based workflow states, priority: high, next_action: model Redis states explicitly}
-    - {id: ANGULAR-006, status: partial, evidence: persisted and external data casts, priority: high, next_action: validate runtime boundaries}
+    - {id: ANGULAR-006, status: compliant, evidence: recursive versioned SQLite/MySQL/Redis session validators and external payload validation, priority: high, next_action: preserve runtime validation at every persistence boundary}
     - {id: ANGULAR-007, status: partial, evidence: root stores and provider-owned stores, priority: high, next_action: document ownership and reset lifecycle}
     - {id: ANGULAR-008, status: compliant, evidence: shared SQL and store/service unit tests, priority: high, next_action: preserve pure logic extraction}
     - {id: ANGULAR-010, status: partial, evidence: updater interval and component timers, priority: medium, next_action: make reactive lifecycles cancellable}
@@ -136,8 +136,8 @@ compliance:
     - {id: ASTRO-006, status: partial, evidence: semantic markup and metadata in index.astro, priority: medium, next_action: complete public accessibility metadata}
     - {id: ASTRO-007, status: compliant, evidence: interactive demo and release widget have explicit browser purposes, priority: low, next_action: preserve justified islands/scripts}
     - {id: ASTRO-009, status: compliant, evidence: single deterministic page and static config, priority: low, next_action: keep builds deterministic}
-    - {id: ASTRO-010, status: gap, evidence: no landing browser test suite, priority: medium, next_action: add focused landing smoke tests}
-    - {id: ASTRO-011, status: partial, evidence: build exists but link/assets/content integrity is not independently checked, priority: medium, next_action: add build and link checks}
+    - {id: ASTRO-010, status: compliant, evidence: landing-e2e/landing.spec.ts and Playwright landing config, priority: medium, next_action: preserve focused public-page coverage}
+    - {id: ASTRO-011, status: partial, evidence: Astro production build plus landing browser checks for release links and interactive content, priority: medium, next_action: expand link/assets checks if the site gains more routes}
     - {id: ASTRO-012, status: unknown, evidence: deployment configuration is outside this repository, priority: medium, next_action: document hosting output, redirects, headers, and 404 behavior}
     - {id: ASTRO-013, status: partial, evidence: title/description/Open Graph but no canonical/sitemap evidence, priority: low, next_action: complete discoverability metadata}
     - {id: ASTRO-014, status: partial, evidence: release data is serialized into browser code, priority: high, next_action: validate and minimize island data}

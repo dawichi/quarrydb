@@ -92,6 +92,9 @@ jobs:
       - name: Build landing site
         run: bun run build:landing
 
+      - name: Run landing browser tests
+        run: bun run test:landing
+
       - name: Stop MySQL
         if: always()
         run: docker compose -f docker-compose.local-test-services.yml down

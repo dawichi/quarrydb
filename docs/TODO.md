@@ -14,21 +14,23 @@ recorded in `docs/status.md` or an ADR; do not silently delete unresolved items.
 
 ### QRY-005 [Medium] ANGULAR-006 — Deepen runtime validation
 
-- **Status:** In progress
+- **Status:** Completed
 - **Affected area:** session/profile/history services and provider payloads
-- **Evidence:** malformed localStorage tests now cover recent items, MySQL profiles, and query
-  history; session payload validation remains intentionally shallow.
-- **Risk:** Corrupt or changed persisted data can still enter application state unsafely.
-- **Next action:** Add versioned validators/migrations for every persisted provider session.
+- **Evidence:** `src/app/core/services/session-validation.ts` validates versioned SQLite, MySQL,
+  and Redis session payloads recursively, with valid/legacy/malformed fixtures in
+  `session-validation.spec.ts`.
+- **Risk:** Future persisted-state versions still need explicit migrations before the format
+  changes.
+- **Next action:** Add a migration when a persisted session schema needs to evolve.
 
 ### QRY-006 [Medium] ASTRO-010 — Add landing browser coverage
 
-- **Status:** Planned
+- **Status:** Completed
 - **Affected area:** `landing/`
-- **Evidence:** the landing production build and release-payload validator are covered, but the
-  browser suite targets the Angular app only.
-- **Risk:** Download/release metadata and interactive demo regressions may ship unnoticed.
-- **Next action:** Add a focused landing smoke suite and build/link validation.
+- **Evidence:** `landing-e2e/landing.spec.ts` runs against a production Astro preview and covers
+  page metadata, release fallback links, and interactive pipeline/SQL/result behavior.
+- **Risk:** Browser coverage intentionally does not replace platform-specific native shell smoke.
+- **Next action:** Keep the focused suite stable as the landing page evolves.
 
 ### QRY-007 [High] Redis provider depth
 
