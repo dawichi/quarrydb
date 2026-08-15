@@ -42,10 +42,41 @@ describe('MysqlBackendAdapterService', () => {
             source: 'saved_profile',
         })
 
-        expect(load).toHaveBeenCalledWith('mysql://quarry:secret%20word@127.0.0.1:3306/warehouse')
+        expect(load).toHaveBeenCalledWith('mysql://quarry:secret%20word@127.0.0.1:3306/warehouse?ssl-mode=REQUIRED')
         expect(close).toHaveBeenCalledOnce()
         expect(session.target.connectionName).toBe('Analytics')
         expect(session.source).toBe('saved_profile')
+    })
+
+    it('rejects malformed host and port values before opening a driver connection', async () => {
+        await expect(
+            service.connect({
+                target: {
+                    connectionId: 'mysql-invalid-host',
+                    connectionName: 'Invalid host',
+                    host: 'db.example.test/evil',
+                    port: 3306,
+                },
+                username: 'quarry',
+                password: 'secret',
+                source: 'saved_profile',
+            }),
+        ).rejects.toThrow('MySQL host')
+
+        await expect(
+            service.connect({
+                target: {
+                    connectionId: 'mysql-invalid-port',
+                    connectionName: 'Invalid port',
+                    host: '127.0.0.1',
+                    port: 70000,
+                },
+                username: 'quarry',
+                password: 'secret',
+                source: 'saved_profile',
+            }),
+        ).rejects.toThrow('MySQL port')
+        expect(load).not.toHaveBeenCalled()
     })
 
     it('lists schema names from information_schema using the saved in-memory connect request', async () => {

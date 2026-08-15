@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 import type { Column } from '@quarrydb/shared'
+import { quoteIdentifier } from '@quarrydb/shared/sql-identifiers'
 import Database from '@tauri-apps/plugin-sql'
 import type {
     MysqlBackendAdapter,
@@ -188,12 +189,13 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
     async runQuery(session: MysqlConnectionSession, sql: string, previewLimit: number): Promise<MysqlQueryResult> {
         const db = await this.openDatabase(session)
-        const normalizedSql = sql.trim().replace(/;+$/, '')
+        const normalizedSql = this.normalizeSql(sql)
+        const safePreviewLimit = this.toSafeNonNegativeInt(previewLimit)
         try {
             if (this.isRowQuery(normalizedSql)) {
                 const rewrittenSql = await this.rewriteSimpleSelectForPreview(db, normalizedSql)
                 const querySql = this.shouldWrapRowQuery(rewrittenSql)
-                    ? `SELECT * FROM (${rewrittenSql}) AS quarry_query LIMIT ${previewLimit}`
+                    ? `SELECT * FROM (${rewrittenSql}) AS quarry_query LIMIT ${safePreviewLimit}`
                     : rewrittenSql
                 const rows = await db.select<Record<string, unknown>[]>(querySql)
                 return {
@@ -218,7 +220,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
     async runQueryFull(session: MysqlConnectionSession, sql: string): Promise<Record<string, unknown>[]> {
         const db = await this.openDatabase(session)
-        const normalizedSql = sql.trim().replace(/;+$/, '')
+        const normalizedSql = this.normalizeSql(sql)
         try {
             if (!this.isRowQuery(normalizedSql)) {
                 throw new Error('Only result-returning queries can be exported')
@@ -294,12 +296,20 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     }
 
     private buildDsn(request: MysqlConnectRequest): string {
+        const host = request.target.host.trim()
+        if (!host || /[\s/?#@\\]/.test(host)) {
+            throw new Error('MySQL host must be a non-empty hostname or IP address')
+        }
+        if (!Number.isInteger(request.target.port) || request.target.port < 1 || request.target.port > 65535) {
+            throw new Error('MySQL port must be an integer between 1 and 65535')
+        }
         const username = encodeURIComponent(request.username)
         const password = encodeURIComponent(request.password)
-        const host = request.target.host
         const port = request.target.port
         const database = request.target.defaultDatabase ? `/${encodeURIComponent(request.target.defaultDatabase)}` : ''
-        return `mysql://${username}:${password}@${host}:${port}${database}`
+        const sslMode = request.sslMode ?? 'preferred'
+        const sslValue = sslMode === 'disabled' ? 'DISABLED' : sslMode === 'required' ? 'REQUIRED' : 'PREFERRED'
+        return `mysql://${username}:${password}@${host}:${port}${database}?ssl-mode=${sslValue}`
     }
 
     protected async loadDatabase(dsn: string): Promise<MysqlDatabaseClient> {
@@ -331,7 +341,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     }
 
     private quoteIdentifier(identifier: string): string {
-        return `\`${identifier.replaceAll('`', '``')}\``
+        return quoteIdentifier(identifier, 'mysql')
     }
 
     private buildPreviewSelectList(columns: Column[]): string {
@@ -516,5 +526,11 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         }
 
         return Math.floor(value)
+    }
+
+    private normalizeSql(sql: string): string {
+        const normalized = sql.trim().replace(/;+$/, '').trim()
+        if (!normalized) throw new Error('SQL cannot be empty')
+        return normalized
     }
 }
