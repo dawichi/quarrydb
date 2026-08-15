@@ -1,6 +1,7 @@
 import { Component, effect, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core'
 import { MenuService } from './core/services/menu.service'
 import { SessionService } from './core/services/session.service'
+import { TutorialService } from './core/services/tutorial.service'
 import { UpdaterService } from './core/services/updater.service'
 import { SqliteWorkspaceStore } from './core/store/sqlite-workspace.store'
 import { WorkspaceHostStore } from './core/store/workspace-host.store'
@@ -45,7 +46,8 @@ export class AppComponent implements OnDestroy, OnInit {
     protected readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly sessionSvc = inject(SessionService)
     private readonly menuSvc = inject(MenuService)
-    private readonly updaterSvc = inject(UpdaterService)
+    protected readonly tutorialSvc = inject(TutorialService)
+    protected readonly updaterSvc = inject(UpdaterService)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly isRestoring = signal(true)

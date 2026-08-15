@@ -32,4 +32,12 @@ test.describe('SQLite edit and export workflows', () => {
         await expect.poll(async () => page.evaluate(() => window.__quarryE2eWrites?.[0]?.content)).toContain('Laptop Pro 15')
         await expect.poll(async () => page.evaluate(() => window.__quarryE2eWrites?.[0]?.content)).toContain('name,category')
     })
+
+    test('loads the SQLite schema modal only when requested', async ({ page }) => {
+        await page.getByTitle('Create table').click()
+
+        await expect(page.getByRole('heading', { name: 'Create Table' })).toBeVisible()
+        await page.getByRole('button', { name: 'Cancel' }).click()
+        await expect(page.getByRole('heading', { name: 'Create Table' })).toBeHidden()
+    })
 })

@@ -19,19 +19,33 @@
         </aside>
 
         <!-- Tutorial overlay (portal-style, fixed positioning handles placement) -->
-        <app-tutorial-overlay />
+        @defer (when tutorialSvc.step() > 0) {
+            <app-tutorial-overlay />
+        }
         <!-- Update banner (fixed bottom-right, shown when newer version available) -->
-        <app-update-banner />
+        @defer (when updaterSvc.pending() !== null && updaterSvc.modalStatus() === null) {
+            <app-update-banner />
+        }
         <!-- Manual "Check for Updates…" result modal (triggered from the File menu) -->
-        <app-update-check-modal />
+        @defer (when updaterSvc.modalStatus() !== null) {
+            <app-update-check-modal />
+        }
         <!-- Create Table modal (triggered from the sidebar "+" button) -->
-        <app-create-table-modal />
+        @defer (when workspaceStore.createTableTarget() !== null) {
+            <app-create-table-modal />
+        }
         <!-- Table Settings modal (triggered from the sidebar gear icon) -->
-        <app-table-settings-modal />
+        @defer (when workspaceStore.tableSettingsTarget() !== null) {
+            <app-table-settings-modal />
+        }
         <!-- View modal (create / edit / drop views) -->
-        <app-view-modal />
+        @defer (when workspaceStore.viewModalTarget() !== null) {
+            <app-view-modal />
+        }
         <!-- Trigger modal (create / edit / drop triggers) -->
-        <app-trigger-modal />
+        @defer (when workspaceStore.triggerModalTarget() !== null) {
+            <app-trigger-modal />
+        }
 
         <!-- Main content area -->
         <main class="flex-1 overflow-hidden flex flex-col">

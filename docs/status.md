@@ -174,4 +174,4 @@ multiple features.
 | 2026-08-15 | Redis safety slice: added explicit typed list/set/sorted-set/hash/stream mutations with native input guards, refresh-after-write behavior, and live protocol coverage |
 | 2026-08-15 | Native shell QA: documented the release-candidate checklist for installers, menus, dialogs, keyring, updater replacement, and provider boundaries where OS-native automation is not available |
 | 2026-08-15 | MySQL product surface: promoted MySQL to a supported home/recent/session provider, removed preview-only launch semantics, and aligned the connection UX and provider contracts |
-| 2026-08-15 | Startup performance: deferred MySQL and Redis workspace bundles until their provider workspace is active, reducing the initial Angular bundle from roughly 764 KB to 715 KB while preserving browser coverage |
+| 2026-08-15 | Startup performance: deferred MySQL/Redis workspaces and SQLite modal/tutorial/update bundles until needed, reducing the initial Angular bundle from roughly 764 KB to 627 KB while preserving browser coverage |
