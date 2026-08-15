@@ -586,6 +586,74 @@ mod tests {
         let details = redis_get_key(target.clone(), key.clone()).expect("GET should work");
         assert_eq!(details.kind, "string");
         assert_eq!(details.value, serde_json::json!("hello"));
+
+        let list_key = "quarry:native:list";
+        let set_key = "quarry:native:set";
+        let zset_key = "quarry:native:zset";
+        let hash_key = "quarry:native:hash";
+        let stream_key = "quarry:native:stream";
+        let mut connection =
+            super::redis_connection(&target).expect("Redis connection should work");
+        let _: i64 = redis::cmd("DEL")
+            .arg(&[list_key, set_key, zset_key, hash_key, stream_key])
+            .query(&mut connection)
+            .expect("fixture cleanup should work");
+        let _: i64 = redis::cmd("RPUSH")
+            .arg(list_key)
+            .arg("first")
+            .arg("second")
+            .query(&mut connection)
+            .expect("RPUSH should work");
+        let _: i64 = redis::cmd("SADD")
+            .arg(set_key)
+            .arg("alpha")
+            .arg("beta")
+            .query(&mut connection)
+            .expect("SADD should work");
+        let _: i64 = redis::cmd("ZADD")
+            .arg(zset_key)
+            .arg(1.5)
+            .arg("first")
+            .arg(2.5)
+            .arg("second")
+            .query(&mut connection)
+            .expect("ZADD should work");
+        let _: i64 = redis::cmd("HSET")
+            .arg(hash_key)
+            .arg("field")
+            .arg("value")
+            .query(&mut connection)
+            .expect("HSET should work");
+        let _: String = redis::cmd("XADD")
+            .arg(stream_key)
+            .arg("*")
+            .arg("field")
+            .arg("value")
+            .query(&mut connection)
+            .expect("XADD should work");
+
+        let list = redis_get_key(target.clone(), list_key.to_string()).expect("LRANGE should work");
+        assert_eq!(list.kind, "list");
+        assert_eq!(list.value, serde_json::json!(["first", "second"]));
+
+        let set = redis_get_key(target.clone(), set_key.to_string()).expect("SMEMBERS should work");
+        assert_eq!(set.kind, "set");
+        assert_eq!(set.value.as_array().map(Vec::len), Some(2));
+
+        let zset = redis_get_key(target.clone(), zset_key.to_string()).expect("ZRANGE should work");
+        assert_eq!(zset.kind, "zset");
+        assert_eq!(zset.value.as_array().map(Vec::len), Some(4));
+
+        let hash =
+            redis_get_key(target.clone(), hash_key.to_string()).expect("HGETALL should work");
+        assert_eq!(hash.kind, "hash");
+        assert_eq!(hash.value, serde_json::json!(["field", "value"]));
+
+        let stream =
+            redis_get_key(target.clone(), stream_key.to_string()).expect("XRANGE should work");
+        assert_eq!(stream.kind, "stream");
+        assert_eq!(stream.value.as_array().map(Vec::len), Some(1));
+
         let scan = redis_scan_keys(target.clone(), 0, Some("quarry:native:*".to_string()), 100)
             .expect("SCAN should work");
         assert!(scan.keys.contains(&key));
@@ -593,5 +661,18 @@ mod tests {
             .expect("command should work");
         assert_eq!(output, serde_json::json!("PONG"));
         assert_eq!(redis_delete_key(target, key).expect("DEL should work"), 1);
+        assert_eq!(
+            redis::cmd("DEL")
+                .arg(&[
+                    list_key.to_string(),
+                    set_key.to_string(),
+                    zset_key.to_string(),
+                    hash_key.to_string(),
+                    stream_key.to_string()
+                ])
+                .query::<i64>(&mut connection)
+                .expect("fixture cleanup should work"),
+            5
+        );
     }
 }

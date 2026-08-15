@@ -100,6 +100,18 @@ describeMysql('MySQL provider against a real MySQL server', () => {
         expect(typeof result.rows[0]?.['price']).toBe('string')
     })
 
+    it('applies server-side browse filters and identifier-safe sorting', async () => {
+        const result = await service.queryTableRows(session, 'quarry_demo', 'products', 10, 0, {
+            filter: 'Laptop',
+            sortColumn: 'price',
+            sortDirection: 'desc',
+        })
+
+        expect(result.total).toBe(2)
+        expect(result.rows.map((row) => row['name'])).toEqual(['Laptop Pro 15"', 'Laptop Backpack 15"'])
+        expect(result.rows.map((row) => row['price'])).toEqual(['1299.99', '79.99'])
+    })
+
     it('runs raw expression and joined queries with preview limits', async () => {
         await expect(service.runQuery(session, 'SELECT NOW() AS now_value;', 100)).resolves.toMatchObject({
             kind: 'rows',

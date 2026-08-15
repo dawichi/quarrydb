@@ -95,6 +95,16 @@ jobs:
       - name: Run landing browser tests
         run: bun run test:landing
 
+      - name: Upload browser test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+
       - name: Stop MySQL
         if: always()
         run: docker compose -f docker-compose.local-test-services.yml down

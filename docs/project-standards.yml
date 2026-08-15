@@ -52,8 +52,8 @@ compliance:
     - {id: TEST-004, status: partial, evidence: representative unit and browser assertions, priority: medium, next_action: prefer user-visible and contract outcomes over implementation details}
     - {id: TEST-005, status: compliant, evidence: docs/testing.md, malformed persistence specs, hostile identifier integration specs, and native Redis boundary tests, priority: high, next_action: preserve boundary regression coverage}
     - {id: TEST-006, status: compliant, evidence: package.json and .github/workflows/ci.yml, priority: medium, next_action: keep test commands runnable in CI}
-    - {id: TEST-007, status: partial, evidence: e2e fixtures, Docker-backed MySQL tests, and optional Redis live harness, priority: high, next_action: run the Redis live suite in CI when a Redis service is provisioned}
-    - {id: TEST-008, status: compliant, evidence: 228 passing Vitest tests, 5 Rust tests, 9 Playwright tests, and CI workflow, priority: high, next_action: retain an automated baseline}
+    - {id: TEST-007, status: compliant, evidence: e2e fixtures, Docker-backed MySQL tests, Redis typed-preview live harness, and CI-provisioned services, priority: high, next_action: keep provider service versions reproducible}
+    - {id: TEST-008, status: compliant, evidence: Vitest suite, 5 Rust tests, 11 Playwright tests across Angular and Astro, and CI workflow, priority: high, next_action: retain an automated baseline}
 
     - {id: TS-001, status: compliant, evidence: tsconfig.json, priority: high, next_action: preserve strict checking}
     - {id: TS-002, status: compliant, evidence: Biome check and source review, priority: high, next_action: avoid undocumented any}
@@ -83,13 +83,13 @@ compliance:
     - {id: CI-004, status: unknown, evidence: branch protection is repository-host configuration, priority: high, next_action: verify required checks in GitHub settings}
     - {id: CI-005, status: partial, evidence: release workflow permissions and signing secret usage, priority: high, next_action: narrow permissions and review trusted tag paths}
     - {id: CI-006, status: partial, evidence: Rust cache only in release workflow, priority: low, next_action: add appropriate caching and concurrency controls}
-    - {id: CI-007, status: partial, evidence: Playwright retains local artifacts but CI does not upload reports, priority: low, next_action: retain failure diagnostics in CI}
+    - {id: CI-007, status: compliant, evidence: separate Angular/Astro Playwright output directories and CI artifact upload on every verification outcome, priority: low, next_action: preserve actionable failure diagnostics}
 
     - {id: SEC-001, status: compliant, evidence: docs/adr/0001-trust-boundaries-and-provider-data.md, Tauri capabilities, and explicit webview CSP, priority: high, next_action: revisit when new native commands are added}
     - {id: SEC-002, status: compliant, evidence: keyring service, ignored test keys, CI secrets, priority: high, next_action: keep secrets out of persisted app state}
     - {id: SEC-004, status: compliant, evidence: shared dialect-aware quoting, SQLite/MySQL hostile metadata tests, and parameterized values, priority: critical, next_action: preserve the quote helper for future relational providers}
     - {id: SEC-005, status: partial, evidence: keyring, localStorage session/history, MySQL credentials, priority: high, next_action: document retention and sensitive-data handling}
-    - {id: SEC-006, status: partial, evidence: user-facing catches and provider errors, priority: high, next_action: audit redaction and safe error descriptions}
+    - {id: SEC-006, status: compliant, evidence: safe-error redaction utility/tests integrated into MySQL and Redis provider error surfaces, priority: high, next_action: apply the helper to future credential-bearing provider errors}
     - {id: SEC-007, status: partial, evidence: Tauri capability permissions, priority: high, next_action: document and minimize permissions}
     - {id: SEC-008, status: partial, evidence: integration and provider tests, priority: high, next_action: add rejection and hostile-input coverage}
     - {id: SEC-009, status: compliant, evidence: docs/dependency-security.md and CI audit gates, priority: medium, next_action: keep response guidance current}

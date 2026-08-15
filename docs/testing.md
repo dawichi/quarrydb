@@ -50,8 +50,10 @@ bunx playwright install chromium
 GitHub Actions runs the same checks on pushes to `main` and pull requests. The MySQL and Redis
 integration suites start disposable containers, exercise the real provider boundaries, and stop
 them afterward. MySQL uses a `mysql2` test transport and covers
-schema discovery, metadata, sample seeding, paging, type normalization, raw expressions,
-and joined query previews. Redis exercises the native Rust command against a live local server.
+schema discovery, metadata, sample seeding, paging, type normalization, server-side browse
+filtering/sorting, raw expressions, and joined query previews. Redis exercises the native Rust
+command against a live local server, including bounded previews for string, list, set, sorted-set,
+hash, and stream values.
 
 Redis native command tests run at the Rust unit boundary in every local run. CI also provisions
 Redis and runs the live protocol test. On a developer machine, `bun run test:redis` provisions the
