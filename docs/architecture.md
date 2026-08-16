@@ -15,6 +15,16 @@
 | Testing | Vitest (unit/integration) + Playwright (browser E2E) |
 | Landing | Astro |
 
+## Native capability boundary
+
+The main Tauri window uses an explicit capability allowlist. File selection is limited to the
+open/save dialog commands, SQLite/MySQL use only the SQL load/select/execute/close commands, and
+the updater is limited to checking and downloading/installing signed updates. External links use
+only the URL opener permission, while restart is granted solely for the post-update relaunch.
+Unused path permissions and broad opener/updater defaults are intentionally excluded. Any new
+native plugin or command must add the narrowest permission it needs and update the native-shell
+smoke checklist when platform behavior changes.
+
 ## Repository Layout (Monorepo)
 
 ```

@@ -90,7 +90,7 @@ compliance:
     - {id: SEC-004, status: compliant, evidence: shared dialect-aware quoting, SQLite/MySQL hostile metadata tests, and parameterized values, priority: critical, next_action: preserve the quote helper for future relational providers}
     - {id: SEC-005, status: partial, evidence: OS keyring, runtime-only provider secrets, localStorage session/history, docs/recovery-runbook.md retention guidance, and MySQL request cleanup on workspace exit, priority: high, next_action: preserve explicit retention boundaries and review them when credential flows change}
     - {id: SEC-006, status: compliant, evidence: safe-error redaction utility/tests integrated into MySQL and Redis provider error surfaces, priority: high, next_action: apply the helper to future credential-bearing provider errors}
-    - {id: SEC-007, status: partial, evidence: Tauri capability permissions, priority: high, next_action: document and minimize permissions}
+    - {id: SEC-007, status: partial, evidence: explicit Tauri capability allowlist, narrow dialog/SQL/updater/opener permissions, and docs/architecture.md native capability boundary, priority: high, next_action: review permissions whenever native plugins or commands change}
     - {id: SEC-008, status: partial, evidence: integration and provider tests, priority: high, next_action: add rejection and hostile-input coverage}
     - {id: SEC-009, status: compliant, evidence: docs/dependency-security.md and CI audit gates, priority: medium, next_action: keep response guidance current}
 
