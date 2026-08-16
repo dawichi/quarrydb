@@ -193,3 +193,4 @@ multiple features.
 | 2026-08-16 | SQLite failure guidance: normalized locked, busy, read-only, invalid-file, and inaccessible-file errors across SQLite browsing, editing, DDL, and reopen flows |
 | 2026-08-16 | Diagnostics export: added a native File-menu report containing redacted app/runtime/provider state without credentials or user data |
 | 2026-08-16 | Release automation: added CI cancellation, Rust caching to verification, and a tag-triggered portable release preflight before platform packaging |
+| 2026-08-16 | Release-candidate QA: local checks passed with 254 Vitest tests, 11 Angular browser tests, 2 landing tests, both production builds, and 7 Rust tests; Docker-backed live provider gates remain CI-enforced because Docker is unavailable locally |
