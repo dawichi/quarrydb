@@ -35,15 +35,66 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Audit Rust dependencies
+        working-directory: src-tauri
+        run: |
+          cargo install cargo-audit --locked --version 0.22.2
+          cargo audit --deny unsound --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195 --ignore RUSTSEC-2026-0235 --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0190 --ignore RUSTSEC-2026-0221 --ignore RUSTSEC-2024-0429
+
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Start MySQL and Redis
+        run: docker compose -f docker-compose.local-test-services.yml up -d mysql redis
+
+      - name: Wait for MySQL
+        run: |
+          for attempt in {1..30}; do
+            if docker exec quarry-mysql mysqladmin ping -h localhost -uroot -pquarry --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Wait for Redis
+        run: |
+          for attempt in {1..30}; do
+            if docker exec quarry-redis redis-cli ping | grep -q PONG; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
       - name: Verify release candidate
         run: |
           bun run check:ci
           bun run check:docs
+          bun run audit:dependencies
           bun run test:run
+          QUARRY_MYSQL_INTEGRATION=1 bun run vitest run src/app/core/integration/mysql-provider.integration.spec.ts
+          QUARRY_REDIS_INTEGRATION=1 cargo test --manifest-path src-tauri/Cargo.toml exercises_the_native_provider_against_a_live_server_when_requested
+          bun run test:e2e
           bun run build
           bun run build:landing
+          bun run test:landing
           cargo fmt --manifest-path src-tauri/Cargo.toml --check
           cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Upload browser test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-preflight-playwright-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+
+      - name: Stop provider test services
+        if: always()
+        run: docker compose -f docker-compose.local-test-services.yml down
 
   build:
     needs: verify

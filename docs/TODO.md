@@ -67,12 +67,15 @@ real usage data and the next product review.
 
 ### QRY-009 [High] Provider operational reliability
 
-- **Status:** Planned
+- **Status:** Completed
 - **Affected area:** SQLite, MySQL, Redis connection and operation lifecycles
 - **Goal:** Make connection loss, reconnects, timeouts, cancellation, stale requests, and
   categorized failures predictable across providers.
-- **Next action:** Define the shared failure contract first, then implement provider-specific
-  deadlines and reconnect UX where the native drivers support them.
+- **Evidence:** Provider-owned stale-request guards, MySQL reconnect/optimistic target checks,
+  Redis bounded connect/read/write timeouts and in-place reconnect, plus normalized SQLite
+  busy/locked/read-only/file-access guidance are covered by focused tests and the recovery runbook.
+- **Risk:** tauri-plugin-sql does not expose one shared statement-timeout control for SQLite and
+  MySQL; provider-specific deadline support remains a future driver-boundary decision.
 
 ### QRY-010 [High] Release-candidate acceptance
 
@@ -85,21 +88,27 @@ real usage data and the next product review.
 
 ### QRY-011 [High] MySQL maturity
 
-- **Status:** Planned
+- **Status:** Completed
 - **Affected area:** remote MySQL browsing, editing, metadata, and TLS connections
 - **Goal:** Make the supported remote relational workflow reliable on larger schemas and during
   concurrent changes.
-- **Next action:** Add stale-row detection from affected-row counts, improve metadata loading
-  for schemas with many tables, and harden transaction/reconnect behavior.
+- **Evidence:** Zero-row UPDATE/DELETE target checks, one parameterized information-schema batch
+  for schema bootstrap, transactional rollback coverage, reconnect UX, and Docker-backed live
+  browse/query/edit integration tests.
+- **Risk:** The provider remains intentionally short of DBA features such as administration,
+  migrations, procedures, privileges, and process-list tooling.
 
 ### QRY-012 [Medium] SQLite maturity
 
-- **Status:** Planned
+- **Status:** Completed
 - **Affected area:** local SQLite file opening and large-table browsing
 - **Goal:** Make local-file edge cases understandable and safe without weakening the current
   transaction and preview boundaries.
-- **Next action:** Document read-only/open-mode expectations, handle locked databases and
-  WAL/busy behavior explicitly, and measure large-table browsing performance.
+- **Evidence:** Bounded preview paging, explicit full-export separation, normalized busy/locked and
+  read-only guidance across browse/edit/DDL/reopen flows, and recovery documentation for WAL-safe
+  copies and competing writers.
+- **Risk:** The current SQLite driver boundary has no separate UI read-only mode; safe inspection
+  of a live WAL database still depends on a consistent filesystem copy.
 
 ### QRY-013 [Medium] Redis depth gate
 
