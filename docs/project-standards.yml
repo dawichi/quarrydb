@@ -82,7 +82,7 @@ compliance:
     - {id: CI-003, status: compliant, evidence: frozen Bun installs plus pinned Bun and Rust toolchains in CI/release, priority: high, next_action: preserve reproducible inputs}
     - {id: CI-004, status: unknown, evidence: branch protection is repository-host configuration, priority: high, next_action: verify required checks in GitHub settings}
     - {id: CI-005, status: partial, evidence: release workflow permissions and signing secret usage, priority: high, next_action: narrow permissions and review trusted tag paths}
-    - {id: CI-006, status: partial, evidence: Rust cache only in release workflow, priority: low, next_action: add appropriate caching and concurrency controls}
+    - {id: CI-006, status: compliant, evidence: verification and release workflows cache the Rust workspace with the same explicit workspace mapping, priority: low, next_action: preserve cache key inputs and concurrency controls}
     - {id: CI-007, status: compliant, evidence: separate Angular/Astro Playwright output directories and CI artifact upload on every verification outcome, priority: low, next_action: preserve actionable failure diagnostics}
 
     - {id: SEC-001, status: compliant, evidence: docs/adr/0001-trust-boundaries-and-provider-data.md, Tauri capabilities, and explicit webview CSP, priority: high, next_action: revisit when new native commands are added}

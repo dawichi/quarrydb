@@ -191,3 +191,4 @@ multiple features.
 | 2026-08-16 | Redis reconnect UX: the connected keyspace workspace now supports in-place reconnect without discarding the provider draft or workspace context |
 | 2026-08-16 | SQLite failure guidance: normalized locked, busy, read-only, invalid-file, and inaccessible-file errors across SQLite browsing, editing, DDL, and reopen flows |
 | 2026-08-16 | Diagnostics export: added a native File-menu report containing redacted app/runtime/provider state without credentials or user data |
+| 2026-08-16 | Release automation: added CI cancellation, Rust caching to verification, and a tag-triggered portable release preflight before platform packaging |

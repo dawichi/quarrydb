@@ -76,12 +76,12 @@ real usage data and the next product review.
 
 ### QRY-010 [High] Release-candidate acceptance
 
-- **Status:** Planned
+- **Status:** In progress
 - **Affected area:** Tauri shell, installers, updater, keyring, dialogs, menus, CI
 - **Goal:** Establish a repeatable release gate for all three providers and both supported
   desktop platforms.
-- **Next action:** Run the documented native-shell checklist on disposable macOS and Windows
-  hosts, keep Docker-backed provider tests mandatory, and record release evidence.
+- **Next action:** Validate the tag-triggered preflight and platform matrix in the first release
+  candidate; host-dependent installer smoke tests remain an explicit manual gate.
 
 ### QRY-011 [High] MySQL maturity
 
