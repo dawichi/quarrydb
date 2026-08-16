@@ -58,3 +58,69 @@ recorded in `docs/status.md` or an ADR; do not silently delete unresolved items.
   into the cross-platform CI job.
 - **Next action:** add `tauri-driver` coverage only when dedicated platform runners justify its
   maintenance cost.
+
+## Temporary Tech-Lead Direction — 2026-08-16
+
+The current recommendation is to stop expanding provider breadth and take the existing
+SQLite, MySQL, and Redis verticals to release-candidate quality. Revisit this section after
+real usage data and the next product review.
+
+### QRY-009 [High] Provider operational reliability
+
+- **Status:** Planned
+- **Affected area:** SQLite, MySQL, Redis connection and operation lifecycles
+- **Goal:** Make connection loss, reconnects, timeouts, cancellation, stale requests, and
+  categorized failures predictable across providers.
+- **Next action:** Define the shared failure contract first, then implement provider-specific
+  deadlines and reconnect UX where the native drivers support them.
+
+### QRY-010 [High] Release-candidate acceptance
+
+- **Status:** Planned
+- **Affected area:** Tauri shell, installers, updater, keyring, dialogs, menus, CI
+- **Goal:** Establish a repeatable release gate for all three providers and both supported
+  desktop platforms.
+- **Next action:** Run the documented native-shell checklist on disposable macOS and Windows
+  hosts, keep Docker-backed provider tests mandatory, and record release evidence.
+
+### QRY-011 [High] MySQL maturity
+
+- **Status:** Planned
+- **Affected area:** remote MySQL browsing, editing, metadata, and TLS connections
+- **Goal:** Make the supported remote relational workflow reliable on larger schemas and during
+  concurrent changes.
+- **Next action:** Add stale-row detection from affected-row counts, improve metadata loading
+  for schemas with many tables, and harden transaction/reconnect behavior.
+
+### QRY-012 [Medium] SQLite maturity
+
+- **Status:** Planned
+- **Affected area:** local SQLite file opening and large-table browsing
+- **Goal:** Make local-file edge cases understandable and safe without weakening the current
+  transaction and preview boundaries.
+- **Next action:** Document read-only/open-mode expectations, handle locked databases and
+  WAL/busy behavior explicitly, and measure large-table browsing performance.
+
+### QRY-013 [Medium] Redis depth gate
+
+- **Status:** Deferred pending usage evidence
+- **Affected area:** Redis/Valkey cluster, ACL, and restore workflows
+- **Goal:** Avoid turning a useful bounded inspection and mutation workspace into an
+  underspecified administration product.
+- **Next action:** Do not start cluster, ACL administration, or restore UX until real usage
+  validates the need and the operational safety boundaries are written first.
+
+### QRY-014 [Medium] Diagnostics and supportability
+
+- **Status:** Planned
+- **Affected area:** provider errors, logs, support exports, privacy boundaries
+- **Goal:** Make production failures actionable without exposing credentials, query secrets, or
+  user data unintentionally.
+- **Next action:** Design a redacted diagnostics report with provider state, app/tool versions,
+  safe error categories, and explicit user-controlled inclusion of query or schema details.
+
+### Performance note
+
+The Angular initial bundle warning budget is intentionally 550 kB with a 1 MB error ceiling;
+the current measured initial bundle is about 522 kB. Do not spend roadmap capacity replacing
+established UI dependencies for this small margin unless measured startup performance regresses.
