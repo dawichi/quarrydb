@@ -72,7 +72,7 @@ export class RedisWorkspaceComponent {
 
     protected saveString(): void {
         const details = this.store.keyDetails()
-        if (details?.kind !== 'string') return
+        if (details?.kind !== 'string' || details.valueTruncated) return
         const ttl = this.ttlDraft().trim()
         const ttlMs = ttl ? Number(ttl) : null
         if (ttlMs !== null && (!Number.isInteger(ttlMs) || ttlMs <= 0)) return

@@ -30,6 +30,7 @@ interface NativeRedisKeyDetails {
     kind: string
     ttl_ms: number
     value: unknown
+    value_truncated?: boolean
 }
 
 @Injectable({ providedIn: 'root' })
@@ -139,6 +140,7 @@ export class RedisBackendAdapterService implements RedisBackendAdapter {
             kind: details.kind,
             ttlMs: details.ttl_ms,
             value: details.value,
+            ...(details.value_truncated ? { valueTruncated: true } : {}),
         }
     }
 }

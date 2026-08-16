@@ -180,3 +180,4 @@ multiple features.
 | 2026-08-16 | Accessibility smoke coverage: added an automated welcome-form accessible-name and keyboard-navigation check, plus explicit Redis labels and live error announcements |
 | 2026-08-16 | Credential lifecycle hardening: releasing a MySQL workspace now drops credential-bearing native request metadata, and the home action clears provider lifecycle state instead of only clearing rendered workspace stores |
 | 2026-08-16 | Redis bounded-preview hardening: replaced unbounded set/hash materialization with capped SSCAN/HSCAN previews while keeping the existing typed value contract |
+| 2026-08-16 | Redis payload safety: capped string previews and writes at 64 KiB, surfaced oversized values as read-only previews, and added native input regression coverage |

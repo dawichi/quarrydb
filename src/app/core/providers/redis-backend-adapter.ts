@@ -29,6 +29,7 @@ export interface RedisKeyDetails {
     kind: string
     ttlMs: number
     value: unknown
+    valueTruncated?: boolean
 }
 
 export type RedisCollectionKind = 'list' | 'set' | 'zset' | 'hash' | 'stream'

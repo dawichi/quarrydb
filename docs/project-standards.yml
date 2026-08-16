@@ -98,7 +98,7 @@ compliance:
     - {id: DATA-002, status: partial, evidence: session versioning but no general local-state migration policy, priority: medium, next_action: standardize persisted-state versions and migrations}
     - {id: DATA-003, status: compliant, evidence: edit and DDL transactions with integration tests, priority: critical, next_action: preserve transaction and rollback guarantees}
     - {id: DATA-004, status: partial, evidence: provider sessions, runtime credentials, and remote connections, priority: high, next_action: document consistency and failure behavior}
-    - {id: DATA-005, status: partial, evidence: bounded SQLite/MySQL previews, bounded Redis typed collection previews and keyspace JSON export, raw commands, and explicit full-result exports, priority: high, next_action: bound or explicitly confirm remaining expensive operations}
+    - {id: DATA-005, status: partial, evidence: bounded SQLite/MySQL previews, bounded Redis typed collection and string previews plus keyspace JSON export, raw commands, and explicit full-result exports, priority: high, next_action: bound or explicitly confirm remaining expensive operations}
     - {id: DATA-007, status: partial, evidence: user-owned DBs, destructive-operation boundaries, and docs/recovery-runbook.md, priority: critical, next_action: add backup/restore UX only if the product takes on that responsibility}
 
     - {id: OPS-002, status: partial, evidence: CI/release/local provider environments, priority: medium, next_action: document explicit environment boundaries}

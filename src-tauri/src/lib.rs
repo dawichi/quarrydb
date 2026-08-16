@@ -10,6 +10,7 @@ const REDIS_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const REDIS_READ_TIMEOUT: Duration = Duration::from_secs(30);
 const REDIS_WRITE_TIMEOUT: Duration = Duration::from_secs(10);
 const REDIS_COLLECTION_PREVIEW_LIMIT: usize = 100;
+const REDIS_STRING_PREVIEW_LIMIT: usize = 64 * 1024;
 
 fn mysql_keyring_entry(connection_id: &str) -> Result<keyring::Entry, String> {
     keyring::Entry::new(MYSQL_KEYRING_SERVICE, connection_id).map_err(|error| error.to_string())
@@ -95,6 +96,7 @@ struct RedisKeyDetails {
     kind: String,
     ttl_ms: i64,
     value: serde_json::Value,
+    value_truncated: bool,
 }
 
 fn redis_url(target: &RedisConnectionTarget) -> Result<String, String> {
@@ -198,18 +200,35 @@ fn redis_read_value(
     connection: &mut redis::Connection,
     key: &str,
     kind: &str,
-) -> Result<serde_json::Value, String> {
+) -> Result<(serde_json::Value, bool), String> {
+    if kind == "string" {
+        let length: usize = redis::cmd("STRLEN")
+            .arg(key)
+            .query(connection)
+            .map_err(|error| format!("Redis string length read failed: {error}"))?;
+        let preview: Vec<u8> = redis::cmd("GETRANGE")
+            .arg(key)
+            .arg(0)
+            .arg(REDIS_STRING_PREVIEW_LIMIT.saturating_sub(1))
+            .query(connection)
+            .map_err(|error| format!("Redis string preview failed: {error}"))?;
+        return Ok((
+            redis_bytes_json(preview),
+            length > REDIS_STRING_PREVIEW_LIMIT,
+        ));
+    }
+
     let mut command = match kind {
-        "string" => redis::cmd("GET"),
         "list" => redis::cmd("LRANGE"),
         "set" => redis::cmd("SSCAN"),
         "zset" => redis::cmd("ZRANGE"),
         "hash" => redis::cmd("HSCAN"),
         "stream" => redis::cmd("XRANGE"),
         _ => {
-            return Ok(
+            return Ok((
                 serde_json::json!({"message": "Value preview is not available for this Redis type"}),
-            )
+                false,
+            ))
         }
     };
     match kind {
@@ -238,19 +257,22 @@ fn redis_read_value(
         let (_, values) = command
             .query::<(u64, Vec<Vec<u8>>)>(connection)
             .map_err(|error| format!("Redis {kind} preview failed: {error}"))?;
-        return Ok(serde_json::Value::Array(
-            values
-                .into_iter()
-                .take(REDIS_COLLECTION_PREVIEW_LIMIT)
-                .map(redis_bytes_json)
-                .collect(),
+        return Ok((
+            serde_json::Value::Array(
+                values
+                    .into_iter()
+                    .take(REDIS_COLLECTION_PREVIEW_LIMIT)
+                    .map(redis_bytes_json)
+                    .collect(),
+            ),
+            false,
         ));
     }
 
     let value = command
         .query::<redis::Value>(connection)
         .map_err(|error| format!("Redis value read failed: {error}"))?;
-    Ok(redis_value_json(value))
+    Ok((redis_value_json(value), false))
 }
 
 #[tauri::command]
@@ -311,12 +333,13 @@ fn redis_key_details(
         .arg(&key)
         .query(connection)
         .map_err(|error| format!("Redis PTTL failed: {error}"))?;
-    let value = redis_read_value(connection, key, &kind)?;
+    let (value, value_truncated) = redis_read_value(connection, key, &kind)?;
     Ok(RedisKeyDetails {
         key: key.to_string(),
         kind,
         ttl_ms,
         value,
+        value_truncated,
     })
 }
 
@@ -496,6 +519,9 @@ fn redis_set_string(
 ) -> Result<(), String> {
     if key.is_empty() {
         return Err("Redis key cannot be empty".to_string());
+    }
+    if value.len() > REDIS_STRING_PREVIEW_LIMIT {
+        return Err("Redis string value is too large (maximum 64 KiB)".to_string());
     }
     if ttl_ms.is_some_and(|ttl| ttl <= 0) {
         return Err("Redis TTL must be a positive number of milliseconds".to_string());
@@ -756,6 +782,13 @@ mod tests {
             "key".to_string(),
             "value".to_string(),
             Some(0)
+        )
+        .is_err());
+        assert!(redis_set_string(
+            target.clone(),
+            "key".to_string(),
+            "x".repeat(64 * 1024 + 1),
+            None,
         )
         .is_err());
         assert!(redis_delete_key(target.clone(), String::new()).is_err());

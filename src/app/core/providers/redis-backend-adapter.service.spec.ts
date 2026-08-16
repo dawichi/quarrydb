@@ -55,6 +55,24 @@ describe('RedisBackendAdapterService', () => {
         })
     })
 
+    it('preserves the native read-only marker for oversized string previews', async () => {
+        invoke.mockResolvedValue({
+            key: 'large',
+            kind: 'string',
+            ttl_ms: -1,
+            value: 'preview',
+            value_truncated: true,
+        })
+
+        await expect(service.getKey(session, 'large')).resolves.toEqual({
+            key: 'large',
+            kind: 'string',
+            ttlMs: -1,
+            value: 'preview',
+            valueTruncated: true,
+        })
+    })
+
     it('maps native scan results to provider key summaries', async () => {
         invoke.mockResolvedValue({ cursor: 7, keys: ['users:1', 'users:2'] })
 
