@@ -151,6 +151,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     }
 
     removeProfile(id: string): void {
+        this.forgetConnection(id)
         this.profiles.remove(id)
         void this.secrets.forget(id)
         this.recentItems.remove(`mysql:${id}`)
@@ -180,6 +181,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     }
 
     clearWorkspaceDraft(): void {
+        this.forgetConnection(this.connectionSession()?.target.connectionId)
         this.workspaceDraft.set(null)
         this.pendingPipeline = null
         this.connectionSession.set(null)
@@ -228,6 +230,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             throw this.providerError('MySQL connect target is not ready yet')
         }
 
+        this.forgetConnection(this.connectionSession()?.target.connectionId)
         this.host.isLoading.set(true)
         this.host.error.set(null)
         this.connectionSession.set(null)
@@ -330,6 +333,10 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
 
     private describeError(error: unknown): string {
         return describeSafeError(error, 'Unknown MySQL error')
+    }
+
+    private forgetConnection(connectionId: string | undefined): void {
+        if (connectionId) this.backend.forgetConnection(connectionId)
     }
 
     private createWorkspaceDraftFromProfile(profile: MysqlConnectionProfile) {

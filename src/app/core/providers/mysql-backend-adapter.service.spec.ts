@@ -118,6 +118,24 @@ describe('MysqlBackendAdapterService', () => {
         ).rejects.toThrow('MySQL connection request not found for Missing')
     })
 
+    it('releases credential-bearing request metadata when a workspace closes', async () => {
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+            },
+            username: 'quarry',
+            password: 'secret',
+            source: 'manual',
+        })
+
+        service.forgetConnection('mysql-1')
+
+        await expect(service.listSchemas(session)).rejects.toThrow('MySQL connection request not found')
+    })
+
     it('applies staged MySQL row edits in one transaction', async () => {
         const session = await service.connect({
             target: {

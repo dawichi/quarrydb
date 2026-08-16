@@ -13,7 +13,9 @@ import {
     LucideTriangleAlert,
 } from '@lucide/angular'
 import type { TriggerSchema, ViewSchema } from '@quarrydb/shared'
+import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
 import { ProviderRegistryService } from '../../core/providers/provider-registry.service'
+import { RedisProviderService } from '../../core/providers/redis-provider.service'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 import { RedisWorkspaceStore } from '../../core/store/redis-workspace.store'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
@@ -42,6 +44,8 @@ export class SidebarComponent {
     protected readonly workspaceStore = inject(SqliteWorkspaceStore)
     protected readonly mysqlWorkspace = inject(MysqlWorkspaceStore)
     protected readonly redisWorkspace = inject(RedisWorkspaceStore)
+    private readonly mysqlProvider = inject(MysqlProviderService)
+    private readonly redisProvider = inject(RedisProviderService)
     private readonly providers = inject(ProviderRegistryService)
 
     // ─── State ────────────────────────────────────────────────────────────────
@@ -131,8 +135,8 @@ export class SidebarComponent {
     }
 
     protected showHome(): void {
-        this.mysqlWorkspace.clear()
-        this.redisWorkspace.clear()
+        this.mysqlProvider.clearWorkspaceDraft()
+        this.redisProvider.clearWorkspace()
         this.workspaceHost.error.set(null)
         this.workspaceHost.clearWorkspace()
     }

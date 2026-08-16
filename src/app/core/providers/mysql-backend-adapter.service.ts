@@ -20,6 +20,10 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     private readonly requests = new Map<string, MysqlConnectRequest>()
     private readonly sampleData = new MysqlSampleDataService()
 
+    forgetConnection(connectionId: string): void {
+        this.requests.delete(connectionId)
+    }
+
     async connect(request: MysqlConnectRequest): Promise<MysqlConnectionSession> {
         const db = await this.loadDatabase(this.buildDsn(request))
         await db.close()

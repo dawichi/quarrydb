@@ -66,8 +66,10 @@ not restore database contents.
 
 Passwords are never part of sessions, recent items, query history, or exports. When an OS keyring
 entry is unavailable, re-enter the credential and optionally save it again through the explicit
-secure-storage option. Quarry cannot recover a password that the operating system credential
-store no longer provides.
+secure-storage option. Active provider request metadata and Redis session targets are released
+when the user returns home; saved-profile runtime caches may retain a password until the profile
+is removed or the application exits so reconnect can work without another prompt. Quarry cannot
+recover a password that the operating system credential store no longer provides.
 
 ## Export and incident checklist
 

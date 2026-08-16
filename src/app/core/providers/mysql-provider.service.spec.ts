@@ -48,6 +48,7 @@ describe('MysqlProviderService', () => {
     }
     const backend = {
         connect: vi.fn(),
+        forgetConnection: vi.fn(),
         listSchemas: vi.fn(),
     }
     const workspace = {
@@ -89,6 +90,7 @@ describe('MysqlProviderService', () => {
         errorSet.mockReset()
         loadingSet.mockReset()
         backend.connect.mockReset()
+        backend.forgetConnection.mockReset()
         backend.listSchemas.mockReset()
         recentItems.add.mockReset()
         recentItems.createMysqlItem.mockReset()
@@ -256,6 +258,7 @@ describe('MysqlProviderService', () => {
         service.removeProfile('mysql-1')
 
         expect(profiles.remove).toHaveBeenCalledWith('mysql-1')
+        expect(backend.forgetConnection).toHaveBeenCalledWith('mysql-1')
         expect(recentItems.remove).toHaveBeenCalledWith('mysql:mysql-1')
         expect(service.workspaceDraft()).toBeNull()
         expect(service.connectionSession()).toBeNull()
@@ -886,5 +889,6 @@ describe('MysqlProviderService', () => {
         expect(service.connectionSession()).toBeNull()
         expect(service.schemaSummaries()).toBeNull()
         expect(service.schemaBootstrapError()).toBeNull()
+        expect(backend.forgetConnection).toHaveBeenCalledWith('mysql-1')
     })
 })
