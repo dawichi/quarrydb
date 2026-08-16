@@ -16,6 +16,7 @@ import type { MysqlConnectRequest } from './mysql-connect-request'
 import { MysqlSampleDataService } from './mysql-sample-data.service'
 
 const MAX_MYSQL_PREVIEW_ROWS = 500
+const MAX_MYSQL_METADATA_TABLES_PER_QUERY = 200
 
 interface MysqlColumnMetadataRow {
     table_name?: string
@@ -129,26 +130,29 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         tableNames: string[],
     ): Promise<Map<string, Column[]>> {
         const columnsByTable = new Map<string, Column[]>(tableNames.map((tableName) => [tableName, []]))
-        const placeholders = tableNames.map(() => '?').join(', ')
 
         try {
-            const rows = await db.select<MysqlColumnMetadataRow[]>(
-                `SELECT CAST(table_name AS CHAR(255)) AS table_name,
-                        CAST(column_name AS CHAR(255)) AS column_name,
-                        CAST(column_type AS CHAR(255)) AS column_type,
-                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
-                        CAST(column_key AS CHAR(3)) AS column_key,
-                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
-                 FROM information_schema.columns
-                 WHERE table_schema = ?
-                   AND table_name IN (${placeholders})
-                 ORDER BY table_name, ordinal_position`,
-                [schemaName, ...tableNames],
-            )
+            for (let offset = 0; offset < tableNames.length; offset += MAX_MYSQL_METADATA_TABLES_PER_QUERY) {
+                const tableBatch = tableNames.slice(offset, offset + MAX_MYSQL_METADATA_TABLES_PER_QUERY)
+                const placeholders = tableBatch.map(() => '?').join(', ')
+                const rows = await db.select<MysqlColumnMetadataRow[]>(
+                    `SELECT CAST(table_name AS CHAR(255)) AS table_name,
+                            CAST(column_name AS CHAR(255)) AS column_name,
+                            CAST(column_type AS CHAR(255)) AS column_type,
+                            CAST(is_nullable AS CHAR(3)) AS is_nullable,
+                            CAST(column_key AS CHAR(3)) AS column_key,
+                            CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
+                     FROM information_schema.columns
+                     WHERE table_schema = ?
+                       AND table_name IN (${placeholders})
+                     ORDER BY table_name, ordinal_position`,
+                    [schemaName, ...tableBatch],
+                )
 
-            for (const row of rows) {
-                if (!row.table_name) continue
-                columnsByTable.get(row.table_name)?.push(this.mapColumn(row))
+                for (const row of rows) {
+                    if (!row.table_name) continue
+                    columnsByTable.get(row.table_name)?.push(this.mapColumn(row))
+                }
             }
         } catch (error) {
             throw new Error(`Failed to inspect columns for ${schemaName}: ${this.describeError(error)}`)

@@ -217,7 +217,8 @@ MySQL v1 should support:
   causing obviously bad performance
 
 Schema bootstrap should avoid one metadata round trip per table; table and column metadata
-should be loaded in a bounded, parameterized batch for the selected schema.
+should be loaded in sequential, parameterized batches of at most 200 tables for the selected
+schema.
 
 The adapter must keep preview limits bounded even when a future caller supplies a larger
 value. Full-result table and query exports remain explicit, separate operations and are not

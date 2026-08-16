@@ -317,20 +317,54 @@ describe('MysqlBackendAdapterService', () => {
                  ORDER BY table_name`,
             ['quarry_demo'],
         )
-        expect(select).toHaveBeenNthCalledWith(
-            2,
-            `SELECT CAST(table_name AS CHAR(255)) AS table_name,
-                        CAST(column_name AS CHAR(255)) AS column_name,
-                        CAST(column_type AS CHAR(255)) AS column_type,
-                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
-                        CAST(column_key AS CHAR(3)) AS column_key,
-                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
-                 FROM information_schema.columns
-                 WHERE table_schema = ?
-                   AND table_name IN (?, ?)
-                 ORDER BY table_name, ordinal_position`,
-            ['quarry_demo', 'products', 'orders'],
-        )
+        expect(select).toHaveBeenNthCalledWith(2, expect.stringContaining('FROM information_schema.columns'), [
+            'quarry_demo',
+            'products',
+            'orders',
+        ])
+        expect(select.mock.calls[1]?.[0]).toContain('AND table_name IN (?, ?)')
+    })
+
+    it('loads large schemas in bounded metadata batches', async () => {
+        const tableNames = Array.from({ length: 201 }, (_, index) => `table_${index}`)
+        select.mockImplementation(async (query: string, values?: unknown[]) => {
+            if (query.includes('FROM information_schema.tables')) {
+                return tableNames.map((table_name) => ({ table_name }))
+            }
+
+            const batchSize = (values?.length ?? 0) - 1
+            return [
+                {
+                    table_name: tableNames[batchSize === 200 ? 0 : 200],
+                    column_name: 'id',
+                    column_type: 'int',
+                    is_nullable: 'NO',
+                    column_key: 'PRI',
+                    column_default: '',
+                },
+            ]
+        })
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+            },
+            username: 'quarry',
+            password: 'secret',
+            source: 'manual',
+        })
+
+        const tables = await service.listTables(session, 'quarry_demo')
+
+        expect(tables).toHaveLength(201)
+        expect(select).toHaveBeenCalledTimes(3)
+        expect(select.mock.calls[1]?.[1]).toHaveLength(201)
+        expect(select.mock.calls[2]?.[1]).toHaveLength(2)
+        expect(tables.find((table) => table.name === 'table_0')?.columns).toHaveLength(1)
+        expect(tables.find((table) => table.name === 'table_200')?.columns).toHaveLength(1)
     })
 
     it('caps table previews while preserving validated offset values', async () => {
