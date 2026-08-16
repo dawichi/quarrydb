@@ -210,11 +210,15 @@ limits below are deliberate v1 boundaries.
 MySQL v1 should support:
 
 - selecting a table
-- fetching rows with a sensible preview limit
+- fetching rows with a sensible preview limit (100 in the UI, capped at 500 in the adapter)
 - loading more rows
 - basic ordering/filtering patterns consistent with Quarry's relational UX
 - row count or approximate row count only if it can be shown without misleading users or
   causing obviously bad performance
+
+The adapter must keep preview limits bounded even when a future caller supplies a larger
+value. Full-result table and query exports remain explicit, separate operations and are not
+silently capped.
 
 SQLite assumptions about local-file performance and query cost should not be copied blindly
 to MySQL. Remote latency and larger datasets change the UX tradeoffs.

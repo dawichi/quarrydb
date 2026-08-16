@@ -15,6 +15,8 @@ import type {
 import type { MysqlConnectRequest } from './mysql-connect-request'
 import { MysqlSampleDataService } from './mysql-sample-data.service'
 
+const MAX_MYSQL_PREVIEW_ROWS = 500
+
 @Injectable({ providedIn: 'root' })
 export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     private readonly requests = new Map<string, MysqlConnectRequest>()
@@ -155,7 +157,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     ): Promise<{ rows: Record<string, unknown>[]; columns: string[]; total: number }> {
         const db = await this.openDatabase(session)
         const source = `${this.quoteIdentifier(schemaName)}.${this.quoteIdentifier(tableName)}`
-        const safeLimit = this.toSafeNonNegativeInt(limit)
+        const safeLimit = this.toSafePreviewLimit(limit)
         const safeOffset = this.toSafeNonNegativeInt(offset)
         try {
             const columns = await this.listColumns(db, schemaName, tableName)
@@ -210,7 +212,7 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     async runQuery(session: MysqlConnectionSession, sql: string, previewLimit: number): Promise<MysqlQueryResult> {
         const db = await this.openDatabase(session)
         const normalizedSql = this.normalizeSql(sql)
-        const safePreviewLimit = this.toSafeNonNegativeInt(previewLimit)
+        const safePreviewLimit = this.toSafePreviewLimit(previewLimit)
         try {
             if (this.isRowQuery(normalizedSql)) {
                 const rewrittenSql = await this.rewriteSimpleSelectForPreview(db, normalizedSql)
@@ -538,6 +540,10 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
         }
 
         return Math.floor(value)
+    }
+
+    private toSafePreviewLimit(value: number): number {
+        return Math.min(this.toSafeNonNegativeInt(value), MAX_MYSQL_PREVIEW_ROWS)
     }
 
     private normalizeSql(sql: string): string {

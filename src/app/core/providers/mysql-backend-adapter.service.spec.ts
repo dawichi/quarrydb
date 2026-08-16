@@ -294,7 +294,7 @@ describe('MysqlBackendAdapterService', () => {
         )
     })
 
-    it('inlines validated limit and offset when loading table rows', async () => {
+    it('caps table previews while preserving validated offset values', async () => {
         select
             .mockResolvedValueOnce([
                 {
@@ -330,7 +330,7 @@ describe('MysqlBackendAdapterService', () => {
         })
 
         await expect(
-            service.queryTableRows(session, 'quarry_demo', 'orders', 100, 0, {
+            service.queryTableRows(session, 'quarry_demo', 'orders', 10_000, 0, {
                 filter: 'odd',
                 sortColumn: 'total',
                 sortDirection: 'desc',
@@ -361,7 +361,7 @@ describe('MysqlBackendAdapterService', () => {
         )
         expect(select).toHaveBeenNthCalledWith(
             3,
-            'SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` WHERE CAST(`id` AS CHAR) LIKE ? OR CAST(`total` AS CHAR) LIKE ? ORDER BY `total` DESC LIMIT 100 OFFSET 0',
+            'SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` WHERE CAST(`id` AS CHAR) LIKE ? OR CAST(`total` AS CHAR) LIKE ? ORDER BY `total` DESC LIMIT 500 OFFSET 0',
             ['%odd%', '%odd%'],
         )
     })
@@ -400,13 +400,13 @@ describe('MysqlBackendAdapterService', () => {
             source: 'saved_profile',
         })
 
-        await expect(service.runQuery(session, 'SELECT * FROM `quarry_demo`.`orders` LIMIT 20;', 100)).resolves.toEqual(
-            {
-                kind: 'rows',
-                rows: [{ id: 1, total: '1389.98' }],
-                columns: ['id', 'total'],
-            },
-        )
+        await expect(
+            service.runQuery(session, 'SELECT * FROM `quarry_demo`.`orders` LIMIT 20;', 10_000),
+        ).resolves.toEqual({
+            kind: 'rows',
+            rows: [{ id: 1, total: '1389.98' }],
+            columns: ['id', 'total'],
+        })
 
         expect(select).toHaveBeenNthCalledWith(
             1,
@@ -423,7 +423,7 @@ describe('MysqlBackendAdapterService', () => {
         )
         expect(select).toHaveBeenNthCalledWith(
             2,
-            'SELECT * FROM (SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` LIMIT 20) AS quarry_query LIMIT 100',
+            'SELECT * FROM (SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` LIMIT 20) AS quarry_query LIMIT 500',
         )
     })
 
