@@ -1,4 +1,4 @@
-import { Component, effect, HostListener, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, HostListener, inject, signal } from '@angular/core'
 import type { ExportFormat } from '../../core/services/export.service'
 import type { QueryHistoryEntry } from '../../core/services/query-history.service'
 import { QueryHistoryService } from '../../core/services/query-history.service'
@@ -12,6 +12,7 @@ import { StepCardComponent } from './step-card/step-card.component'
     selector: 'app-pipeline-builder',
     imports: [StepCardComponent],
     host: { class: 'flex-1 min-h-0' },
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './pipeline-builder.component.html',
 })
 export class PipelineBuilderComponent {

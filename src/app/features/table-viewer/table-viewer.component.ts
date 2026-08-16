@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import type { ForeignKey } from '@quarrydb/shared'
 import type { ExportFormat } from '../../core/services/export.service'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
@@ -7,6 +7,7 @@ import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
     selector: 'app-table-viewer',
     imports: [],
     host: { class: 'flex-1 min-h-0' },
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './table-viewer.component.html',
 })
 export class TableViewerComponent {

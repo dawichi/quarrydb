@@ -1,10 +1,11 @@
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import type { TriggerSchema } from '@quarrydb/shared'
 import { describeSqliteError } from '../../core/services/sqlite-error'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 
 @Component({
     selector: 'app-trigger-modal',
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './trigger-modal.component.html',
 })
 export class TriggerModalComponent {

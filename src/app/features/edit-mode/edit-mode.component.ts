@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { EditStore } from '../../core/store/edit.store'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import { AutofocusDirective } from '../../shared/directives/autofocus.directive'
@@ -7,6 +7,7 @@ import { AutofocusDirective } from '../../shared/directives/autofocus.directive'
     selector: 'app-edit-mode',
     imports: [AutofocusDirective],
     host: { class: 'flex-1 min-h-0 flex flex-col overflow-hidden' },
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './edit-mode.component.html',
 })
 export class EditModeComponent {

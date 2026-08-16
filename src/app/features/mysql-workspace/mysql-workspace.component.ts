@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core'
 import type { MysqlWorkspaceTab } from '@quarrydb/shared/session'
 import type { MysqlTableBrowseOptions } from '../../core/providers/mysql-backend-adapter'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
@@ -11,6 +11,7 @@ import { MysqlPipelineComponent } from '../mysql-pipeline/mysql-pipeline.compone
     selector: 'app-mysql-workspace',
     imports: [MysqlPipelineComponent],
     host: { class: 'flex-1 min-h-0' },
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './mysql-workspace.component.html',
 })
 export class MysqlWorkspaceComponent {

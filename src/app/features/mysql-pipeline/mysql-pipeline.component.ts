@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinType, SelectColumn, SortColumn } from '@quarrydb/shared'
 import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlPipelineStore } from '../../core/store/mysql-pipeline.store'
@@ -7,6 +7,7 @@ import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
 @Component({
     selector: 'app-mysql-pipeline',
     templateUrl: './mysql-pipeline.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     host: { class: 'flex-1 min-h-0' },
 })
 export class MysqlPipelineComponent {

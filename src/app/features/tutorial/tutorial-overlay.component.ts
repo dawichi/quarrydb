@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { TutorialService } from '../../core/services/tutorial.service'
 
 interface StepConfig {
@@ -9,6 +9,7 @@ interface StepConfig {
 
 @Component({
     selector: 'app-tutorial-overlay',
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './tutorial-overlay.component.html',
 })
 export class TutorialOverlayComponent {
