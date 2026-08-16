@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import type { ViewSchema } from '@quarrydb/shared'
+import { describeSqliteError } from '../../core/services/sqlite-error'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 
 function extractSelectBody(fullSql: string): string {
@@ -112,7 +113,7 @@ export class ViewModalComponent {
             }
             this.workspaceStore.closeViewModal()
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Operation failed')
+            this.error.set(describeSqliteError(err, 'View operation failed'))
         } finally {
             this.isExecuting.set(false)
         }

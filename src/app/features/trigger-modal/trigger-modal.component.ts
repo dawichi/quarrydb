@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import type { TriggerSchema } from '@quarrydb/shared'
+import { describeSqliteError } from '../../core/services/sqlite-error'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 
 @Component({
@@ -104,7 +105,7 @@ END`
             }
             this.workspaceStore.closeTriggerModal()
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Operation failed')
+            this.error.set(describeSqliteError(err, 'Trigger operation failed'))
         } finally {
             this.isExecuting.set(false)
         }

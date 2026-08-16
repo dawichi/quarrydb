@@ -26,6 +26,11 @@ protected separately.
 4. To recover, keep the damaged file for investigation, copy the verified backup to a new path,
    and open that new path in Quarry. Do not overwrite the only remaining copy.
 
+During normal use, SQLite lock contention is allowed a short driver-level wait before Quarry
+reports the operation as busy or locked. Close competing writers and retry; do not repeatedly
+retry a write against an actively migrating or damaged file. Quarry does not currently expose a
+separate read-only toggle, so use a filesystem copy when inspection must not risk writes.
+
 Schema-management operations and staged row edits are transactional where supported. A failed
 operation is rolled back by the adapter, but a successful destructive operation is not an
 alternative to a backup.

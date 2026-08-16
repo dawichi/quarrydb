@@ -1,5 +1,6 @@
 import { computed, Injectable, inject, signal } from '@angular/core'
 import { SqliteDatabaseService } from '../services/sqlite-database.service'
+import { describeSqliteError } from '../services/sqlite-error'
 
 export interface UpdateEdit {
     kind: 'update'
@@ -104,7 +105,7 @@ export class EditStore {
             this.clearAll()
             return true
         } catch (err) {
-            this.applyError.set(err instanceof Error ? err.message : 'Apply failed')
+            this.applyError.set(describeSqliteError(err, 'Apply failed'))
             return false
         } finally {
             this.isApplying.set(false)

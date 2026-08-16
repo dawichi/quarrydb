@@ -102,7 +102,7 @@ compliance:
     - {id: DATA-007, status: partial, evidence: user-owned DBs, destructive-operation boundaries, and docs/recovery-runbook.md, priority: critical, next_action: add backup/restore UX only if the product takes on that responsibility}
 
     - {id: OPS-002, status: partial, evidence: CI/release/local provider environments, priority: medium, next_action: document explicit environment boundaries}
-    - {id: OPS-003, status: compliant, evidence: bounded Redis connect/read/write socket timeouts plus existing SQLite/MySQL call and updater polling policies, priority: high, next_action: preserve bounded operation behavior for future providers}
+    - {id: OPS-003, status: partial, evidence: bounded Redis connect/read/write socket timeouts, SQLite driver busy handling, stale-request guards, and updater polling; tauri-plugin-sql does not expose a shared statement-timeout control for SQLite/MySQL, priority: high, next_action: preserve bounded operation behavior and define provider-specific deadline support}
     - {id: OPS-009, status: compliant, evidence: docs/recovery-runbook.md and local provider troubleshooting docs, priority: high, next_action: keep runbook aligned with provider capabilities}
 
     - {id: A11Y-001, status: partial, evidence: semantic controls in Angular and Astro templates plus the welcome accessibility smoke test, priority: high, next_action: audit representative provider views}

@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core'
+import { describeSqliteError } from '../../core/services/sqlite-error'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import {
     type AddColumnDef,
@@ -254,7 +255,7 @@ export class TableSettingsModalComponent {
             await this.workspaceStore.createIndex(t.alias, sql)
             this.backToSettings()
         } catch (err) {
-            this.indexError.set(err instanceof Error ? err.message : 'Failed to create index')
+            this.indexError.set(describeSqliteError(err, 'Failed to create index'))
         } finally {
             this.isIndexing.set(false)
         }
@@ -271,7 +272,7 @@ export class TableSettingsModalComponent {
             await this.workspaceStore.alterAddColumn(t.alias, sql)
             this.backToSettings()
         } catch (err) {
-            this.alterError.set(err instanceof Error ? err.message : 'Failed to add column')
+            this.alterError.set(describeSqliteError(err, 'Failed to add column'))
         } finally {
             this.isAltering.set(false)
         }
@@ -288,7 +289,7 @@ export class TableSettingsModalComponent {
             await this.workspaceStore.alterRenameColumn(t.alias, sql)
             this.backToSettings()
         } catch (err) {
-            this.alterError.set(err instanceof Error ? err.message : 'Failed to rename column')
+            this.alterError.set(describeSqliteError(err, 'Failed to rename column'))
         } finally {
             this.isAltering.set(false)
         }
@@ -305,7 +306,7 @@ export class TableSettingsModalComponent {
             await this.workspaceStore.alterRenameTable(t.alias, t.tableName, newName)
             this.backToSettings()
         } catch (err) {
-            this.alterError.set(err instanceof Error ? err.message : 'Failed to rename table')
+            this.alterError.set(describeSqliteError(err, 'Failed to rename table'))
         } finally {
             this.isAltering.set(false)
         }
@@ -322,7 +323,7 @@ export class TableSettingsModalComponent {
             await this.workspaceStore.alterDropColumn(t.alias, script)
             this.backToSettings()
         } catch (err) {
-            this.dropColError.set(err instanceof Error ? err.message : 'Failed to drop column')
+            this.dropColError.set(describeSqliteError(err, 'Failed to drop column'))
         } finally {
             this.isDroppingCol.set(false)
         }
@@ -339,7 +340,7 @@ export class TableSettingsModalComponent {
             await this.workspaceStore.dropIndex(t.alias, name)
             this.backToSettings()
         } catch (err) {
-            this.indexError.set(err instanceof Error ? err.message : 'Failed to drop index')
+            this.indexError.set(describeSqliteError(err, 'Failed to drop index'))
         } finally {
             this.isIndexing.set(false)
         }
@@ -356,7 +357,7 @@ export class TableSettingsModalComponent {
             this.workspaceStore.closeTableSettings()
             this.reset()
         } catch (err) {
-            this.dropError.set(err instanceof Error ? err.message : 'Failed to drop table')
+            this.dropError.set(describeSqliteError(err, 'Failed to drop table'))
         } finally {
             this.isDropping.set(false)
         }

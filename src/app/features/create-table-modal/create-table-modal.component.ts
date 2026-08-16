@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import type { TableSchema } from '@quarrydb/shared'
 import { SqliteDatabaseService } from '../../core/services/sqlite-database.service'
+import { describeSqliteError } from '../../core/services/sqlite-error'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import { type ColumnDef, type ForeignKeyRef, generateCreateTableSql, makeColumn, SQL_TYPES } from './create-table.utils'
 
@@ -174,7 +175,7 @@ export class CreateTableModalComponent {
             this.workspaceStore.closeCreateTable()
             this.reset()
         } catch (err) {
-            this.createError.set(err instanceof Error ? err.message : 'Failed to create table')
+            this.createError.set(describeSqliteError(err, 'Failed to create table'))
         } finally {
             this.isCreating.set(false)
         }

@@ -5,6 +5,7 @@ import { save } from '@tauri-apps/plugin-dialog'
 import { type ExportFormat, ExportService } from '../services/export.service'
 import { RecentItemsService } from '../services/recent-items.service'
 import { SqliteDatabaseService, type TableImpact } from '../services/sqlite-database.service'
+import { describeSqliteError } from '../services/sqlite-error'
 import { SqliteSampleDatabaseService } from '../services/sqlite-sample-database.service'
 import { WorkspaceHostStore } from './workspace-host.store'
 
@@ -281,7 +282,7 @@ export class SqliteWorkspaceStore {
             this.tableRowTotal.set(total)
             this.loadOffset = rows.length
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to load table')
+            this.error.set(describeSqliteError(err, 'Failed to load table'))
         } finally {
             this.isLoadingTable.set(false)
         }
@@ -308,7 +309,7 @@ export class SqliteWorkspaceStore {
             this.tableRows.update((prev) => [...prev, ...rows])
             this.loadOffset += rows.length
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to load more rows')
+            this.error.set(describeSqliteError(err, 'Failed to load more rows'))
         } finally {
             this.isLoadingTable.set(false)
         }
@@ -349,7 +350,7 @@ export class SqliteWorkspaceStore {
             this.tableRowTotal.set(total)
             this.loadOffset = rows.length
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to sort table')
+            this.error.set(describeSqliteError(err, 'Failed to sort table'))
         } finally {
             this.isLoadingTable.set(false)
         }
@@ -400,7 +401,7 @@ export class SqliteWorkspaceStore {
             this.tableRowTotal.set(total)
             this.loadOffset = rows.length
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to navigate to reference')
+            this.error.set(describeSqliteError(err, 'Failed to navigate to reference'))
         } finally {
             this.isLoadingTable.set(false)
         }
@@ -445,7 +446,7 @@ export class SqliteWorkspaceStore {
             this.tableRowTotal.set(total)
             this.loadOffset = rows.length
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to navigate back')
+            this.error.set(describeSqliteError(err, 'Failed to navigate back'))
         } finally {
             this.isLoadingTable.set(false)
         }
@@ -490,7 +491,7 @@ export class SqliteWorkspaceStore {
             }
             await this.exportSvc.saveFile(content, `${tableName}.${ext}`, ext)
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Export failed')
+            this.error.set(describeSqliteError(err, 'Export failed'))
         } finally {
             this.isExporting.set(false)
         }
@@ -504,7 +505,7 @@ export class SqliteWorkspaceStore {
             if (!path) return
             await this.loadFilePath(path)
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to open SQLite file')
+            this.error.set(describeSqliteError(err, 'Failed to open SQLite file'))
         } finally {
             this.isLoading.set(false)
         }
@@ -523,7 +524,7 @@ export class SqliteWorkspaceStore {
             await this.sampleDb.generate(filePath)
             await this.loadFilePath(filePath)
         } catch (err) {
-            this.error.set(err instanceof Error ? err.message : 'Failed to create sample SQLite database')
+            this.error.set(describeSqliteError(err, 'Failed to create sample SQLite database'))
         } finally {
             this.isLoading.set(false)
         }
@@ -551,11 +552,13 @@ export class SqliteWorkspaceStore {
                     await this.loadFilePath(item.resource.path)
                     break
             }
-        } catch {
+        } catch (error) {
             // File moved or deleted — remove from recent list and show error
             if (item.providerId === 'sqlite') {
                 this.recentItemsSvc.remove(item.id)
-                this.error.set(`File not found: ${item.resource.path.split('/').pop()}`)
+                this.error.set(
+                    describeSqliteError(error, `Could not reopen SQLite file: ${item.resource.path.split('/').pop()}`),
+                )
             }
         } finally {
             this.isLoading.set(false)
