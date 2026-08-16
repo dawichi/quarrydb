@@ -53,7 +53,7 @@ compliance:
     - {id: TEST-005, status: compliant, evidence: docs/testing.md, malformed persistence specs, hostile identifier integration specs, and native Redis boundary tests, priority: high, next_action: preserve boundary regression coverage}
     - {id: TEST-006, status: compliant, evidence: package.json and .github/workflows/ci.yml, priority: medium, next_action: keep test commands runnable in CI}
     - {id: TEST-007, status: compliant, evidence: e2e fixtures, Docker-backed MySQL tests, Redis typed-preview live harness, and CI-provisioned services, priority: high, next_action: keep provider service versions reproducible}
-    - {id: TEST-008, status: compliant, evidence: Vitest suite, 7 Rust tests, 12 Playwright tests across Angular and Astro, and CI workflow, priority: high, next_action: retain an automated baseline}
+    - {id: TEST-008, status: compliant, evidence: Vitest suite, 7 Rust tests, 13 Playwright tests across Angular and Astro, and CI workflow, priority: high, next_action: retain an automated baseline}
 
     - {id: TS-001, status: compliant, evidence: tsconfig.json, priority: high, next_action: preserve strict checking}
     - {id: TS-002, status: compliant, evidence: Biome check and source review, priority: high, next_action: avoid undocumented any}
@@ -105,9 +105,9 @@ compliance:
     - {id: OPS-003, status: compliant, evidence: bounded Redis connect/read/write socket timeouts plus existing SQLite/MySQL call and updater polling policies, priority: high, next_action: preserve bounded operation behavior for future providers}
     - {id: OPS-009, status: compliant, evidence: docs/recovery-runbook.md and local provider troubleshooting docs, priority: high, next_action: keep runbook aligned with provider capabilities}
 
-    - {id: A11Y-001, status: partial, evidence: semantic controls in Angular and Astro templates, priority: high, next_action: audit representative critical views}
-    - {id: A11Y-002, status: partial, evidence: focus styles and Playwright flows, priority: high, next_action: add keyboard-only critical-flow review}
-    - {id: A11Y-003, status: partial, evidence: labels and controls in templates, priority: high, next_action: audit accessible names and async status messages}
+    - {id: A11Y-001, status: partial, evidence: semantic controls in Angular and Astro templates plus the welcome accessibility smoke test, priority: high, next_action: audit representative provider views}
+    - {id: A11Y-002, status: partial, evidence: focus styles, keyboard-only welcome form navigation, and Playwright flows, priority: high, next_action: extend keyboard coverage to provider workspaces}
+    - {id: A11Y-003, status: partial, evidence: labeled welcome controls, explicit Redis labels, alert errors, and automated accessible-name smoke coverage, priority: high, next_action: audit async status messages across provider views}
     - {id: A11Y-004, status: compliant, evidence: decorative SVG aria-hidden usage and logo alt text, priority: medium, next_action: preserve alternatives}
     - {id: A11Y-005, status: partial, evidence: responsive Tailwind layouts, priority: medium, next_action: review zoom, contrast, and reduced motion}
     - {id: A11Y-006, status: gap, evidence: no tracked manual accessibility review, priority: medium, next_action: add a critical-flow checklist}

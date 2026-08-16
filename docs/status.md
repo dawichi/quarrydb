@@ -177,3 +177,4 @@ multiple features.
 | 2026-08-15 | Startup performance: deferred MySQL/Redis workspaces, SQLite browse/query/edit workspaces, and modal/tutorial/update bundles until needed, reducing the initial Angular bundle from roughly 764 KB to 520 KB while preserving browser coverage |
 | 2026-08-16 | Provider reliability: guarded MySQL schema/table/query requests and Redis pattern/key requests against stale out-of-order responses, with focused regression tests for selection changes and workspace clearing |
 | 2026-08-16 | Redis operation safety: added ten-second connect/write and thirty-second read socket timeouts to every native Redis operation, with documented behavior and standards evidence |
+| 2026-08-16 | Accessibility smoke coverage: added an automated welcome-form accessible-name and keyboard-navigation check, plus explicit Redis labels and live error announcements |
