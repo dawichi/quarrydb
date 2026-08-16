@@ -179,3 +179,4 @@ multiple features.
 | 2026-08-16 | Redis operation safety: added ten-second connect/write and thirty-second read socket timeouts to every native Redis operation, with documented behavior and standards evidence |
 | 2026-08-16 | Accessibility smoke coverage: added an automated welcome-form accessible-name and keyboard-navigation check, plus explicit Redis labels and live error announcements |
 | 2026-08-16 | Credential lifecycle hardening: releasing a MySQL workspace now drops credential-bearing native request metadata, and the home action clears provider lifecycle state instead of only clearing rendered workspace stores |
+| 2026-08-16 | Redis bounded-preview hardening: replaced unbounded set/hash materialization with capped SSCAN/HSCAN previews while keeping the existing typed value contract |

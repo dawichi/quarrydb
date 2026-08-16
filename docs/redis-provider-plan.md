@@ -26,9 +26,10 @@ seconds to establish a connection, ten seconds to write a command, and thirty se
 response. The command runner deliberately supports arbitrary Redis commands; the UI labels it as
 a privileged/destructive surface and passes argument arrays rather than shell-parsed text.
 
-Key scans and collection previews are bounded. Collection mutations are explicit and constrained
-to provider-specific operations; arbitrary command execution remains a separately labeled escape
-hatch. Full keyspace exports, unbounded restore, pub/sub monitoring, cluster topology
+Key scans and collection previews are bounded; set and hash previews use cursor scans capped at
+100 returned values rather than materializing the entire collection. Collection mutations are
+explicit and constrained to provider-specific operations; arbitrary command execution remains a
+separately labeled escape hatch. Full keyspace exports, unbounded restore, pub/sub monitoring, cluster topology
 administration, Lua/script management, ACL administration, and module-specific editors remain
 follow-up work because they need distinct UX and stronger operational safeguards. The current
 JSON export is intentionally capped at 500 keys and is not a backup or restore format.

@@ -9,6 +9,7 @@ const REDIS_KEYRING_SERVICE: &str = "dev.quarrydb.app.redis";
 const REDIS_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const REDIS_READ_TIMEOUT: Duration = Duration::from_secs(30);
 const REDIS_WRITE_TIMEOUT: Duration = Duration::from_secs(10);
+const REDIS_COLLECTION_PREVIEW_LIMIT: usize = 100;
 
 fn mysql_keyring_entry(connection_id: &str) -> Result<keyring::Entry, String> {
     keyring::Entry::new(MYSQL_KEYRING_SERVICE, connection_id).map_err(|error| error.to_string())
@@ -201,9 +202,9 @@ fn redis_read_value(
     let mut command = match kind {
         "string" => redis::cmd("GET"),
         "list" => redis::cmd("LRANGE"),
-        "set" => redis::cmd("SMEMBERS"),
+        "set" => redis::cmd("SSCAN"),
         "zset" => redis::cmd("ZRANGE"),
-        "hash" => redis::cmd("HGETALL"),
+        "hash" => redis::cmd("HSCAN"),
         "stream" => redis::cmd("XRANGE"),
         _ => {
             return Ok(
@@ -212,8 +213,15 @@ fn redis_read_value(
         }
     };
     match kind {
-        "string" | "set" | "hash" => {
+        "string" => {
             command.arg(key);
+        }
+        "set" | "hash" => {
+            command
+                .arg(key)
+                .arg(0)
+                .arg("COUNT")
+                .arg(REDIS_COLLECTION_PREVIEW_LIMIT);
         }
         "list" | "zset" => {
             command.arg(key).arg(0).arg(99);
@@ -226,6 +234,19 @@ fn redis_read_value(
         }
         _ => unreachable!(),
     }
+    if kind == "set" || kind == "hash" {
+        let (_, values) = command
+            .query::<(u64, Vec<Vec<u8>>)>(connection)
+            .map_err(|error| format!("Redis {kind} preview failed: {error}"))?;
+        return Ok(serde_json::Value::Array(
+            values
+                .into_iter()
+                .take(REDIS_COLLECTION_PREVIEW_LIMIT)
+                .map(redis_bytes_json)
+                .collect(),
+        ));
+    }
+
     let value = command
         .query::<redis::Value>(connection)
         .map_err(|error| format!("Redis value read failed: {error}"))?;
@@ -804,10 +825,20 @@ mod tests {
         let zset_key = "quarry:native:zset";
         let hash_key = "quarry:native:hash";
         let stream_key = "quarry:native:stream";
+        let large_set_key = "quarry:native:large-set";
+        let large_hash_key = "quarry:native:large-hash";
         let mut connection =
             super::redis_connection(&target).expect("Redis connection should work");
         let _: i64 = redis::cmd("DEL")
-            .arg(&[list_key, set_key, zset_key, hash_key, stream_key])
+            .arg(&[
+                list_key,
+                set_key,
+                zset_key,
+                hash_key,
+                stream_key,
+                large_set_key,
+                large_hash_key,
+            ])
             .query(&mut connection)
             .expect("fixture cleanup should work");
         let _: i64 = redis::cmd("RPUSH")
@@ -836,6 +867,19 @@ mod tests {
             .arg("value")
             .query(&mut connection)
             .expect("HSET should work");
+        for index in 0..150 {
+            let _: i64 = redis::cmd("SADD")
+                .arg(large_set_key)
+                .arg(format!("member-{index}"))
+                .query(&mut connection)
+                .expect("large SADD should work");
+            let _: i64 = redis::cmd("HSET")
+                .arg(large_hash_key)
+                .arg(format!("field-{index}"))
+                .arg(format!("value-{index}"))
+                .query(&mut connection)
+                .expect("large HSET should work");
+        }
         let _: String = redis::cmd("XADD")
             .arg(stream_key)
             .arg("*")
@@ -965,6 +1009,22 @@ mod tests {
             redis_get_key(target.clone(), hash_key.to_string()).expect("HGETALL should work");
         assert_eq!(hash.kind, "hash");
         assert_eq!(hash.value, serde_json::json!(["field", "value"]));
+
+        let large_set = redis_get_key(target.clone(), large_set_key.to_string())
+            .expect("bounded SSCAN should work");
+        assert_eq!(large_set.kind, "set");
+        assert!(large_set
+            .value
+            .as_array()
+            .is_some_and(|values| values.len() <= 100));
+
+        let large_hash = redis_get_key(target.clone(), large_hash_key.to_string())
+            .expect("bounded HSCAN should work");
+        assert_eq!(large_hash.kind, "hash");
+        assert!(large_hash
+            .value
+            .as_array()
+            .is_some_and(|values| values.len() <= 200));
 
         let stream =
             redis_get_key(target.clone(), stream_key.to_string()).expect("XRANGE should work");
