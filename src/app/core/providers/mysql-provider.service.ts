@@ -243,8 +243,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
             try {
                 schemas = await this.backend.listSchemas(session)
             } catch (error) {
-                const message = error instanceof Error ? error.message : 'Failed to load MySQL schemas'
-                this.schemaBootstrapError.set(message)
+                this.schemaBootstrapError.set(this.describeError(error, 'Failed to load MySQL schemas'))
 
                 const fallbackSchema = request.target.defaultDatabase
                 if (!fallbackSchema) {
@@ -331,8 +330,8 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         return error
     }
 
-    private describeError(error: unknown): string {
-        return describeSafeError(error, 'Unknown MySQL error')
+    private describeError(error: unknown, fallback = 'Unknown MySQL error'): string {
+        return describeSafeError(error, fallback)
     }
 
     private forgetConnection(connectionId: string | undefined): void {

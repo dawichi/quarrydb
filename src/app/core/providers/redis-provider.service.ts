@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core'
 import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { RedisPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
+import { describeSafeError } from '../services/safe-error'
 import { RedisWorkspaceStore } from '../store/redis-workspace.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
 import type { HomeLaunchAction, ProviderDefinition } from './provider-definition'
@@ -188,7 +189,7 @@ export class RedisProviderService implements ProviderDefinition<RedisPersistedSe
             this.workspace.setSession(session)
             this.host.setWorkspaceOpen('redis')
         } catch (error) {
-            this.host.error.set(error instanceof Error ? error.message : String(error))
+            this.host.error.set(describeSafeError(error, 'Unknown Redis connection error'))
         } finally {
             this.host.isLoading.set(false)
         }
