@@ -18,10 +18,16 @@ function installMysqlFixture(): void {
             const query = args.query ?? ''
             if (command === 'plugin:sql|load') return 'mysql://e2e'
             if (command === 'plugin:sql|close') return true
-            if (command === 'plugin:sql|execute') return [0, 0]
+            if (command === 'plugin:sql|execute') {
+                if (query.startsWith('UPDATE') || query.startsWith('DELETE')) return [1, 0]
+                return [0, 0]
+            }
             if (command === 'plugin:sql|select') {
                 if (query === 'SHOW DATABASES') return [{ Database: 'quarry_demo' }]
                 if (query.includes('information_schema.tables')) return [{ table_name: 'products' }]
+                if (query.includes('table_name IN')) {
+                    return columns.map((column) => ({ table_name: 'products', ...column }))
+                }
                 if (query.includes('information_schema.columns')) return columns
                 if (query.includes('COUNT(*) as count')) return [{ count: rows.length }]
                 if (query.includes('FROM `quarry_demo`.`products`')) return rows
