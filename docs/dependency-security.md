@@ -50,3 +50,12 @@ platform dependencies and cannot be removed by Quarry without changing those ups
 These are explicit, reviewable exceptions rather than a disabled scanner. The command remains
 fail-closed for every other vulnerability; revisit each ignore when Tauri, SQLx, or the affected
 crate publishes a compatible remediation.
+
+The current audit also reports 17 allowed non-vulnerability warnings. Ten are unmaintained GTK3
+bindings (`RUSTSEC-2024-0411` through `RUSTSEC-2024-0420`, excluding IDs not associated with the
+GTK3 crates), five are unmaintained Unicode crates (`RUSTSEC-2025-0075`, `RUSTSEC-2025-0080`,
+`RUSTSEC-2025-0081`, `RUSTSEC-2025-0098`, and `RUSTSEC-2025-0100`), one is the unmaintained
+`proc-macro-error` crate (`RUSTSEC-2024-0370`), and one is the yanked `spin` release. They are
+transitive platform/tooling dependencies in the current Tauri graph; the audit command reports
+them without suppressing them. Revisit them when the upstream graph offers compatible replacements
+or when the supported native target set changes.

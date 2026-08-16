@@ -182,3 +182,4 @@ multiple features.
 | 2026-08-16 | Redis bounded-preview hardening: replaced unbounded set/hash materialization with capped SSCAN/HSCAN previews while keeping the existing typed value contract |
 | 2026-08-16 | Redis payload safety: capped string previews and writes at 64 KiB, surfaced oversized values as read-only previews, and added native input regression coverage |
 | 2026-08-16 | Native capability tightening: removed unused path permissions and replaced broad opener/updater defaults with the exact URL, update, dialog, SQL, and restart permissions Quarry uses |
+| 2026-08-16 | Dependency security review: JavaScript audits report no high findings; Rust audit passes with the documented six transitive advisory ignores and 17 visible platform/tooling warnings retained for upstream review |

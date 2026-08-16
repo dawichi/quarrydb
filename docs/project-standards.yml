@@ -74,7 +74,7 @@ compliance:
     - {id: DEP-003, status: compliant, evidence: packageManager, rust-toolchain.toml, and pinned CI/release toolchains, priority: high, next_action: update toolchains deliberately}
     - {id: DEP-004, status: compliant, evidence: bun pm untrusted reports zero untrusted dependencies, priority: high, next_action: review trusted scripts when dependencies change}
     - {id: DEP-005, status: unknown, evidence: direct dependency ownership has not had a dedicated audit, priority: medium, next_action: audit direct dependencies}
-    - {id: DEP-006, status: partial, evidence: Bun audit gate, dependency-review action, cargo-audit CI gate, and docs/dependency-security.md, priority: high, next_action: keep advisories reviewed and add local cargo-audit convenience if needed}
+    - {id: DEP-006, status: partial, evidence: Bun audit gate, dependency-review action, cargo-audit CI/local gate, and docs/dependency-security.md current exception and warning inventory, priority: high, next_action: keep advisories and transitive warning inventory reviewed}
     - {id: DEP-007, status: compliant, evidence: package.json and bun.lock, priority: low, next_action: continue using Bun consistently}
 
     - {id: CI-001, status: compliant, evidence: .github/workflows/ci.yml, priority: high, next_action: keep PR and main validation active}
