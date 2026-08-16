@@ -6,6 +6,9 @@ use tauri::Emitter;
 
 const MYSQL_KEYRING_SERVICE: &str = "dev.quarrydb.app.mysql";
 const REDIS_KEYRING_SERVICE: &str = "dev.quarrydb.app.redis";
+const REDIS_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const REDIS_READ_TIMEOUT: Duration = Duration::from_secs(30);
+const REDIS_WRITE_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn mysql_keyring_entry(connection_id: &str) -> Result<keyring::Entry, String> {
     keyring::Entry::new(MYSQL_KEYRING_SERVICE, connection_id).map_err(|error| error.to_string())
@@ -131,9 +134,16 @@ fn redis_url(target: &RedisConnectionTarget) -> Result<String, String> {
 fn redis_connection(target: &RedisConnectionTarget) -> Result<redis::Connection, String> {
     let client = redis::Client::open(redis_url(target)?)
         .map_err(|error| "Redis client setup failed: ".to_string() + &error.to_string())?;
-    client
-        .get_connection_with_timeout(Duration::from_secs(10))
-        .map_err(|error| "Redis connection failed: ".to_string() + &error.to_string())
+    let connection = client
+        .get_connection_with_timeout(REDIS_CONNECT_TIMEOUT)
+        .map_err(|error| "Redis connection failed: ".to_string() + &error.to_string())?;
+    connection
+        .set_read_timeout(Some(REDIS_READ_TIMEOUT))
+        .map_err(|error| "Redis read timeout setup failed: ".to_string() + &error.to_string())?;
+    connection
+        .set_write_timeout(Some(REDIS_WRITE_TIMEOUT))
+        .map_err(|error| "Redis write timeout setup failed: ".to_string() + &error.to_string())?;
+    Ok(connection)
 }
 
 fn redis_value_json(value: redis::Value) -> serde_json::Value {

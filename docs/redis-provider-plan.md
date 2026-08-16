@@ -21,9 +21,10 @@ native socket boundary inside Tauri.
 
 The webview never opens a Redis socket. Each native operation receives a typed target and the
 runtime password through one Tauri command. Host URL characters are validated, credentials are
-URL-encoded, TLS uses `rediss://`, and native reads/writes have a ten-second connection timeout.
-The command runner deliberately supports arbitrary Redis commands; the UI labels it as a
-privileged/destructive surface and passes argument arrays rather than shell-parsed text.
+URL-encoded, TLS uses `rediss://`, and every native operation has bounded socket timeouts: ten
+seconds to establish a connection, ten seconds to write a command, and thirty seconds to read a
+response. The command runner deliberately supports arbitrary Redis commands; the UI labels it as
+a privileged/destructive surface and passes argument arrays rather than shell-parsed text.
 
 Key scans and collection previews are bounded. Collection mutations are explicit and constrained
 to provider-specific operations; arbitrary command execution remains a separately labeled escape

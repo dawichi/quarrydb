@@ -176,3 +176,4 @@ multiple features.
 | 2026-08-15 | MySQL product surface: promoted MySQL to a supported home/recent/session provider, removed preview-only launch semantics, and aligned the connection UX and provider contracts |
 | 2026-08-15 | Startup performance: deferred MySQL/Redis workspaces, SQLite browse/query/edit workspaces, and modal/tutorial/update bundles until needed, reducing the initial Angular bundle from roughly 764 KB to 520 KB while preserving browser coverage |
 | 2026-08-16 | Provider reliability: guarded MySQL schema/table/query requests and Redis pattern/key requests against stale out-of-order responses, with focused regression tests for selection changes and workspace clearing |
+| 2026-08-16 | Redis operation safety: added ten-second connect/write and thirty-second read socket timeouts to every native Redis operation, with documented behavior and standards evidence |
