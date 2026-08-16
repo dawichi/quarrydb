@@ -232,6 +232,10 @@ MySQL v1 should include row editing only if it can keep Quarry's current trust m
 - review before apply
 - explicit failure reporting
 
+The adapter also treats a zero-row UPDATE or DELETE as a failed optimistic target check. This
+prevents a remote deletion or concurrent change from being reported as a successful edit; the
+transaction rolls back and the user must refresh before retrying.
+
 Whether the exact same SQLite edit-mode machinery can be reused is an implementation
 question. The product requirement is the trust model, not identical internals.
 

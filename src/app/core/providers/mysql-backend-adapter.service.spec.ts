@@ -25,6 +25,7 @@ describe('MysqlBackendAdapterService', () => {
         execute.mockReset()
         select.mockReset()
         load.mockResolvedValue({ close, execute, select })
+        execute.mockResolvedValue({ rowsAffected: 1 })
     })
 
     it('opens a real mysql plugin-sql dsn and returns a provisional connection session', async () => {
@@ -174,6 +175,56 @@ describe('MysqlBackendAdapterService', () => {
         )
         expect(execute).toHaveBeenNthCalledWith(5, 'COMMIT')
         expect(close).toHaveBeenCalled()
+    })
+
+    it('rolls back when an update target disappeared remotely', async () => {
+        execute.mockReset()
+        execute.mockResolvedValueOnce({ rowsAffected: 1 }).mockResolvedValueOnce({ rowsAffected: 0 })
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            source: 'saved_profile',
+        })
+
+        await expect(
+            service.applyEdits(session, 'quarry_demo', 'products', [
+                { kind: 'update', pkValues: { id: 7 }, changes: { name: 'Updated' }, original: { id: 7 } },
+            ]),
+        ).rejects.toThrow('MySQL update target was not found')
+        expect(execute).toHaveBeenLastCalledWith('ROLLBACK')
+    })
+
+    it('rolls back when a delete target disappeared remotely', async () => {
+        execute.mockReset()
+        execute.mockResolvedValueOnce({ rowsAffected: 1 }).mockResolvedValueOnce({ rowsAffected: 0 })
+
+        const session = await service.connect({
+            target: {
+                connectionId: 'mysql-1',
+                connectionName: 'Analytics',
+                host: '127.0.0.1',
+                port: 3306,
+                defaultDatabase: 'quarry_demo',
+            },
+            username: 'quarry',
+            password: 'secret',
+            source: 'saved_profile',
+        })
+
+        await expect(
+            service.applyEdits(session, 'quarry_demo', 'products', [
+                { kind: 'delete', pkValues: { id: 8 }, original: { id: 8 } },
+            ]),
+        ).rejects.toThrow('MySQL delete target was not found')
+        expect(execute).toHaveBeenLastCalledWith('ROLLBACK')
     })
 
     it('lists tables and their columns from a selected schema', async () => {

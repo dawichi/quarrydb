@@ -186,3 +186,4 @@ multiple features.
 | 2026-08-16 | MySQL preview safety: enforced a 500-row adapter ceiling for browse/query previews while keeping full-result exports explicit and uncapped |
 | 2026-08-16 | Angular initial bundle budget: raised the warning threshold to 550 kB after measuring the supported SQLite/MySQL/Redis shell baseline; the 1 MB error ceiling remains unchanged |
 | 2026-08-16 | SQLite preview safety: enforced the same 500-row adapter ceiling for browse/query previews, with full-result exports remaining explicit and uncapped |
+| 2026-08-16 | MySQL edit safety: UPDATE and DELETE now reject zero-row targets and roll back the edit transaction instead of hiding remote changes |

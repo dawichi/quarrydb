@@ -273,20 +273,22 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
                         const whereClause = primaryKeys
                             .map((column) => `${this.quoteIdentifier(column)} = ?`)
                             .join(' AND ')
-                        await db.execute(`UPDATE ${source} SET ${setClause} WHERE ${whereClause}`, [
+                        const result = await db.execute(`UPDATE ${source} SET ${setClause} WHERE ${whereClause}`, [
                             ...Object.values(operation.changes),
                             ...Object.values(operation.pkValues),
                         ])
+                        this.assertEditTargetAffected(result.rowsAffected, 'update')
                     } else if (operation.kind === 'delete') {
                         const primaryKeys = Object.keys(operation.pkValues)
                         if (primaryKeys.length === 0) continue
                         const whereClause = primaryKeys
                             .map((column) => `${this.quoteIdentifier(column)} = ?`)
                             .join(' AND ')
-                        await db.execute(
+                        const result = await db.execute(
                             `DELETE FROM ${source} WHERE ${whereClause}`,
                             Object.values(operation.pkValues),
                         )
+                        this.assertEditTargetAffected(result.rowsAffected, 'delete')
                     } else {
                         const columns = Object.keys(operation.values)
                         if (columns.length === 0) continue
@@ -544,6 +546,12 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
 
     private toSafePreviewLimit(value: number): number {
         return Math.min(this.toSafeNonNegativeInt(value), MAX_MYSQL_PREVIEW_ROWS)
+    }
+
+    private assertEditTargetAffected(rowsAffected: number | undefined, operation: 'update' | 'delete'): void {
+        if (rowsAffected === 0) {
+            throw new Error(`MySQL ${operation} target was not found; it may have changed remotely. Refresh and retry.`)
+        }
     }
 
     private normalizeSql(sql: string): string {
