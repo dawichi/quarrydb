@@ -15,7 +15,8 @@ native socket boundary inside Tauri.
 - apply typed collection mutations for list, set, sorted-set, hash, and stream values;
 - edit string values and positive-millisecond TTLs, delete keys, and run argument-based Redis
   commands;
-- restore recent items and sessions without serializing passwords into localStorage.
+- restore recent items and sessions without serializing passwords into localStorage;
+  reconnect in place after a dropped or expired server connection.
 
 ## Boundaries and safety
 

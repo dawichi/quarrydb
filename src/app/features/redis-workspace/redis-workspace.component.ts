@@ -126,6 +126,10 @@ export class RedisWorkspaceComponent {
         this.host.clearWorkspace()
     }
 
+    protected reconnect(): void {
+        void this.provider.connectWorkspaceDraft().catch(() => undefined)
+    }
+
     private defaultCollectionOperation(kind: string | undefined): RedisCollectionOperation {
         switch (kind) {
             case 'list':
