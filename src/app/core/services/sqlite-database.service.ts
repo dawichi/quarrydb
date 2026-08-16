@@ -5,6 +5,8 @@ import { open } from '@tauri-apps/plugin-dialog'
 import Database from '@tauri-apps/plugin-sql'
 import type { EditOperation } from '../store/edit.store'
 
+const MAX_SQLITE_PREVIEW_ROWS = 500
+
 interface PragmaColumnRow {
     cid: number
     name: string
@@ -72,7 +74,7 @@ export class SqliteDatabaseService {
     ): Promise<{ rows: Record<string, unknown>[]; columns: string[]; total: number }> {
         const db = await Database.load(`sqlite://${path}`)
         const normalizedSql = this.normalizeSql(sql)
-        const safeLimit = this.toSafeNonNegativeInt(previewLimit)
+        const safeLimit = this.toSafePreviewLimit(previewLimit)
         try {
             const [countResult, rows] = await Promise.all([
                 db.select<[{ count: number }]>(`SELECT COUNT(*) AS count FROM (${normalizedSql}) AS quarry_count`),
@@ -104,7 +106,7 @@ export class SqliteDatabaseService {
                 ? ` ORDER BY ${quoteIdentifier(sortCol, 'sqlite')} ${sortDir === 'DESC' ? 'DESC' : 'ASC'}`
                 : ''
             const filterArgs = filter ? [filter.value] : []
-            const safeLimit = this.toSafeNonNegativeInt(limit)
+            const safeLimit = this.toSafePreviewLimit(limit)
             const safeOffset = this.toSafeNonNegativeInt(offset)
             const [countResult, rows] = await Promise.all([
                 db.select<[{ count: number }]>(`SELECT COUNT(*) AS count FROM ${source}${where}`, filterArgs),
@@ -349,5 +351,9 @@ export class SqliteDatabaseService {
 
     private toSafeNonNegativeInt(value: number): number {
         return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0
+    }
+
+    private toSafePreviewLimit(value: number): number {
+        return Math.min(this.toSafeNonNegativeInt(value), MAX_SQLITE_PREVIEW_ROWS)
     }
 }
