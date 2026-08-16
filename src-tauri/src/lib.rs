@@ -618,6 +618,13 @@ fn build_menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
                 true,
                 None::<&str>,
             )?,
+            &MenuItem::with_id(
+                app,
+                "export-diagnostics",
+                "Export Diagnostics…",
+                true,
+                None::<&str>,
+            )?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "hard-reset", "Hard Reset…", true, None::<&str>)?,
         ],
@@ -692,6 +699,9 @@ pub fn run() {
             }
             "check-for-updates" => {
                 let _ = app.emit("menu:check-for-updates", ());
+            }
+            "export-diagnostics" => {
+                let _ = app.emit("menu:export-diagnostics", ());
             }
             "hard-reset" => {
                 let _ = app.emit("menu:hard-reset", ());

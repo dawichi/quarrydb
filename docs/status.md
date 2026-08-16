@@ -190,3 +190,4 @@ multiple features.
 | 2026-08-16 | MySQL metadata performance: schema bootstrap now loads selected-table columns in one parameterized information-schema query instead of sequential N+1 requests |
 | 2026-08-16 | Redis reconnect UX: the connected keyspace workspace now supports in-place reconnect without discarding the provider draft or workspace context |
 | 2026-08-16 | SQLite failure guidance: normalized locked, busy, read-only, invalid-file, and inaccessible-file errors across SQLite browsing, editing, DDL, and reopen flows |
+| 2026-08-16 | Diagnostics export: added a native File-menu report containing redacted app/runtime/provider state without credentials or user data |

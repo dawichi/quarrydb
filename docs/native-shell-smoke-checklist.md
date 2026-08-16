@@ -35,6 +35,8 @@ target platform. Never use a local unsigned build to validate update signatures.
 ## Native menus and dialogs
 
 - File → Open Database opens the platform file picker and opens the selected SQLite database.
+- File → Export Diagnostics… opens a save dialog and writes a report without credentials,
+  paths, hosts, SQL, schema/table/key names, or database values.
 - File → Open Sample opens the bundled/sample flow.
 - Edit → Hard Reset clears local convenience metadata and relaunches without touching user
   database files.

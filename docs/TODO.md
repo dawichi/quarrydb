@@ -112,12 +112,12 @@ real usage data and the next product review.
 
 ### QRY-014 [Medium] Diagnostics and supportability
 
-- **Status:** Planned
+- **Status:** In progress
 - **Affected area:** provider errors, logs, support exports, privacy boundaries
 - **Goal:** Make production failures actionable without exposing credentials, query secrets, or
   user data unintentionally.
-- **Next action:** Design a redacted diagnostics report with provider state, app/tool versions,
-  safe error categories, and explicit user-controlled inclusion of query or schema details.
+- **Next action:** Validate the native save-dialog flow on macOS and Windows; the default report
+  intentionally excludes connection details and user data.
 
 ### Performance note
 
