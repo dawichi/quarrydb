@@ -17,6 +17,15 @@ import { MysqlSampleDataService } from './mysql-sample-data.service'
 
 const MAX_MYSQL_PREVIEW_ROWS = 500
 
+interface MysqlColumnMetadataRow {
+    table_name?: string
+    column_name: string
+    column_type: string
+    is_nullable: 'YES' | 'NO'
+    column_key: 'PRI' | 'UNI' | 'MUL' | ''
+    column_default: string
+}
+
 @Injectable({ providedIn: 'root' })
 export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     private readonly requests = new Map<string, MysqlConnectRequest>()
@@ -72,15 +81,16 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
             }
 
             const tableNames = rows.map((row) => this.extractTableName(row)).filter((name): name is string => !!name)
-
-            const tablesWithColumns: MysqlTableSummary[] = []
-            for (const tableName of tableNames) {
-                tablesWithColumns.push({
-                    schemaName,
-                    name: tableName,
-                    columns: await this.listColumns(db, schemaName, tableName),
-                })
+            if (tableNames.length === 0) {
+                return []
             }
+
+            const columnsByTable = await this.listColumnsForTables(db, schemaName, tableNames)
+            const tablesWithColumns = tableNames.map((tableName) => ({
+                schemaName,
+                name: tableName,
+                columns: columnsByTable.get(tableName) ?? [],
+            }))
 
             return tablesWithColumns.sort((left, right) => left.name.localeCompare(right.name))
         } catch (error) {
@@ -91,24 +101,10 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
     }
 
     private async listColumns(db: MysqlDatabaseClient, schemaName: string, tableName: string): Promise<Column[]> {
-        let rows: Array<{
-            column_name: string
-            column_type: string
-            is_nullable: 'YES' | 'NO'
-            column_key: 'PRI' | 'UNI' | 'MUL' | ''
-            column_default: string
-        }>
+        let rows: MysqlColumnMetadataRow[]
 
         try {
-            rows = await db.select<
-                Array<{
-                    column_name: string
-                    column_type: string
-                    is_nullable: 'YES' | 'NO'
-                    column_key: 'PRI' | 'UNI' | 'MUL' | ''
-                    column_default: string
-                }>
-            >(
+            rows = await db.select<MysqlColumnMetadataRow[]>(
                 `SELECT CAST(column_name AS CHAR(255)) AS column_name,
                         CAST(column_type AS CHAR(255)) AS column_type,
                         CAST(is_nullable AS CHAR(3)) AS is_nullable,
@@ -124,13 +120,51 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
             throw new Error(`Failed to inspect columns for ${schemaName}.${tableName}: ${this.describeError(error)}`)
         }
 
-        return rows.map((row) => ({
+        return rows.map((row) => this.mapColumn(row))
+    }
+
+    private async listColumnsForTables(
+        db: MysqlDatabaseClient,
+        schemaName: string,
+        tableNames: string[],
+    ): Promise<Map<string, Column[]>> {
+        const columnsByTable = new Map<string, Column[]>(tableNames.map((tableName) => [tableName, []]))
+        const placeholders = tableNames.map(() => '?').join(', ')
+
+        try {
+            const rows = await db.select<MysqlColumnMetadataRow[]>(
+                `SELECT CAST(table_name AS CHAR(255)) AS table_name,
+                        CAST(column_name AS CHAR(255)) AS column_name,
+                        CAST(column_type AS CHAR(255)) AS column_type,
+                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
+                        CAST(column_key AS CHAR(3)) AS column_key,
+                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
+                 FROM information_schema.columns
+                 WHERE table_schema = ?
+                   AND table_name IN (${placeholders})
+                 ORDER BY table_name, ordinal_position`,
+                [schemaName, ...tableNames],
+            )
+
+            for (const row of rows) {
+                if (!row.table_name) continue
+                columnsByTable.get(row.table_name)?.push(this.mapColumn(row))
+            }
+        } catch (error) {
+            throw new Error(`Failed to inspect columns for ${schemaName}: ${this.describeError(error)}`)
+        }
+
+        return columnsByTable
+    }
+
+    private mapColumn(row: MysqlColumnMetadataRow): Column {
+        return {
             name: row.column_name,
             type: row.column_type,
             nullable: row.is_nullable === 'YES',
             primaryKey: row.column_key === 'PRI',
             defaultValue: row.column_default === '' ? undefined : row.column_default,
-        }))
+        }
     }
 
     private extractFirstStringValue(row: Record<string, unknown>): string | null {

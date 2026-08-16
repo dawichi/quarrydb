@@ -228,40 +228,40 @@ describe('MysqlBackendAdapterService', () => {
     })
 
     it('lists tables and their columns from a selected schema', async () => {
-        select
-            .mockResolvedValueOnce([{ table_name: 'products' }, { table_name: 'orders' }])
-            .mockResolvedValueOnce([
-                {
-                    column_name: 'id',
-                    column_type: 'int',
-                    is_nullable: 'NO',
-                    column_key: 'PRI',
-                    column_default: '',
-                },
-                {
-                    column_name: 'name',
-                    column_type: 'varchar(255)',
-                    is_nullable: 'NO',
-                    column_key: '',
-                    column_default: '',
-                },
-            ])
-            .mockResolvedValueOnce([
-                {
-                    column_name: 'id',
-                    column_type: 'int',
-                    is_nullable: 'NO',
-                    column_key: 'PRI',
-                    column_default: '',
-                },
-                {
-                    column_name: 'total',
-                    column_type: 'decimal(10,2)',
-                    is_nullable: 'NO',
-                    column_key: '',
-                    column_default: '0.00',
-                },
-            ])
+        select.mockResolvedValueOnce([{ table_name: 'products' }, { table_name: 'orders' }]).mockResolvedValueOnce([
+            {
+                table_name: 'products',
+                column_name: 'id',
+                column_type: 'int',
+                is_nullable: 'NO',
+                column_key: 'PRI',
+                column_default: '',
+            },
+            {
+                table_name: 'products',
+                column_name: 'name',
+                column_type: 'varchar(255)',
+                is_nullable: 'NO',
+                column_key: '',
+                column_default: '',
+            },
+            {
+                table_name: 'orders',
+                column_name: 'id',
+                column_type: 'int',
+                is_nullable: 'NO',
+                column_key: 'PRI',
+                column_default: '',
+            },
+            {
+                table_name: 'orders',
+                column_name: 'total',
+                column_type: 'decimal(10,2)',
+                is_nullable: 'NO',
+                column_key: '',
+                column_default: '0.00',
+            },
+        ])
 
         const session = await service.connect({
             target: {
@@ -319,29 +319,17 @@ describe('MysqlBackendAdapterService', () => {
         )
         expect(select).toHaveBeenNthCalledWith(
             2,
-            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
+            `SELECT CAST(table_name AS CHAR(255)) AS table_name,
+                        CAST(column_name AS CHAR(255)) AS column_name,
                         CAST(column_type AS CHAR(255)) AS column_type,
                         CAST(is_nullable AS CHAR(3)) AS is_nullable,
                         CAST(column_key AS CHAR(3)) AS column_key,
                         CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
                  FROM information_schema.columns
                  WHERE table_schema = ?
-                   AND table_name = ?
-                 ORDER BY ordinal_position`,
-            ['quarry_demo', 'products'],
-        )
-        expect(select).toHaveBeenNthCalledWith(
-            3,
-            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
-                        CAST(column_type AS CHAR(255)) AS column_type,
-                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
-                        CAST(column_key AS CHAR(3)) AS column_key,
-                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
-                 FROM information_schema.columns
-                 WHERE table_schema = ?
-                   AND table_name = ?
-                 ORDER BY ordinal_position`,
-            ['quarry_demo', 'orders'],
+                   AND table_name IN (?, ?)
+                 ORDER BY table_name, ordinal_position`,
+            ['quarry_demo', 'products', 'orders'],
         )
     })
 
