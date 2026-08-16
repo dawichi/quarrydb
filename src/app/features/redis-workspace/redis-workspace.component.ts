@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import type { RedisCollectionKind, RedisCollectionOperation } from '../../core/providers/redis-backend-adapter'
 import { parseRedisCommand } from '../../core/providers/redis-command-parser'
 import type { RedisConnectionProfileDraft } from '../../core/providers/redis-connection-profile'
@@ -9,6 +9,7 @@ import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
 @Component({
     selector: 'app-redis-workspace',
     host: { class: 'flex min-h-0 flex-1 flex-col' },
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './redis-workspace.component.html',
 })
 export class RedisWorkspaceComponent {

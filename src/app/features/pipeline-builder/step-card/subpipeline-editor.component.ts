@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinType, PipelineStep, SelectColumn, SortColumn, StepType } from '@quarrydb/shared'
 import { PipelineStore } from '../../../core/store/pipeline.store'
 import { SqliteWorkspaceStore } from '../../../core/store/sqlite-workspace.store'
@@ -31,6 +31,7 @@ function createEmptyStep(type: StepType): PipelineStep {
 @Component({
     selector: 'app-subpipeline-editor',
     imports: [],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './subpipeline-editor.component.html',
 })
 export class SubpipelineEditorComponent implements OnInit {

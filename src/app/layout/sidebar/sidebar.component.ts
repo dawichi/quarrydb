@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import {
     LucideBolt,
     LucideChevronRight,
@@ -36,6 +36,7 @@ import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
         LucideTable2,
         LucideTriangleAlert,
     ],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './sidebar.component.html',
 })
 export class SidebarComponent {

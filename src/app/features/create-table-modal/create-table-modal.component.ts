@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import type { TableSchema } from '@quarrydb/shared'
 import { SqliteDatabaseService } from '../../core/services/sqlite-database.service'
 import { describeSqliteError } from '../../core/services/sqlite-error'
@@ -15,6 +15,7 @@ interface DropdownState {
 
 @Component({
     selector: 'app-create-table-modal',
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './create-table-modal.component.html',
 })
 export class CreateTableModalComponent {

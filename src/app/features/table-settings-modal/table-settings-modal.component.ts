@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { describeSqliteError } from '../../core/services/sqlite-error'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
 import {
@@ -12,6 +12,7 @@ import { buildCreateIndexSql } from './index.utils'
 
 @Component({
     selector: 'app-table-settings-modal',
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './table-settings-modal.component.html',
 })
 export class TableSettingsModalComponent {

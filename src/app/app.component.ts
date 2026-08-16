@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core'
 import { MenuService } from './core/services/menu.service'
 import { SessionService } from './core/services/session.service'
 import { TutorialService } from './core/services/tutorial.service'
@@ -38,6 +38,7 @@ import { SidebarComponent } from './layout/sidebar/sidebar.component'
         ViewModalComponent,
         TriggerModalComponent,
     ],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './app.component.html',
 })
 export class AppComponent implements OnDestroy, OnInit {

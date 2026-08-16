@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import {
     LucideBookOpen,
     LucideCirclePlus,
@@ -24,6 +24,7 @@ import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
     selector: 'app-welcome',
     host: { class: 'flex-1 min-h-0' },
     imports: [LucideBookOpen, LucideCirclePlus, LucideDatabase, LucideFolderOpen, LucideServer, LucideTrash2],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './welcome.component.html',
 })
 export class WelcomeComponent {

@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, OnInit, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinMode, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 import { SqliteWorkspaceStore } from '../../../core/store/sqlite-workspace.store'
@@ -7,6 +7,7 @@ import { SubpipelineEditorComponent } from './subpipeline-editor.component'
 @Component({
     selector: 'app-step-card',
     imports: [SubpipelineEditorComponent],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './step-card.component.html',
 })
 export class StepCardComponent implements OnInit {

@@ -19,6 +19,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -123,6 +128,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2

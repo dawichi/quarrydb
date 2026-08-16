@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import type { ViewSchema } from '@quarrydb/shared'
 import { describeSqliteError } from '../../core/services/sqlite-error'
 import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
@@ -10,6 +10,7 @@ function extractSelectBody(fullSql: string): string {
 
 @Component({
     selector: 'app-view-modal',
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './view-modal.component.html',
 })
 export class ViewModalComponent {
