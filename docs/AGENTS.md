@@ -25,7 +25,7 @@ disagree. Update current-state documentation when behavior or architecture chang
 
 ## Project shape
 
-Quarry is an installable Tauri 2 desktop application with an Angular 20 webview, shared
+Quarry is an installable Tauri 2 desktop application with an Angular 22 webview, shared
 TypeScript packages, and an Astro landing site. SQLite and MySQL are provider-specific
 relational workspaces. Redis is a provider-specific key/value workspace and MUST NOT be
 forced through relational table or SQL abstractions.

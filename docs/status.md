@@ -12,7 +12,7 @@ is release hardening, scale, and provider-specific depth rather than provider di
 
 | Feature | Status |
 |---------|--------|
-| Monorepo scaffold (Tauri 2 + Angular 20 + Astro + shared) | ✅ Done |
+| Monorepo scaffold (Tauri 2 + Angular 22 + Astro + shared) | ✅ Done |
 | App shell (sidebar, workspace store, database service, welcome) | ✅ Done |
 | Table viewer (row browsing, sticky headers, load more) | ✅ Done |
 | Pipeline builder — app frame (tabs, step cards, SQL panel) | ✅ Done |
@@ -65,9 +65,9 @@ slice of that.
    WHERE, SELECT, ORDER BY, GROUP BY, JOIN, and RAW SQL are shipped, including session
    persistence and full-result export; the remaining work is operational polish and edge-case
    coverage rather than a new provider foundation.
-3. **Redis depth** — add focused collection editors and cluster/ACL workflows only when their
-   operational UX and safety boundaries are specified; bounded JSON keyspace export is now in
-   place for diagnostics and migration assistance.
+3. **Redis depth** — define cluster/ACL/restore workflows only when their operational UX and
+   safety boundaries are specified; collection editors and bounded JSON keyspace export are now
+   in place for targeted operations and diagnostics.
 4. **Native shell QA** — add platform-specific Tauri/WebDriver coverage for OS dialogs and
    menu bars where dedicated platform runners justify it; the per-release smoke checklist is now
    documented.
@@ -194,3 +194,4 @@ multiple features.
 | 2026-08-16 | Diagnostics export: added a native File-menu report containing redacted app/runtime/provider state without credentials or user data |
 | 2026-08-16 | Release automation: added CI cancellation, Rust caching to verification, and a tag-triggered portable release preflight before platform packaging |
 | 2026-08-16 | Release-candidate QA: local checks passed with 254 Vitest tests, 11 Angular browser tests, 2 landing tests, both production builds, and 7 Rust tests; Docker-backed live provider gates remain CI-enforced because Docker is unavailable locally |
+| 2026-08-16 | Toolchain maintenance: upgraded the frontend to Angular 22, Tauri to 2.11.5, and Zone.js to 0.16.2; follow-up verification remains part of the release-candidate gate |

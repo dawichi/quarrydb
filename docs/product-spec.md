@@ -25,12 +25,14 @@ very different interfaces for different database families:
 - Redis should look and behave like a key/value store tool
 - Mongo should look and behave like a document database tool
 
-The current shipped feature set described below is mostly the SQLite provider. Future
-providers should reuse only the parts that genuinely fit them.
+The visual pipeline, browse, edit, and schema-management details below originated in the
+SQLite-first provider. MySQL now reuses the relational parts where they fit, while Redis has
+its own key/value workflow; provider-specific current status and deliberate limits are tracked
+in `docs/status.md`, `docs/mysql-provider-plan.md`, and `docs/redis-provider-plan.md`.
 
 ## Core Feature: Visual Query Builder / Pipeline
 
-The star of the current SQLite-first product. Each step in the pipeline is a
+The star of the relational product. Each step in the pipeline is a
 transformation on the result set, with intermediate results shown live, inline, below each
 step — inspired by functional array chaining (`.filter().map()`).
 

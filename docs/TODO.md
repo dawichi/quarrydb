@@ -137,5 +137,5 @@ real usage data and the next product review.
 ### Performance note
 
 The Angular initial bundle warning budget is intentionally 550 kB with a 1 MB error ceiling;
-the current measured initial bundle is about 522 kB. Do not spend roadmap capacity replacing
+the current measured initial bundle is about 535 kB after the Angular 22 upgrade. Do not spend roadmap capacity replacing
 established UI dependencies for this small margin unless measured startup performance regresses.

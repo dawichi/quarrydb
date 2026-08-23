@@ -4,8 +4,8 @@
 
 | Layer | Choice |
 |-------|--------|
-| Shell | Tauri 2.0 |
-| Frontend | Angular 20 + TypeScript + Signals |
+| Shell | Tauri 2.11.5 |
+| Frontend | Angular 22 + TypeScript + Signals |
 | Styling | Tailwind CSS v4 (SCSS only for animations/keyframes) |
 | State | Angular Signals (no NgRx) |
 | Data providers | SQLite and MySQL via `tauri-plugin-sql`; Redis/Valkey via typed Tauri commands |

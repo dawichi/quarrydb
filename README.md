@@ -23,8 +23,8 @@ Target audience: developers who work with SQLite data and want something faster 
 
 ```
 quarrydb/
-├── src/               # Angular 20 app — the desktop UI
-├── src-tauri/         # Tauri 2 shell — Rust backend, OS integration, SQLite bridge
+├── src/               # Angular 22 app — the desktop UI
+├── src-tauri/         # Tauri 2.11.5 shell — Rust backend, OS integration, SQLite bridge
 ├── landing/           # Astro landing site (quarrydb.app)
 └── packages/
     └── shared/        # Shared TypeScript types (used by app + landing demo)
@@ -32,7 +32,7 @@ quarrydb/
 
 ### `src/` — Angular app
 
-The desktop frontend. Built with Angular 20 Signals, styled with Tailwind CSS v4. Key areas:
+The desktop frontend. Built with Angular 22 Signals, styled with Tailwind CSS v4. Key areas:
 
 - `src/app/core/store/` — provider-owned stores plus shared host state (all state as Signals)
 - `src/app/core/services/` — provider adapters, persistence, export, and updater services
@@ -121,8 +121,8 @@ bun run format     # Biome: format only
 
 | Layer | Choice |
 |-------|--------|
-| Shell | Tauri 2.0 |
-| Frontend | Angular 20 + TypeScript + Signals |
+| Shell | Tauri 2.11.5 |
+| Frontend | Angular 22 + TypeScript + Signals |
 | Styling | Tailwind CSS v4 |
 | State | Angular Signals (no NgRx) |
 | SQLite bridge | tauri-plugin-sql |
