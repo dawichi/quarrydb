@@ -85,9 +85,11 @@ real usage data and the next product review.
   desktop platforms.
 - **Evidence:** The tag-triggered release workflow now runs lint, docs, dependency audits, unit,
   MySQL/Redis live integration, browser, build, landing, and Rust gates before the platform
-  packaging matrix; native installer and dialog checks remain host-dependent.
+  packaging matrix; `docs/release-candidate-checklist.md` defines the acceptance record, and
+  native installer and dialog checks remain host-dependent.
 - **Next action:** Validate the tag-triggered preflight and platform matrix in the first release
-  candidate; host-dependent installer smoke tests remain an explicit manual gate.
+  candidate; host-dependent installer smoke tests and Docker-backed provider gates remain explicit
+  release gates.
 
 ### QRY-011 [High] MySQL maturity
 

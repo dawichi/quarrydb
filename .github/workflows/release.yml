@@ -164,7 +164,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Quarry ${{ github.ref_name }}'
           releaseBody: |
-            See the full changelog in the commit history.
+            Release notes: https://github.com/dawichi/quarrydb/blob/${{ github.ref_name }}/docs/release-notes-0.2.0.md
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: false

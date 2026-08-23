@@ -16,6 +16,8 @@ canonical [`AGENTS.md`](AGENTS.md), then read the relevant file(s) here.
 | [dependency-security.md](dependency-security.md) | Dependency audit gates, overrides, and vulnerability response |
 | [recovery-runbook.md](recovery-runbook.md) | Data ownership, backup boundaries, export limits, and provider recovery guidance |
 | [native-shell-smoke-checklist.md](native-shell-smoke-checklist.md) | Platform-specific Tauri install, menu, dialog, keyring, and updater smoke checks |
+| [release-candidate-checklist.md](release-candidate-checklist.md) | 0.2.0 automated, native, updater, and release acceptance gates |
+| [release-notes-0.2.0.md](release-notes-0.2.0.md) | Draft user-facing 0.2.0 scope, highlights, and known limitations |
 
 ## Project Context
 

@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const landingPort = process.env.QUARRY_LANDING_PORT ?? '4323'
+const landingUrl = `http://127.0.0.1:${landingPort}`
+
 export default defineConfig({
     testDir: './landing-e2e',
     outputDir: 'test-results/landing',
@@ -9,15 +12,15 @@ export default defineConfig({
     workers: process.env.CI ? 1 : undefined,
     reporter: process.env.CI ? 'github' : 'list',
     use: {
-        baseURL: 'http://127.0.0.1:4321',
+        baseURL: landingUrl,
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
     },
     webServer: {
-        command: 'bun run --cwd landing build && bun run --cwd landing preview --host 127.0.0.1 --port 4321',
-        url: 'http://127.0.0.1:4321',
-        reuseExistingServer: !process.env.CI,
+        command: `bun run --cwd landing build && bun run --cwd landing preview --host 127.0.0.1 --port ${landingPort}`,
+        url: landingUrl,
+        reuseExistingServer: process.env.QUARRY_REUSE_LANDING_SERVER === '1',
         timeout: 120_000,
     },
     projects: [

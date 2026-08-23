@@ -195,3 +195,4 @@ multiple features.
 | 2026-08-16 | Release automation: added CI cancellation, Rust caching to verification, and a tag-triggered portable release preflight before platform packaging |
 | 2026-08-16 | Release-candidate QA: local checks passed with 254 Vitest tests, 11 Angular browser tests, 2 landing tests, both production builds, and 7 Rust tests; Docker-backed live provider gates remain CI-enforced because Docker is unavailable locally |
 | 2026-08-16 | Toolchain maintenance: upgraded the frontend to Angular 22, Tauri to 2.11.5, and Zone.js to 0.16.2; follow-up verification remains part of the release-candidate gate |
+| 2026-08-23 | 0.2.0 release preparation: added the automated/native acceptance checklist and draft release notes, made landing E2E use a dedicated non-reused port, and passed portable QA, Rust checks, dependency audit, and local unsigned macOS packaging; Docker provider and signed native-host gates remain outstanding |

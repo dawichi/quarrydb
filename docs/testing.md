@@ -41,6 +41,9 @@ uses a fresh Chromium context for each test. It covers the public page contract,
 fallback when GitHub is unavailable, and the interactive demo's pipeline/SQL/result updates.
 The GitHub release API is stubbed in these tests so landing QA remains deterministic and does
 not consume a network-dependent rate limit.
+The landing suite uses port `4323` by default and does not reuse an arbitrary existing server;
+set `QUARRY_LANDING_PORT` to override the port or `QUARRY_REUSE_LANDING_SERVER=1` only when
+reusing a known Quarry preview is intentional.
 
 Install the browser once on a new machine:
 
