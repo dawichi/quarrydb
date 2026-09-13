@@ -18,7 +18,7 @@ export default defineConfig({
         video: 'retain-on-failure',
     },
     webServer: {
-        command: `bun run --cwd landing build && bun run --cwd landing preview --host 127.0.0.1 --port ${landingPort}`,
+        command: `bun run --cwd landing build && ASTRO_PREVIEW_BACKGROUND=0 bun run --cwd landing preview --host 127.0.0.1 --port ${landingPort}`,
         url: landingUrl,
         reuseExistingServer: process.env.QUARRY_REUSE_LANDING_SERVER === '1',
         timeout: 120_000,
