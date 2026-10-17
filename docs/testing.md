@@ -26,11 +26,27 @@ The release workflow reuses CI, so a tag cannot ship what `main` would not.
 | Native | `src-tauri/src/sql/mod.rs` | Value decoding (SQLite and live MySQL), rollback on stale edit targets |
 | IPC | `src-tauri/src/lib.rs` (`ipc_tests`) | The JSON the frontend sends matches the Rust command signatures |
 | Browser | `e2e/` | Golden paths through the UI with the Tauri IPC layer faked |
+| Smoke | `e2e/smoke.native.spec.ts` | The release checklist through the real UI **and** the real Rust commands, via a local bridge |
 
 ## Rule
 
 A feature is not done until a test that would fail without it passes. Do not record anything as
 verified in docs or release notes unless a test run proved it.
+
+## Native smoke test
+
+`e2e/smoke.native.spec.ts` drives the UI in Chromium, but every app command goes to the real
+Rust code through the `ui_bridge` test, which serves them on `127.0.0.1:1430`. It covers the
+SQLite sample pipeline, edits, CSV export, MySQL, Redis, diagnostics and session restore. It is
+skipped unless `QUARRY_BRIDGE` is set:
+
+```bash
+bun run dev:services:up
+cargo test --manifest-path src-tauri/Cargo.toml --lib ui_bridge -- --ignored   # leave running
+QUARRY_BRIDGE=1 bunx playwright test e2e/smoke.native.spec.ts
+```
+
+Screenshots and exported files land in `/tmp/quarry-smoke/<timestamp>/`.
 
 ## Not covered automatically
 

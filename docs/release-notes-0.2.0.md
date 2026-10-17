@@ -6,7 +6,8 @@ Status: draft until the smoke test in [release.md](release.md) is recorded.
 
 - **A pipeline that means what it says.** Every block refers to the flowing rows by the source
   table's name, so `orders.customer_id = customers.id` works in any position and keeps working
-  when blocks are reordered.
+  when blocks are reordered. A GROUP BY or ORDER BY whose column disappears after a reorder now
+  says so on its block, where SQLite used to return a single bogus group.
 - **JOINs without surprises.** Joined columns never collide: `customers.id` arrives as
   `customers_id`. Picking a table pre-fills the ON condition from naming conventions.
   (Previously a JOIN could fail on MySQL with "Duplicate column name", or on SQLite silently

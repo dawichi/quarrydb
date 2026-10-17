@@ -14,20 +14,26 @@ signing). They are still **signed for the updater**, which is what protects auto
 4. With Docker available, `bun run test:mysql` and `bun run test:redis` pass locally (CI runs
    them too).
 
-## Smoke test (15 minutes, per OS)
+## Smoke test
+
+Most of the checklist is automated: run the native smoke test in [testing.md](testing.md#native-smoke-test)
+first. It runs the steps below that are marked *(auto)*. The other steps need a real build.
 
 Use a local `bun run tauri build` or the draft release artifacts, and disposable data only.
 
-- Launch; open the sample SQLite database; build a pipeline with WHERE → JOIN → GROUP BY and
+- *(auto)* Open the sample SQLite database; build a pipeline with WHERE → JOIN → GROUP BY and
   check each block shows rows and the SQL panel reads well.
-- Reorder two blocks; undo and redo.
-- Stage one edit, apply it; stage another, discard it.
-- Export a pipeline result as CSV and check the file.
-- Connect to a local MySQL (`bun run dev:services:up`), load sample data, browse with a sort on
-  `price`, and run the same pipeline. Disconnect and reconnect.
-- Connect to local Redis, open a key, run one safe command.
-- File → Export Diagnostics writes a report without credentials or data.
-- Relaunch: the session restores (MySQL asks for the password unless remembered).
+- *(auto)* Reorder two blocks; undo and redo.
+- *(auto)* Stage one edit, apply it; stage another, discard it.
+- *(auto)* Export a pipeline result as CSV and check the file.
+- *(auto)* Connect to a local MySQL (`bun run dev:services:up`), load sample data, browse with a
+  sort on `price`, and run the same pipeline. Disconnect and reconnect.
+- *(auto)* Connect to local Redis, open a key, run one safe command.
+- *(auto, minus the menu)* Export Diagnostics writes a report without credentials or data.
+- *(auto, minus the keyring)* Relaunch: the session restores (MySQL asks for the password unless
+  remembered).
+- Launch the built app: the window, native menu (File → Export Diagnostics) and save dialog work.
+- "Remember securely on this device" survives a relaunch (OS keyring).
 - From the previous release, "Check for Updates…" installs and relaunches into the new one.
 
 Record OS version, artifact, result and any exception in the release notes or tag message.
