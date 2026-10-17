@@ -279,6 +279,18 @@ class Compiler {
         }
     }
 
+    /**
+     * Columns picked from chips are quoted identifiers, and SQLite reads an unknown quoted
+     * identifier as a string literal. A GROUP BY moved above the JOIN that supplied its column
+     * would silently return one bogus group, so fail the step instead.
+     */
+    private requireColumns(input: Relation, names: string[]): void {
+        if (!input.columns) return
+        const available = new Set(input.columns.map((column) => column.toLowerCase()))
+        const missing = names.find((name) => !available.has(name.toLowerCase()))
+        if (missing) throw new Error(`Column "${missing}" isn't available at this step`)
+    }
+
     private step(step: PipelineStep, input: Relation, alias: string, name: string): StepOutput {
         const from = `FROM ${input.from} AS ${this.quote(alias)}`
         switch (step.type) {
@@ -313,6 +325,10 @@ class Compiler {
             }
             case 'ORDER_BY': {
                 const sorts = step.columns.filter((column) => column.name)
+                this.requireColumns(
+                    input,
+                    sorts.map((sort) => sort.name),
+                )
                 const limit = step.limit === null ? null : Math.max(0, Math.floor(step.limit))
                 if (sorts.length === 0 && limit === null) return this.passthrough(input, alias)
                 let sql = `SELECT * ${from}`
@@ -327,6 +343,7 @@ class Compiler {
             }
             case 'GROUP_BY': {
                 if (step.groupBy.length === 0) return this.passthrough(input, alias)
+                this.requireColumns(input, step.groupBy)
                 const keys = step.groupBy.map(this.quote).join(', ')
                 const aggregations = step.aggregations
                     .filter((aggregation) => aggregation.expr.trim())

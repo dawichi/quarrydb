@@ -120,6 +120,32 @@ describe('compilePipeline against SQLite', () => {
         expect(compiled.steps[1].inputColumns).toContain('customers_id')
     })
 
+    it('fails a GROUP BY or ORDER BY whose column an earlier step no longer provides', () => {
+        // SQLite would read the quoted "country" as a string and return one bogus group.
+        const groupBy: PipelineStep = {
+            id: id(),
+            type: 'GROUP_BY',
+            groupBy: ['country'],
+            aggregations: [{ fn: 'COUNT', expr: '*', alias: 'n' }],
+        }
+        const sort: PipelineStep = {
+            id: id(),
+            type: 'ORDER_BY',
+            columns: [{ name: 'country', direction: 'ASC' }],
+            limit: null,
+        }
+        const join = joinCustomers('orders.customer_id = customers.id')
+        const { steps } = compilePipeline('orders', [groupBy, sort, join], { schema })
+
+        expect(steps[0].error).toBe('Column "country" isn\'t available at this step')
+        expect(steps[1].error).toBe('Column "country" isn\'t available at this step')
+        expect(compilePipeline('orders', [join, groupBy, sort], { schema }).steps.map((step) => step.error)).toEqual([
+            null,
+            null,
+            null,
+        ])
+    })
+
     it('binds variables as parameters: numbers compare numerically, quotes cannot escape', () => {
         expect(run([where('total > :min')], { min: '30' }).rows.map((row) => row.id)).toEqual([10, 12])
         expect(run([where('status = :status')], { status: "x' OR '1'='1" }).rows).toEqual([])

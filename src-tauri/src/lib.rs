@@ -167,4 +167,79 @@ mod ipc_tests {
         .is_err());
         let _ = std::fs::remove_file(&path);
     }
+
+    /// Serves every app command over `http://127.0.0.1:1430/invoke` so the Angular UI can run
+    /// in a browser against the real Rust layer (`e2e/native-bridge.ts`). Manual use only:
+    /// `cargo test --lib ui_bridge -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn ui_bridge() {
+        use std::io::{BufRead, BufReader, Read, Write};
+
+        let app = mock_builder()
+            .manage(crate::sql::SqlState::default())
+            .invoke_handler(tauri::generate_handler![
+                crate::files::write_text_file,
+                crate::sql::sql_connect,
+                crate::sql::sql_disconnect,
+                crate::sql::sql_select,
+                crate::sql::sql_execute,
+                crate::redis::redis_connect,
+                crate::redis::redis_scan_keys,
+                crate::redis::redis_get_key,
+                crate::redis::redis_export_keyspace,
+                crate::redis::redis_mutate_collection,
+                crate::redis::redis_set_string,
+                crate::redis::redis_delete_key,
+                crate::redis::redis_run_command
+            ])
+            .build(mock_context(noop_assets()))
+            .expect("mock app");
+        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .expect("webview");
+
+        let listener = std::net::TcpListener::bind("127.0.0.1:1430").expect("bind 1430");
+        println!("ui bridge listening on http://127.0.0.1:1430/invoke");
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            let mut reader = BufReader::new(stream.try_clone().expect("clone stream"));
+            let mut request_line = String::new();
+            if reader.read_line(&mut request_line).is_err() {
+                continue;
+            }
+            let mut length = 0;
+            loop {
+                let mut header = String::new();
+                if reader.read_line(&mut header).is_err() || header.trim().is_empty() {
+                    break;
+                }
+                if let Some((name, value)) = header.split_once(':') {
+                    if name.eq_ignore_ascii_case("content-length") {
+                        length = value.trim().parse().unwrap_or(0);
+                    }
+                }
+            }
+            let mut body = vec![0; length];
+            let _ = reader.read_exact(&mut body);
+
+            let reply = if request_line.starts_with("POST") {
+                let request: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
+                let cmd = request["cmd"].as_str().unwrap_or_default();
+                match invoke(&webview, cmd, request["args"].clone()) {
+                    Ok(value) => json!({ "ok": value }),
+                    Err(error) => json!({ "err": error }),
+                }
+                .to_string()
+            } else {
+                String::new()
+            };
+            let _ = write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: content-type\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                reply.len(),
+                reply
+            );
+        }
+    }
 }
