@@ -13,10 +13,10 @@ const VERSION = '0.1.9';
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
-    <title>Quarry — Visual SQLite query builder</title>
-    <meta name="description" content="Build complex SQLite queries by chaining steps, not typing SQL. See the generated SQL live. Free, open source, runs locally." />
-    <meta property="og:title" content="Quarry — Visual SQLite query builder" />
-    <meta property="og:description" content="Build complex SQLite queries by chaining steps, not typing SQL." />
+    <title>Quarry — See what your SQL query does</title>
+    <meta name="description" content="Build SQL queries for SQLite and MySQL as a chain of visual steps and watch the rows change at every step. See the generated SQL live. Free, open source, runs locally." />
+    <meta property="og:title" content="Quarry — See what your SQL query does" />
+    <meta property="og:description" content="Build SQL as a chain of visual steps and watch the rows change at every step." />
     <meta property="og:type" content="website" />
 </head>
 
@@ -68,11 +68,11 @@ const VERSION = '0.1.9';
                 Open source · MIT · <span id="hero-version">v{VERSION}</span>
             </div>
             <h1 class="text-5xl sm:text-6xl font-bold tracking-tight text-zinc-50 leading-tight mb-5">
-                Visual SQLite<br/>query builder
+                See what your<br/>query does
             </h1>
             <p class="text-lg text-zinc-400 max-w-xl mx-auto leading-relaxed">
-                Chain steps like array methods — filter, sort, group, join.
-                See the CTE-based SQL it generates. Runs 100% locally.
+                Chain steps like array methods — filter, sort, group, join — and watch the rows
+                change at every step. The SQL is always on screen. SQLite and MySQL, 100% local.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
                 <a href="#download" class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-zinc-950 text-sm font-semibold transition-colors">
@@ -259,14 +259,14 @@ const VERSION = '0.1.9';
                     No cloud, no subscription, no data leaves your computer. Quarry talks directly to your <code class="text-sky-400 font-mono text-sm">.db</code> file via Rust — zero latency, maximum privacy.
                 </p>
                 <p class="text-zinc-400 leading-relaxed">
-                    Supports any SQLite file up to the limits of your disk. Large files work fine — queries stream results in pages.
+                    Previews stay small and fast on large tables; full results are fetched only when you export.
                 </p>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 {[
                     { label: 'Tauri 2', sub: 'Rust desktop shell', color: 'text-orange-400' },
                     { label: 'Angular 22', sub: 'Signals-based UI', color: 'text-red-400' },
-                    { label: 'SQLite', sub: 'via tauri-plugin-sql', color: 'text-sky-400' },
+                    { label: 'SQLite + MySQL', sub: 'via sqlx in Rust', color: 'text-sky-400' },
                     { label: 'Tailwind v4', sub: 'Styling', color: 'text-cyan-400' },
                     { label: 'TypeScript', sub: 'End-to-end typed', color: 'text-blue-400' },
                     { label: 'MIT License', sub: 'Open source forever', color: 'text-green-400' },

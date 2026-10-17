@@ -7,8 +7,8 @@ test.beforeEach(async ({ page }) => {
 test('renders the public landing page and release fallback', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page).toHaveTitle('Quarry — Visual SQLite query builder')
-    await expect(page.locator('h1')).toContainText('Visual SQLite')
+    await expect(page).toHaveTitle('Quarry — See what your SQL query does')
+    await expect(page.locator('h1')).toContainText('See what your')
     await expect(page.locator('#hero-version')).toHaveText('v0.1.9')
     await expect(page.locator('#release-status')).toContainText('Could not load release info')
 
