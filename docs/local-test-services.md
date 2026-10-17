@@ -9,7 +9,7 @@ provision sample servers for users. These steps are only for local development.
 ## Why This Exists
 
 SQLite testing is easy because Quarry can create a local `.db` file directly. Server
-providers such as MySQL, Postgres, and Redis need something running first.
+providers such as MySQL and Redis need something running first.
 
 For development, the fastest path is usually a disposable Docker container.
 
@@ -82,16 +82,6 @@ Notes:
 - Recent-item reopen and session restore require re-entering the MySQL password.
 - Sample loading is idempotent for practical testing: if `products` already contains rows,
   Quarry leaves the existing sample tables alone.
-
-## Postgres
-
-Connection settings:
-
-- host: `127.0.0.1`
-- port: `5432`
-- user: `postgres`
-- password: `quarry`
-- database: `quarry_demo`
 
 ## Redis
 

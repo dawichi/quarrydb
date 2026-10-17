@@ -1,177 +1,75 @@
 # Product Spec
 
-What each feature does and why it's shaped the way it is. For *how* it's built, see
-`docs/architecture.md`. For *what's currently shipped vs. planned*, see `docs/status.md`.
+What each feature does today and why. For how it is built, see
+[architecture.md](architecture.md); for what comes next, see [roadmap.md](roadmap.md).
 
-## Target User
+## Who it is for
 
-**SQL-curious developers** — people who understand data and relational structure but find
-writing raw SQL friction-heavy. Blocks do the heavy lifting; SQL stays visible and
-accessible, but secondary. Not aimed at non-technical users or raw-SQL power users, though
-both can use it comfortably.
+Developers who understand their data but want to *see* what a query does: people learning SQL,
+people debugging someone else's query, and people who think in `.filter().map()`. SQL stays
+visible on purpose; Quarry teaches it rather than hiding it.
 
-## Product Direction
+## The pipeline (SQLite and MySQL)
 
-Quarry started as a SQLite-first tool, but the product direction is now broader:
+A pipeline starts from a table and stacks blocks. Each block shows its own rows and row count,
+updating live as you type.
 
-- one app for managing databases visually
-- one shared home/recent-items experience
-- provider-specific workspaces depending on what the user opens
+| Block | What it does |
+|-------|--------------|
+| WHERE | Filter rows with an expression; column chips insert names |
+| SELECT | Pick, rename or compute columns (drag to reorder) |
+| ORDER BY + LIMIT | Sort and cut |
+| GROUP BY | Group with COUNT/SUM/AVG/MIN/MAX |
+| JOIN | Join another table (inline, branch, or a nested subpipeline) |
+| Raw SQL | Escape hatch: `{src}` is the previous block's result |
 
-That means the app should feel cohesive at the shell/design level, while still allowing
-very different interfaces for different database families:
+How it behaves:
 
-- SQLite / MySQL / Postgres can share some relational patterns
-- Redis should look and behave like a key/value store tool
-- Mongo should look and behave like a document database tool
+- **Names stay stable.** Every block can call the flowing rows by the source table's name
+  (`orders.total`), at any position and after reordering.
+- **JOIN results are flat and unambiguous.** Joined columns keep their names unless the left
+  side already has them; then they become `<alias>_<column>` (e.g. `customers_id`). Picking a
+  table pre-fills the ON condition when names follow the `<table>_id` convention.
+- **Live, bounded previews.** Each block shows up to 50 rows plus the true count. Exports run
+  the full query.
+- **Errors stop the chain.** A failing block shows its error; later blocks show "blocked". Problems
+  found before running (an unset `:variable`, an unknown table) appear the same way.
+- **Edit freely.** Drag blocks to reorder, undo/redo with Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z.
+- **Visible SQL.** A collapsible panel shows the generated SQL with variable values inlined, with
+  a copy button.
+- **Variables.** `:name` placeholders get an input bar; values are sent as parameters.
+- **Saved queries and history.** Save a pipeline by name per table and database; optional local
+  history logs pipelines once you stop editing.
 
-The visual pipeline, browse, edit, and schema-management details below originated in the
-SQLite-first provider. MySQL now reuses the relational parts where they fit, while Redis has
-its own key/value workflow; provider-specific current status and deliberate limits are tracked
-in `docs/status.md`, `docs/mysql-provider-plan.md`, and `docs/redis-provider-plan.md`.
+## Browse
 
-## Core Feature: Visual Query Builder / Pipeline
+Paged table view with total row count, click-to-copy cells, copy-row-as-JSON, and server-side
+sorting. SQLite foreign-key cells link to the referenced row, with a breadcrumb trail. MySQL
+browse adds a text filter across columns.
 
-The star of the relational product. Each step in the pipeline is a
-transformation on the result set, with intermediate results shown live, inline, below each
-step — inspired by functional array chaining (`.filter().map()`).
+## Edit mode
 
-### Interaction model
+A separate Edit tab, so editing is never accidental. Inserts, updates and deletes are staged and
+shown as a diff; "Apply" runs them as one transaction. If any statement fails, or a row was
+changed or deleted by someone else in the meantime, nothing is applied.
 
-- **Live execution with row cap** — results update automatically as the pipeline changes,
-  capped at N rows for preview. Full uncapped result only on explicit export.
-- **Expression input with visual hints** — every step config is a SQL fragment with
-  clickable column chips and operator suggestions to insert. No form-only mode: this handles
-  simple and complex conditions equally, instead of forcing a choice between the two.
-- **Add step** — a "+" button at the bottom appends a step; hovering between two steps
-  reveals an insert button. Both patterns coexist.
-- **Drag to reorder** — full drag-and-drop with semantic validation: invalid drop targets
-  are greyed out before release (e.g. you can't move a GROUP BY above its own column
-  dependencies).
-- **Error propagation** — if a step has an error, every downstream step shows a "blocked"
-  state and does not execute.
-- **Undo/redo** — a full undo/redo stack covers every pipeline operation (add, remove,
-  reorder, edit step config). Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z.
+## Schema management (SQLite)
 
-### Step types
+Create tables; add, rename and drop columns; manage indexes, views and triggers; rename and drop
+tables with a preview of cascading deletes.
 
-| Step | Description |
-|------|-------------|
-| WHERE | Filter rows by condition |
-| SELECT | Choose columns, rename, computed columns (with column drag-reorder) |
-| ORDER BY + LIMIT | Sort and paginate |
-| GROUP BY + aggregations | Sum, count, avg, group by column |
-| JOIN | Cross-table join (see JOIN modes below) |
-| Raw SQL | Escape hatch — composes via CTE, see `docs/architecture.md` |
+## Redis / Valkey
 
-### JOIN modes
+Key browser with SCAN-based paging and pattern filter, typed previews (string, list, set, sorted
+set, hash, stream) with bounded sizes, TTL and delete, collection edits, a command runner, and a
+bounded JSON export.
 
-Three modes, available simultaneously — the user picks per JOIN step:
+## Workspace basics
 
-1. **Inline table picker** — linear step with a secondary "join with table X on Y = Z"
-   config panel. The fastest path to a working JOIN; also the one that validates the CTE
-   composition layer, so it shipped first.
-2. **Branch input** — a Y-shape with left/right input slots merging into one output. Same
-   underlying SQL logic as the inline picker, just a different (heavier) UI on top of it.
-3. **Subpipeline** — nest a full pipeline as input to a JOIN step, enabling complex joins
-   and subqueries. Genuinely different from the other two — needs nested pipeline state and
-   recursive CTE logic, so it's the natural place to stop if time runs short.
-
-### Generated SQL panel
-
-User-configurable: pin it as a persistent panel (bottom or right) or use it as a toggle
-drawer. Updates live as the pipeline is built, with a copy button. This is a deliberate,
-core educational feature — users should always be able to see exactly what SQL their visual
-pipeline produces. Nothing should happen "by magic."
-
-## Result Table
-
-- **Row rendering** — hard cap + "Load more" button at the bottom; total row count shown
-  prominently.
-- **Large dataset support** — currently tuned for large SQLite files via streaming result
-  reads and conservative memory management; future providers may need different strategies.
-- **Cell interactions:**
-  - Click a cell → copy its value to clipboard
-  - Row-end button → copy the whole row as JSON
-  - Click a column header → add/toggle an ORDER BY step in the pipeline (server-side sort,
-    cycles ASC → DESC → off)
-  - FK cells get the same click-to-copy, plus a `→ table` chip on row hover that navigates
-    to the referenced table, pre-filtered by that value
-
-### FK reference navigation
-
-- Redirect-style: the Browse view replaces its content with the referenced table, filtered
-  by `WHERE ref_col = value`
-- A breadcrumb trail at the top shows the navigation path, e.g. `orders › users [id = 2]`
-- Clicking any breadcrumb entry restores that table + filter state
-
-## Edit Mode (Transaction Mode)
-
-A dedicated **"Edit" tab**, separate from "Browse"/"Query" — a strong, deliberate visual
-signal that makes it impossible to accidentally start editing data.
-
-- Edits are **staged**, never committed immediately
-- A diff panel shows every pending change before anything is applied
-- "Apply all" runs everything as a **single atomic SQL transaction**
-- On constraint failure (FK violation, unique constraint, …): full rollback, with the
-  offending row highlighted in the diff
-- Supports INSERT, UPDATE, and DELETE
-- SELECT → UPDATE/INSERT chains can be saved as reusable queries
-
-This is staged + transactional + rollback-on-failure on purpose: Quarry is a tool people
-trust with their data, and "almost applied" is not an acceptable state for that tool to
-leave someone in.
-
-## Saved Queries
-
-- **Named, with variables** — queries can contain `:variable_name` placeholders
-- **Auto-generated form** — Quarry scans for placeholders and renders an input form before
-  running; no extra config needed at save time
-- **Scope** — covers both SELECT pipelines and SELECT → UPDATE/INSERT chains
-
-## Schema Browser (Sidebar)
-
-In the current SQLite provider, the sidebar is multi-file aware: each `.db` file in the
-workspace is a collapsible section, with its `ATTACH` alias shown next to the filename —
-consistent with the file → table → columns → indexes nesting, and necessary so users can
-connect the `alias.table` prefix they see in generated CTE SQL back to a concrete file.
-
-| Info | When shown |
-|------|-----------|
-| Column names + types + nullable | Always, per table |
-| Row count | Lazy-loaded on table expand (avoids running `COUNT(*)` on every table at open) |
-| Indexes + foreign keys | Expandable sub-section per table |
-
-## Session Persistence
-
-On relaunch, Quarry restores the last-opened workspace and its relevant UI state. Today
-that means the SQLite workspace shape: connected `.db` files and open query tabs with full
-pipeline state, including partially-built pipelines. Implemented via debounced (500ms)
-localStorage autosave.
-
-## Export Formats
-
-CSV, JSON (array of objects), SQL `INSERT` statements (for seeding test databases), and
-Markdown tables (for docs/READMEs). Always operates on the full, uncapped result set.
-
-## First Launch Experience
-
-- **First run** (VS Code-style): left panel shows the Quarry logo, a welcome message, and a
-  "Start interactive tutorial" button; the right area offers the current open actions for
-  supported providers. Today that is "Open .db file" with an empty SQLite workspace state.
-- **Subsequent runs**: a recent-items list, with provider-specific icons/metadata.
-- **Interactive tutorial**: initially SQLite-focused — a short, auto-advancing guided
-  overlay that walks through the core pipeline-builder flow using a bundled sample
-  e-commerce SQLite database.
-
-## Visual Design
-
-- OS-aware dark/light mode by default (follows system setting), with a user override in
-  settings
-- Target aesthetic: a serious dev tool — think Linear, Warp (dark mode); clean and minimal
-  in light mode
-
-## Input Paradigm
-
-GUI-first, with keyboard shortcuts as accelerators — everything should be clickable and
-discoverable on its own. Cmd+Enter to run, Cmd+S to save, Cmd+Z to undo.
+- **Home:** open a SQLite file or the bundled sample, connect to MySQL or Redis, recent items.
+- **Tutorial:** a short guided tour of the pipeline on the sample database.
+- **Session restore:** the last workspace, table and pipeline come back on launch (MySQL asks for
+  the password unless it is remembered in the OS keyring).
+- **Export:** CSV, JSON, SQL `INSERT`s and Markdown, from tables or pipelines.
+- **Updates:** an in-app banner; installing is always a manual choice.
+- **Look:** dark theme only.

@@ -1,33 +1,33 @@
 # Quarry 0.2.0
 
-Status: draft until the release-candidate checklist is complete.
-
-Quarry 0.2.0 turns the SQLite-first prototype into a practical three-provider desktop database
-workspace while keeping the local-first, transparent workflow intact.
+Status: draft until the smoke test in [release.md](release.md) is recorded.
 
 ## Highlights
 
-- MySQL is now a supported relational provider with saved connections, schema and table browsing,
-  server-side filtering and sorting, visual query pipelines, staged row edits, reconnect flows,
-  full-result exports, and optional OS-backed password storage.
-- Redis and Valkey support TCP/TLS connections, typed previews for common value types, bounded
-  collection and string mutations, TTL and deletion workflows, argument-based command execution,
-  reconnect, and bounded JSON keyspace export.
-- SQLite browsing and querying enforce bounded previews while keeping full-result export explicit.
-- Provider operations now include clearer failure guidance, stale-request protection, reconnect
-  behavior, bounded network operations, and credential-safe error handling.
-- Diagnostics export provides a redacted app and provider state report without credentials or user
-  database contents.
-- The desktop shell is updated to Angular 22, Tauri 2.11.5, and Zone.js 0.16.2.
+- **A pipeline that means what it says.** Every block refers to the flowing rows by the source
+  table's name, so `orders.customer_id = customers.id` works in any position and keeps working
+  when blocks are reordered.
+- **JOINs without surprises.** Joined columns never collide: `customers.id` arrives as
+  `customers_id`. Picking a table pre-fills the ON condition from naming conventions.
+  (Previously a JOIN could fail on MySQL with "Duplicate column name", or on SQLite silently
+  filter the wrong `id` column in later steps.)
+- **Variables are parameters.** `:min_total` values are bound safely, numbers compare as numbers,
+  and an unset variable is reported on its block.
+- **MySQL gets the full pipeline.** The same builder as SQLite: undo/redo, drag to reorder,
+  branch and subpipeline joins, saved queries and history.
+- **Correct types.** A new native SQL layer returns exact decimals, real dates, JSON and binary
+  values. MySQL browse sorting is numeric again (`1299.99` sorts above `79.99`).
+- **Safer edits.** Staged edits run as one real transaction; if a row changed underneath you,
+  nothing is applied.
+- **Redis/Valkey** browser with typed previews, bounded edits and a command runner (no longer
+  blocks the window while it works).
 
 ## Known limitations
 
-- Quarry does not provide provider-native backup, point-in-time recovery, or restore workflows.
-- MySQL support is for daily relational inspection and cautious row edits, not full DBA
-  administration.
-- Redis/Valkey cluster topology, ACL administration, unbounded restore, pub/sub monitoring, and
-  module-specific editors are not included.
-- SQLCipher support and platform notarization/code signing remain deferred pending product demand
-  and operational justification.
-- Full-result exports can be expensive and are intentionally explicit; bounded previews are the
-  default.
+- Installers are not notarized/code-signed. macOS needs `xattr -cr /Applications/Quarry.app` on
+  first install; Windows needs "More info → Run anyway".
+- A raw SQL block hides its columns from the compiler until it runs; a JOIN right after one
+  prefixes every joined column.
+- Long-running queries stop after 60 seconds; there is no cancel button yet.
+- SQLite joins work within one database file.
+- Exports are not backups.

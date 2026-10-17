@@ -22,10 +22,9 @@ function createEmptyStep(type: StepType): PipelineStep {
 
 /**
  * Configuration UI for a JOIN step's subpipeline (mode === 'subpipeline'): picks the
- * source table for the nested pipeline and lets the user stack steps on top of it. Per
- * `docs/post-mvp-scoping.md`, this is v1 — sub-steps cannot themselves be subpipeline-mode
- * JOINs, and there's no live per-step preview inside the nested pipeline (only the outer
- * JOIN step's result is shown).
+ * source table for the nested pipeline and lets the user stack steps on top of it. Sub-steps
+ * cannot themselves be subpipeline-mode JOINs, and there's no live per-step preview inside
+ * the nested pipeline (only the outer JOIN step's result is shown).
  */
 @Component({
     selector: 'app-subpipeline-editor',
