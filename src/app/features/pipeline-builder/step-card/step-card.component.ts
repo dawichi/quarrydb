@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinMode, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
+import { suggestJoinOn } from '@quarrydb/shared/pipeline-sql'
 import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
-import { SqliteWorkspaceStore } from '../../../core/store/sqlite-workspace.store'
 import { SubpipelineEditorComponent } from './subpipeline-editor.component'
 
 @Component({
@@ -18,7 +18,6 @@ export class StepCardComponent implements OnInit {
 
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly pipelineStore = inject(PipelineStore)
-    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
     protected readonly expression = signal('')
@@ -40,23 +39,28 @@ export class StepCardComponent implements OnInit {
     protected readonly joinOn = signal('')
     protected readonly joinSubTable = signal('')
     protected readonly joinSubSteps = signal<PipelineStep[]>([])
-    protected readonly JOIN_TYPES: JoinType[] = ['INNER', 'LEFT', 'RIGHT', 'FULL']
-    protected readonly availableTables = computed(() => {
-        const srcAlias = this.pipelineStore.source()?.alias ?? ''
-        return this.workspaceStore.schemas().flatMap((schema) =>
-            schema.tables.map((table) => ({
-                value: schema.alias === srcAlias ? table.name : `${schema.alias}.${table.name}`,
-                label: schema.alias === srcAlias ? table.name : `${schema.alias} · ${table.name}`,
-            })),
-        )
-    })
+    protected readonly JOIN_TYPES = computed<JoinType[]>(() =>
+        this.pipelineStore.dialect() === 'mysql' ? ['INNER', 'LEFT', 'RIGHT'] : ['INNER', 'LEFT', 'RIGHT', 'FULL'],
+    )
+    protected readonly availableTables = computed(() =>
+        this.pipelineStore.tables().map((table) => ({ value: table.name, label: table.label })),
+    )
+    /** Columns flowing into this step, i.e. what its expressions can reference. */
+    protected readonly availableColumns = computed(() => this.pipelineStore.inputColumns(this.stepIndex()))
+    /** The name steps use for the rows flowing through the pipeline. */
+    protected readonly sourceAlias = computed(() => this.pipelineStore.compiled()?.sourceAlias ?? '')
     protected readonly joinTableColumns = computed(() => {
         const table = this.joinTable()
-        if (!table) return []
-        const srcAlias = this.pipelineStore.source()?.alias ?? ''
-        const [schemaAlias, tableName] = table.includes('.') ? table.split('.') : [srcAlias, table]
-        const schema = this.workspaceStore.schemas().find((s) => s.alias === schemaAlias)
-        return schema?.tables.find((t) => t.name === tableName)?.columns.map((c) => c.name) ?? []
+        return table ? this.pipelineStore.columnsOf(table) : []
+    })
+    /** How the ON condition refers to the joined side: its alias, or the table's own name. */
+    protected readonly joinRef = computed(() => {
+        const table = this.joinMode() === 'subpipeline' ? this.joinSubTable() : this.joinTable()
+        return this.joinAlias().trim() || table.split('.').at(-1) || ''
+    })
+    protected readonly joinOnPlaceholder = computed(() => {
+        const right = this.joinRef() || 'customers'
+        return `e.g. ${this.sourceAlias() || 'orders'}.${right.replace(/s$/, '')}_id = ${right}.id`
     })
 
     private debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -282,7 +286,8 @@ export class StepCardComponent implements OnInit {
     }
 
     protected cycleJoinType(): void {
-        const next = this.JOIN_TYPES[(this.JOIN_TYPES.indexOf(this.joinType()) + 1) % this.JOIN_TYPES.length]
+        const types = this.JOIN_TYPES()
+        const next = types[(types.indexOf(this.joinType()) + 1) % types.length]
         this.joinType.set(next)
         this.commitJoinChanges()
     }
@@ -290,7 +295,23 @@ export class StepCardComponent implements OnInit {
     protected onJoinTableChange(event: Event): void {
         const value = (event.target as HTMLSelectElement).value
         this.joinTable.set(value)
+        this.suggestJoinCondition()
         this.commitJoinChanges()
+    }
+
+    /** Pre-fills ON from naming conventions when the user has not typed one yet. */
+    private suggestJoinCondition(): void {
+        if (this.joinOn().trim()) return
+        const table = this.joinMode() === 'subpipeline' ? this.joinSubTable() : this.joinTable()
+        if (!table) return
+        this.joinOn.set(
+            suggestJoinOn(
+                this.sourceAlias(),
+                this.availableColumns(),
+                this.joinRef(),
+                this.pipelineStore.columnsOf(table),
+            ),
+        )
     }
 
     protected onJoinAliasInput(event: Event): void {
@@ -307,9 +328,8 @@ export class StepCardComponent implements OnInit {
         this.debounceTimer = setTimeout(() => this.commitJoinChanges(), 400)
     }
 
-    protected insertJoinColumn(textarea: HTMLTextAreaElement, col: string, qualify: boolean): void {
-        const qualifier = qualify ? `${this.joinAlias() || this.joinTable()}.` : ''
-        const text = qualifier + col
+    protected insertJoinColumn(textarea: HTMLTextAreaElement, col: string, right: boolean): void {
+        const text = `${right ? this.joinRef() : this.sourceAlias()}.${col}`
         const start = textarea.selectionStart ?? textarea.value.length
         const end = textarea.selectionEnd ?? textarea.value.length
         const next = textarea.value.substring(0, start) + text + textarea.value.substring(end)
@@ -323,6 +343,7 @@ export class StepCardComponent implements OnInit {
 
     protected onJoinSubTableChange(value: string): void {
         this.joinSubTable.set(value)
+        this.suggestJoinCondition()
         this.commitJoinChanges()
     }
 

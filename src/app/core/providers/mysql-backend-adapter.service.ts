@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
 import type { Column } from '@quarrydb/shared'
 import { quoteIdentifier } from '@quarrydb/shared/sql-identifiers'
-import { connectSql, type SqlClient, type SqlStatement, toRecords } from '../native/sql-client'
+import { connectSql, type SqlClient, type SqlStatement, toRecords, uniqueColumnNames } from '../native/sql-client'
 import { describeSafeError } from '../services/safe-error'
 import type { EditOperation } from '../store/edit.store'
 import type {
@@ -149,6 +149,22 @@ export class MysqlBackendAdapterService implements MysqlBackendAdapter {
             affectedRows: result.rowsAffected,
             lastInsertId: result.lastInsertId ?? undefined,
         }
+    }
+
+    /** Runs a compiled pipeline query; the native layer stops reading at `maxRows`. */
+    async runBound(
+        session: MysqlConnectionSession,
+        sql: string,
+        params: unknown[],
+        maxRows?: number,
+    ): Promise<{ rows: Record<string, unknown>[]; columns: string[] }> {
+        const result = await this.client(session).query(sql, params, maxRows)
+        return { rows: toRecords(result), columns: uniqueColumnNames(result.columns) }
+    }
+
+    async countBound(session: MysqlConnectionSession, sql: string, params: unknown[]): Promise<number> {
+        const [row] = await this.client(session).select<Array<{ count: number }>>(sql, params)
+        return Number(row?.count ?? 0)
     }
 
     async runQueryFull(session: MysqlConnectionSession, sql: string): Promise<Record<string, unknown>[]> {

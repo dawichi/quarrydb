@@ -47,10 +47,10 @@
             ></textarea>
 
             <!-- Column chips -->
-            @if (pipelineStore.source()?.columns?.length) {
+            @if (availableColumns().length) {
                 <div class="flex flex-wrap gap-1">
                     <span class="text-xs text-zinc-600 self-center">Columns:</span>
-                    @for (col of pipelineStore.source()!.columns; track col) {
+                    @for (col of availableColumns(); track col) {
                         <button
                             type="button"
                             class="px-1.5 py-0.5 rounded text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors font-mono"
@@ -109,7 +109,7 @@
                         type="button"
                         class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0"
                         (click)="cycleJoinType()"
-                        title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                        [title]="'Click to cycle: ' + JOIN_TYPES().join(' → ')"
                     >{{ joinType() }}</button>
                     <span class="text-xs text-zinc-600 flex-shrink-0">JOIN</span>
                     <select
@@ -174,7 +174,7 @@
                             type="button"
                             class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
                             (click)="cycleJoinType()"
-                            title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                            [title]="'Click to cycle: ' + JOIN_TYPES().join(' → ')"
                         >{{ joinType() }} JOIN</button>
                         <svg class="w-px" height="8" aria-hidden="true">
                             <line x1="0" y1="0" x2="0" y2="8" stroke="#52525b" stroke-width="1.5"/>
@@ -198,7 +198,7 @@
                         type="button"
                         class="px-2 py-0.5 rounded text-xs font-mono font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex-shrink-0"
                         (click)="cycleJoinType()"
-                        title="Click to cycle: INNER → LEFT → RIGHT → FULL"
+                        [title]="'Click to cycle: ' + JOIN_TYPES().join(' → ')"
                     >{{ joinType() }}</button>
                     <span class="text-xs text-zinc-600 flex-shrink-0">JOIN subpipeline output AS</span>
                     <input
@@ -217,16 +217,16 @@
                     #onTextarea
                     class="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 resize-none font-mono focus:outline-none focus:border-sky-500/50 transition-colors"
                     rows="2"
-                    placeholder="e.g. orders.user_id = users.id"
+                    [placeholder]="joinOnPlaceholder()"
                     [value]="joinOn()"
                     (input)="onJoinOnInput($event)"
                 ></textarea>
 
                 <!-- Left column chips (source table) -->
-                @if (pipelineStore.source()?.columns?.length) {
+                @if (availableColumns().length) {
                     <div class="flex flex-wrap gap-1">
-                        <span class="text-xs text-zinc-600 self-center">Left:</span>
-                        @for (col of pipelineStore.source()!.columns; track col) {
+                        <span class="text-xs text-zinc-600 self-center font-mono">{{ sourceAlias() }}:</span>
+                        @for (col of availableColumns(); track col) {
                             <button
                                 type="button"
                                 class="px-1.5 py-0.5 rounded text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors font-mono"
@@ -238,10 +238,10 @@
 
                 <!-- Right column chips (joined table / subpipeline output) -->
                 @if (joinMode() === 'subpipeline') {
-                    <p class="text-xs text-zinc-600 italic">Right side is the subpipeline output — reference its columns by alias, e.g. {{ joinAlias() || 'alias' }}.column</p>
+                    <p class="text-xs text-zinc-600 italic">Right side is the subpipeline output — reference its columns as {{ joinRef() || 'alias' }}.column</p>
                 } @else if (joinTableColumns().length > 0) {
                     <div class="flex flex-wrap gap-1">
-                        <span class="text-xs text-zinc-600 self-center">Right:</span>
+                        <span class="text-xs text-zinc-600 self-center font-mono">{{ joinRef() }}:</span>
                         @for (col of joinTableColumns(); track col) {
                             <button
                                 type="button"
@@ -319,10 +319,10 @@
             }
 
             <!-- Source column chips -->
-            @if (pipelineStore.source()?.columns?.length) {
+            @if (availableColumns().length) {
                 <div class="flex flex-wrap gap-1">
                     <span class="text-xs text-zinc-600 self-center">Columns:</span>
-                    @for (col of pipelineStore.source()!.columns; track col) {
+                    @for (col of availableColumns(); track col) {
                         <button
                             type="button"
                             class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
@@ -356,10 +356,10 @@
         <div class="p-3 flex flex-col gap-3">
 
             <!-- Group-by column chips -->
-            @if (pipelineStore.source()?.columns?.length) {
+            @if (availableColumns().length) {
                 <div class="flex flex-wrap gap-1">
                     <span class="text-xs text-zinc-600 self-center">Group by:</span>
-                    @for (col of pipelineStore.source()!.columns; track col) {
+                    @for (col of availableColumns(); track col) {
                         <button
                             type="button"
                             class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"
@@ -474,10 +474,10 @@
             }
 
             <!-- Column chips -->
-            @if (pipelineStore.source()?.columns?.length) {
+            @if (availableColumns().length) {
                 <div class="flex flex-wrap gap-1">
                     <span class="text-xs text-zinc-600 self-center">Columns:</span>
-                    @for (col of pipelineStore.source()!.columns; track col) {
+                    @for (col of availableColumns(); track col) {
                         <button
                             type="button"
                             class="px-1.5 py-0.5 rounded text-xs font-mono transition-colors"

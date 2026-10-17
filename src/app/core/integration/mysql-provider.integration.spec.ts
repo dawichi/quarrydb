@@ -1,5 +1,5 @@
 import type { PipelineStep } from '@quarrydb/shared'
-import { buildPipelineSql } from '@quarrydb/shared/pipeline-sql'
+import { compilePipeline } from '@quarrydb/shared/pipeline-sql'
 import { type Connection, createConnection, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { SqlClient, SqlExecResult, SqlRows, SqlStatement } from '../native/sql-client'
@@ -166,15 +166,20 @@ describeMysql('MySQL provider against a real MySQL server', () => {
     })
 
     it('executes generated WHERE, JOIN, GROUP BY, and ORDER BY pipelines end to end', async () => {
+        const tables = await service.listTables(session, 'quarry_demo')
+        const schema = {
+            columnsOf: (name: string) =>
+                tables.find((table) => `quarry_demo.${table.name}` === name)?.columns.map((column) => column.name),
+        }
         const steps: PipelineStep[] = [
-            { id: 'where', type: 'WHERE', expression: 'total > 100' },
+            { id: 'where', type: 'WHERE', expression: 'total > :min' },
             {
                 id: 'join',
                 type: 'JOIN',
                 mode: 'inline',
                 joinType: 'INNER',
                 table: 'quarry_demo.customers',
-                on: 'customers.id = step_2.customer_id',
+                on: 'orders.customer_id = customers.id',
             },
             {
                 id: 'group',
@@ -182,18 +187,38 @@ describeMysql('MySQL provider against a real MySQL server', () => {
                 groupBy: ['name'],
                 aggregations: [{ fn: 'SUM', expr: 'total', alias: 'revenue' }],
             },
-            { id: 'order', type: 'ORDER_BY', columns: [{ name: 'name', direction: 'ASC' }], limit: null },
+            {
+                id: 'order',
+                type: 'ORDER_BY',
+                columns: [
+                    { name: 'revenue', direction: 'DESC' },
+                    { name: 'name', direction: 'ASC' },
+                ],
+                limit: null,
+            },
         ]
-        const sql = buildPipelineSql('quarry_demo.orders', steps, {}, 'mysql')
-        const rows = await service.runQueryFull(session, sql)
-        const preview = await service.runQuery(session, sql, 3)
+        const compiled = compilePipeline('quarry_demo.orders', steps, {
+            dialect: 'mysql',
+            schema,
+            variables: { min: '100' },
+        })
+        expect(compiled.steps.map((step) => step.error)).toEqual([null, null, null, null])
 
-        expect(sql).toContain('`quarry_demo`.`orders`')
-        expect(sql).toContain('INNER JOIN `quarry_demo`.`customers`')
-        expect(rows).toHaveLength(10)
-        expect(rows[0]).toMatchObject({ name: 'Alice Martin', revenue: 1569.96 })
-        expect(rows.at(-1)).toMatchObject({ name: "James O'Brien", revenue: 119.98 })
-        expect(preview.rows).toHaveLength(3)
+        const joined = await service.runBound(session, compiled.query(1).sql, compiled.query(1).params)
+        expect(new Set(joined.columns).size).toBe(joined.columns.length)
+        expect(joined.columns).toContain('customers_id')
+
+        const all = await service.runBound(session, compiled.query(3).sql, compiled.query(3).params)
+        const preview = await service.runBound(session, compiled.query(3, { limit: 3 }).sql, compiled.query(3).params)
+        const total = await service.countBound(session, compiled.count(3).sql, compiled.count(3).params)
+
+        expect(all.rows).toHaveLength(10)
+        expect(total).toBe(10)
+        expect(all.rows[0]).toMatchObject({ name: 'Alice Martin', revenue: 1569.96 })
+        expect(all.rows.map((row) => row['revenue'])).toEqual(
+            [...all.rows.map((row) => row['revenue'] as number)].sort((a, b) => b - a),
+        )
+        expect(preview.rows).toEqual(all.rows.slice(0, 3))
         expect(preview.columns).toEqual(['name', 'revenue'])
     })
 

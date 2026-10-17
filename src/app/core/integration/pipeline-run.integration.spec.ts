@@ -1,8 +1,8 @@
 import type { PipelineStep } from '@quarrydb/shared'
+import { compilePipeline } from '@quarrydb/shared/pipeline-sql'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExportService } from '../services/export.service'
 import { SqliteDatabaseService } from '../services/sqlite-database.service'
-import { buildPipelineSql } from '../store/pipeline.store'
 import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-sql-client'
 import { SAMPLE_SCHEMA_SQL } from './fixtures/sample-schema'
 
@@ -21,8 +21,16 @@ const exportSvc = new ExportService()
 beforeAll(() => seedFixtureDb(FIXTURE_PATH, SAMPLE_SCHEMA_SQL))
 afterAll(() => closeFixtureDbs())
 
+/** Compiles against the real schema (as the app does) and runs through the SQL client. */
 async function runPipeline(table: string, steps: PipelineStep[]): Promise<Record<string, unknown>[]> {
-    return db.executeQueryFull(FIXTURE_PATH, buildPipelineSql(table, steps))
+    const schema = await db.loadSchema(FIXTURE_PATH, 'main')
+    const compiled = compilePipeline(table, steps, {
+        schema: { columnsOf: (name) => schema.tables.find((t) => t.name === name)?.columns.map((c) => c.name) },
+    })
+    const failed = compiled.steps.find((step) => step.error)
+    if (failed) throw new Error(failed.error ?? 'compile error')
+    const { sql, params } = compiled.query(steps.length - 1)
+    return (await db.runBound(FIXTURE_PATH, sql, params)).rows
 }
 
 // ─── Pipeline build → run ─────────────────────────────────────────────────────
@@ -43,10 +51,10 @@ describe('pipeline run (integration)', () => {
                 joinType: 'INNER',
                 table: 'customers',
                 alias: 'c',
-                on: 'customer_id = c.id',
+                on: 'orders.customer_id = c.id',
             },
-            // Note: once the JOIN step's CTE flattens the result, "c" is no longer in scope —
-            // joined columns are referenced by their bare (unambiguous) name, not "c.name".
+            // The JOIN flattens its output: joined columns keep their name unless the left
+            // side already has it (`c.id` becomes `c_id`), so later steps use bare names.
             {
                 id: 's2',
                 type: 'SELECT',

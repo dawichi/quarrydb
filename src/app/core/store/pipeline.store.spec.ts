@@ -1,541 +1,139 @@
-import type { PipelineStep } from '@quarrydb/shared'
-import { describe, expect, it } from 'vitest'
-import { buildPipelineSql } from './pipeline.store'
+import { DatabaseSync } from 'node:sqlite'
+import { Injector, runInInjectionContext } from '@angular/core'
+import type { BoundSql } from '@quarrydb/shared/pipeline-sql'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ExportService } from '../services/export.service'
+import { QueryHistoryService } from '../services/query-history.service'
+import { PipelineStore } from './pipeline.store'
+import { columnsFromTables, type PipelineBackend, type PipelineTable } from './pipeline-backend'
 
-// Helpers to keep step construction terse
-const id = 'test-id'
-
-function cte(...bodies: string[]): string {
-    const steps = [`step_1 AS (SELECT * FROM "users")`]
-    for (let i = 0; i < bodies.length; i++) {
-        steps.push(`step_${i + 2} AS (${bodies[i]})`)
+function sqliteBackend(key = 'shop.db'): PipelineBackend & { db: DatabaseSync; runs: BoundSql[] } {
+    const db = new DatabaseSync(':memory:')
+    db.exec(`
+        CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL);
+        INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob');
+        INSERT INTO orders VALUES (1, 1, 50), (2, 1, 20), (3, 2, 75);
+    `)
+    const tables: PipelineTable[] = [
+        { name: 'customers', label: 'customers', columns: ['id', 'name'] },
+        { name: 'orders', label: 'orders', columns: ['id', 'customer_id', 'total'] },
+    ]
+    const runs: BoundSql[] = []
+    return {
+        db,
+        runs,
+        key,
+        label: 'shop',
+        dialect: 'sqlite',
+        tables: () => tables,
+        columnsOf: (name) => columnsFromTables(tables, name),
+        run: async (query) => {
+            runs.push(query)
+            const statement = db.prepare(query.sql)
+            const rows = statement.all(...(query.params as Array<string | number>)) as Record<string, unknown>[]
+            return { rows, columns: statement.columns().map((column) => column.name) }
+        },
+        count: async (query) =>
+            Number((db.prepare(query.sql).get(...(query.params as Array<string | number>)) as { count: number }).count),
     }
-    return `WITH ${steps.join(',\n     ')}\nSELECT * FROM step_${bodies.length + 1}`
 }
 
-// ─── buildPipelineSql ─────────────────────────────────────────────────────────
+async function settle(): Promise<void> {
+    for (let i = 0; i < 10; i++) await new Promise((resolve) => setTimeout(resolve, 0))
+}
 
-describe('buildPipelineSql', () => {
-    describe('no steps', () => {
-        it('returns a plain SELECT when there are no steps', () => {
-            expect(buildPipelineSql('users', [])).toBe('SELECT * FROM "users"')
-        })
+describe('PipelineStore', () => {
+    let store: PipelineStore
+    let backend: ReturnType<typeof sqliteBackend>
 
-        it('quotes table names with spaces', () => {
-            expect(buildPipelineSql('my table', [])).toBe('SELECT * FROM "my table"')
+    beforeEach(async () => {
+        const injector = Injector.create({
+            providers: [
+                { provide: ExportService, useValue: {} },
+                { provide: QueryHistoryService, useValue: { log: vi.fn() } },
+            ],
         })
+        store = runInInjectionContext(injector, () => new PipelineStore())
+        backend = sqliteBackend()
+        await store.openForTable({ backend, tableName: 'orders', columns: ['id', 'customer_id', 'total'] })
     })
 
-    // ─── WHERE ────────────────────────────────────────────────────────────────
-
-    describe('WHERE step', () => {
-        it('wraps condition in a CTE', () => {
-            const steps: PipelineStep[] = [{ id, type: 'WHERE', expression: 'age > 18' }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1 WHERE age > 18'))
-        })
-
-        it('passes through complex boolean expressions', () => {
-            const steps: PipelineStep[] = [{ id, type: 'WHERE', expression: "status = 'active' AND score >= 90" }]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte("SELECT * FROM step_1 WHERE status = 'active' AND score >= 90"),
-            )
-        })
+    it('counts the source table on open', () => {
+        expect(store.source()).toMatchObject({ path: 'shop.db', tableName: 'orders', rowCount: 3 })
     })
 
-    // ─── SELECT ───────────────────────────────────────────────────────────────
+    it('runs each step and reports rows and totals per step', async () => {
+        store.addStep()
+        store.updateStepExpression(0, 'total > 30')
+        store.addJoinStep()
+        store.updateJoinStep(1, 'INNER', 'customers', undefined, 'orders.customer_id = customers.id')
+        await settle()
 
-    describe('SELECT step', () => {
-        it('returns SELECT * when columns array is empty', () => {
-            const steps: PipelineStep[] = [{ id, type: 'SELECT', columns: [] }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('lists named columns', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'SELECT',
-                    columns: [{ expr: 'id' }, { expr: 'name' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT id, name FROM step_1'))
-        })
-
-        it('applies aliases', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'SELECT',
-                    columns: [{ expr: 'first_name', alias: 'name' }, { expr: 'age' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT first_name AS "name", age FROM step_1'))
-        })
-
-        it('skips columns with an empty expression', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'SELECT',
-                    columns: [{ expr: 'id' }, { expr: '' }, { expr: 'name' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT id, name FROM step_1'))
-        })
-
-        it('falls back to SELECT * when all expressions are blank', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'SELECT',
-                    columns: [{ expr: '' }, { expr: '   ' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('supports computed expressions', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'SELECT',
-                    columns: [{ expr: 'price * 1.21', alias: 'price_vat' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT price * 1.21 AS "price_vat" FROM step_1'))
-        })
+        const [filtered, joined] = store.stepResults()
+        expect(filtered).toMatchObject({ total: 2, error: null, isLoading: false })
+        expect(joined.columns).toEqual(['id', 'customer_id', 'total', 'customers_id', 'name'])
+        expect(joined.rows.map((row) => row.name)).toEqual(['Alice', 'Bob'])
+        expect(store.inputColumns(1)).toEqual(['id', 'customer_id', 'total'])
     })
 
-    // ─── ORDER BY ─────────────────────────────────────────────────────────────
+    it('shows compile errors on the step and blocks the ones after it', async () => {
+        store.addStep()
+        store.updateStepExpression(0, 'total > :min')
+        store.addStep()
+        store.updateStepExpression(1, 'id > 0')
+        await settle()
 
-    describe('ORDER BY step', () => {
-        it('sorts by a single column ASC', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'ORDER_BY',
-                    columns: [{ name: 'name', direction: 'ASC' }],
-                    limit: null,
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1 ORDER BY "name" ASC'))
-        })
+        expect(store.stepResults().map((result) => result.error)).toEqual([
+            'Set a value for :min',
+            'Blocked by an error in an earlier step',
+        ])
 
-        it('sorts by multiple columns with mixed directions', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'ORDER_BY',
-                    columns: [
-                        { name: 'score', direction: 'DESC' },
-                        { name: 'name', direction: 'ASC' },
-                    ],
-                    limit: null,
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1 ORDER BY "score" DESC, "name" ASC'))
-        })
-
-        it('adds LIMIT when set', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'ORDER_BY',
-                    columns: [{ name: 'id', direction: 'ASC' }],
-                    limit: 100,
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1 ORDER BY "id" ASC LIMIT 100'))
-        })
-
-        it('emits just a LIMIT with no sort columns', () => {
-            const steps: PipelineStep[] = [{ id, type: 'ORDER_BY', columns: [], limit: 10 }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1 LIMIT 10'))
-        })
-
-        it('emits SELECT * when both columns and limit are absent', () => {
-            const steps: PipelineStep[] = [{ id, type: 'ORDER_BY', columns: [], limit: null }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
+        store.setVariableValue('min', '40')
+        store.reExecute()
+        await settle()
+        expect(store.stepResults().map((result) => result.total)).toEqual([2, 2])
+        expect(backend.runs.at(-1)?.params).toEqual([40])
     })
 
-    // ─── GROUP BY ─────────────────────────────────────────────────────────────
-
-    describe('GROUP BY step', () => {
-        it('returns SELECT * when groupBy is empty', () => {
-            const steps: PipelineStep[] = [{ id, type: 'GROUP_BY', groupBy: [], aggregations: [] }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
+    it('restores saved steps when the matching table opens', async () => {
+        store.clear()
+        store.restoreWhenOpened({
+            path: 'shop.db',
+            tableName: 'orders',
+            steps: [{ id: 'w', type: 'WHERE', expression: 'customer_id = :who' }],
+            variableValues: { who: '2' },
         })
+        await store.openForTable({ backend, tableName: 'orders', columns: ['id', 'customer_id', 'total'] })
+        await settle()
 
-        it('groups by a single column with no aggregations', () => {
-            const steps: PipelineStep[] = [{ id, type: 'GROUP_BY', groupBy: ['status'], aggregations: [] }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT "status" FROM step_1 GROUP BY "status"'))
-        })
-
-        it('includes aggregations alongside group columns', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'GROUP_BY',
-                    groupBy: ['department'],
-                    aggregations: [{ fn: 'COUNT', expr: '*', alias: 'headcount' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte('SELECT "department", COUNT(*) AS "headcount" FROM step_1 GROUP BY "department"'),
-            )
-        })
-
-        it('uses fn name as fallback alias when alias is blank', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'GROUP_BY',
-                    groupBy: ['country'],
-                    aggregations: [{ fn: 'SUM', expr: 'revenue', alias: '' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte('SELECT "country", SUM(revenue) AS "sum" FROM step_1 GROUP BY "country"'),
-            )
-        })
-
-        it('skips aggregation rows with a blank expression', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'GROUP_BY',
-                    groupBy: ['type'],
-                    aggregations: [{ fn: 'AVG', expr: '', alias: 'avg_score' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT "type" FROM step_1 GROUP BY "type"'))
-        })
-
-        it('supports multiple group columns and multiple aggregations', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'GROUP_BY',
-                    groupBy: ['year', 'region'],
-                    aggregations: [
-                        { fn: 'SUM', expr: 'sales', alias: 'total_sales' },
-                        { fn: 'AVG', expr: 'margin', alias: 'avg_margin' },
-                    ],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte(
-                    'SELECT "year", "region", SUM(sales) AS "total_sales", AVG(margin) AS "avg_margin" FROM step_1 GROUP BY "year", "region"',
-                ),
-            )
-        })
+        expect(store.steps()).toHaveLength(1)
+        expect(store.stepResults()[0]).toMatchObject({ total: 1 })
     })
 
-    // ─── JOIN ─────────────────────────────────────────────────────────────────
-
-    describe('JOIN step', () => {
-        it('returns SELECT * when table is missing', () => {
-            const steps: PipelineStep[] = [
-                { id, type: 'JOIN', mode: 'inline', joinType: 'INNER', table: '', on: 'a.id = b.id' },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('returns SELECT * when ON clause is missing', () => {
-            const steps: PipelineStep[] = [
-                { id, type: 'JOIN', mode: 'inline', joinType: 'INNER', table: 'orders', on: '' },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('generates INNER JOIN for same-schema table', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'inline',
-                    joinType: 'INNER',
-                    table: 'orders',
-                    on: 'step_1.id = orders.user_id',
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte('SELECT * FROM step_1 INNER JOIN "orders" ON step_1.id = orders.user_id'),
-            )
-        })
-
-        it('generates LEFT JOIN', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'inline',
-                    joinType: 'LEFT',
-                    table: 'orders',
-                    on: 'step_1.id = orders.user_id',
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte('SELECT * FROM step_1 LEFT JOIN "orders" ON step_1.id = orders.user_id'),
-            )
-        })
-
-        it('quotes cross-schema table references', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'inline',
-                    joinType: 'INNER',
-                    table: 'analytics.events',
-                    on: 'step_1.id = events.user_id',
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte('SELECT * FROM step_1 INNER JOIN "analytics"."events" ON step_1.id = events.user_id'),
-            )
-        })
-
-        it('adds AS alias when provided', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'inline',
-                    joinType: 'INNER',
-                    table: 'orders',
-                    alias: 'o',
-                    on: 'step_1.id = o.user_id',
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte('SELECT * FROM step_1 INNER JOIN "orders" AS "o" ON step_1.id = o.user_id'),
-            )
-        })
+    it('only loads saved queries that belong to the open database', () => {
+        const query = {
+            id: 'q',
+            name: 'Big orders',
+            source: { path: 'other.db', alias: 'other', tableName: 'orders', columns: [] },
+            steps: [],
+            createdAt: 0,
+            updatedAt: 0,
+        }
+        expect(store.loadSavedQuery(query)).toBe(false)
+        expect(store.loadSavedQuery({ ...query, source: { ...query.source, path: 'shop.db' } })).toBe(true)
     })
 
-    // ─── JOIN: subpipeline mode ────────────────────────────────────────────────
-
-    describe('JOIN step — subpipeline mode', () => {
-        it('passes through when subTable is missing', () => {
-            const steps: PipelineStep[] = [
-                { id, type: 'JOIN', mode: 'subpipeline', joinType: 'INNER', table: '', on: 'step_1.id = o.user_id' },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('passes through when ON clause is missing', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'subpipeline',
-                    joinType: 'INNER',
-                    table: '',
-                    on: '',
-                    subTable: 'orders',
-                    subSteps: [],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('generates a flat sub-CTE chain with no sub-steps', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'subpipeline',
-                    joinType: 'INNER',
-                    table: '',
-                    alias: 'o',
-                    on: 'step_1.id = o.user_id',
-                    subTable: 'orders',
-                    subSteps: [],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                [
-                    'WITH step_1 AS (SELECT * FROM "users"),',
-                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
-                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_1 AS "o" ON step_1.id = o.user_id)',
-                    'SELECT * FROM step_2',
-                ].join('\n'),
-            )
-        })
-
-        it('chains a WHERE sub-step before the join', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'subpipeline',
-                    joinType: 'INNER',
-                    table: '',
-                    alias: 'o',
-                    on: 'step_1.id = o.user_id',
-                    subTable: 'orders',
-                    subSteps: [{ id: 'sub1', type: 'WHERE', expression: 'amount > 100' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                [
-                    'WITH step_1 AS (SELECT * FROM "users"),',
-                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
-                    '     step_2_sub_2 AS (SELECT * FROM step_2_sub_1 WHERE amount > 100),',
-                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_2 AS "o" ON step_1.id = o.user_id)',
-                    'SELECT * FROM step_2',
-                ].join('\n'),
-            )
-        })
-
-        it('chains multiple sub-steps (WHERE then GROUP BY)', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'subpipeline',
-                    joinType: 'LEFT',
-                    table: '',
-                    alias: 'o',
-                    on: 'step_1.id = o.user_id',
-                    subTable: 'orders',
-                    subSteps: [
-                        { id: 'sub1', type: 'WHERE', expression: 'amount > 100' },
-                        {
-                            id: 'sub2',
-                            type: 'GROUP_BY',
-                            groupBy: ['user_id'],
-                            aggregations: [{ fn: 'SUM', expr: 'amount', alias: 'total' }],
-                        },
-                    ],
-                },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                [
-                    'WITH step_1 AS (SELECT * FROM "users"),',
-                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
-                    '     step_2_sub_2 AS (SELECT * FROM step_2_sub_1 WHERE amount > 100),',
-                    '     step_2_sub_3 AS (SELECT "user_id", SUM(amount) AS "total" FROM step_2_sub_2 GROUP BY "user_id"),',
-                    '     step_2 AS (SELECT * FROM step_1 LEFT JOIN step_2_sub_3 AS "o" ON step_1.id = o.user_id)',
-                    'SELECT * FROM step_2',
-                ].join('\n'),
-            )
-        })
-
-        it('continues the outer pipeline after a subpipeline JOIN', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id: 's1',
-                    type: 'JOIN',
-                    mode: 'subpipeline',
-                    joinType: 'INNER',
-                    table: '',
-                    alias: 'o',
-                    on: 'step_1.id = o.user_id',
-                    subTable: 'orders',
-                    subSteps: [],
-                },
-                { id: 's2', type: 'WHERE', expression: 'o.user_id IS NOT NULL' },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                [
-                    'WITH step_1 AS (SELECT * FROM "users"),',
-                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
-                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_1 AS "o" ON step_1.id = o.user_id),',
-                    '     step_3 AS (SELECT * FROM step_2 WHERE o.user_id IS NOT NULL)',
-                    'SELECT * FROM step_3',
-                ].join('\n'),
-            )
-        })
-
-        it('substitutes variables in both the ON clause and sub-step expressions', () => {
-            const steps: PipelineStep[] = [
-                {
-                    id,
-                    type: 'JOIN',
-                    mode: 'subpipeline',
-                    joinType: 'INNER',
-                    table: '',
-                    alias: 'o',
-                    on: 'step_1.id = o.user_id AND o.amount > :minAmount',
-                    subTable: 'orders',
-                    subSteps: [{ id: 'sub1', type: 'WHERE', expression: 'amount > :minAmount' }],
-                },
-            ]
-            expect(buildPipelineSql('users', steps, { minAmount: '100' })).toBe(
-                [
-                    'WITH step_1 AS (SELECT * FROM "users"),',
-                    '     step_2_sub_1 AS (SELECT * FROM "orders"),',
-                    '     step_2_sub_2 AS (SELECT * FROM step_2_sub_1 WHERE amount > 100),',
-                    '     step_2 AS (SELECT * FROM step_1 INNER JOIN step_2_sub_2 AS "o" ON step_1.id = o.user_id AND o.amount > 100)',
-                    'SELECT * FROM step_2',
-                ].join('\n'),
-            )
-        })
-    })
-
-    // ─── RAW SQL ──────────────────────────────────────────────────────────────
-
-    describe('RAW SQL step', () => {
-        it('returns SELECT * when sql is empty', () => {
-            const steps: PipelineStep[] = [{ id, type: 'RAW_SQL', sql: '' }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('returns SELECT * when sql is whitespace only', () => {
-            const steps: PipelineStep[] = [{ id, type: 'RAW_SQL', sql: '   ' }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1'))
-        })
-
-        it('substitutes {src} with the previous step reference', () => {
-            const steps: PipelineStep[] = [{ id, type: 'RAW_SQL', sql: 'SELECT * FROM {src} WHERE active = 1' }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT * FROM step_1 WHERE active = 1'))
-        })
-
-        it('replaces all occurrences of {src}', () => {
-            const steps: PipelineStep[] = [
-                { id, type: 'RAW_SQL', sql: 'SELECT id FROM {src} UNION SELECT id FROM {src} WHERE deleted = 1' },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                cte('SELECT id FROM step_1 UNION SELECT id FROM step_1 WHERE deleted = 1'),
-            )
-        })
-
-        it('passes through arbitrary SQL verbatim when no {src} placeholder', () => {
-            const steps: PipelineStep[] = [{ id, type: 'RAW_SQL', sql: 'SELECT 1 AS one' }]
-            expect(buildPipelineSql('users', steps)).toBe(cte('SELECT 1 AS one'))
-        })
-    })
-
-    // ─── Multi-step CTE chaining ──────────────────────────────────────────────
-
-    describe('multi-step pipelines', () => {
-        it('chains two steps into a three-CTE query', () => {
-            const steps: PipelineStep[] = [
-                { id, type: 'WHERE', expression: 'active = 1' },
-                { id: 'id2', type: 'ORDER_BY', columns: [{ name: 'name', direction: 'ASC' }], limit: null },
-            ]
-            expect(buildPipelineSql('users', steps)).toBe(
-                'WITH step_1 AS (SELECT * FROM "users"),\n' +
-                    '     step_2 AS (SELECT * FROM step_1 WHERE active = 1),\n' +
-                    '     step_3 AS (SELECT * FROM step_2 ORDER BY "name" ASC)\n' +
-                    'SELECT * FROM step_3',
-            )
-        })
-
-        it('references the correct prev step at each level', () => {
-            const steps: PipelineStep[] = [
-                { id, type: 'WHERE', expression: 'score > 50' },
-                { id: 'id2', type: 'SELECT', columns: [{ expr: 'id' }, { expr: 'score' }] },
-                { id: 'id3', type: 'ORDER_BY', columns: [{ name: 'score', direction: 'DESC' }], limit: 5 },
-            ]
-            const sql = buildPipelineSql('users', steps)
-            expect(sql).toContain('step_2 AS (SELECT * FROM step_1 WHERE score > 50)')
-            expect(sql).toContain('step_3 AS (SELECT id, score FROM step_2)')
-            expect(sql).toContain('step_4 AS (SELECT * FROM step_3 ORDER BY "score" DESC LIMIT 5)')
-            expect(sql).toContain('SELECT * FROM step_4')
-        })
+    it('undoes and redoes step edits', async () => {
+        store.addStep()
+        store.updateStepExpression(0, 'total > 30')
+        store.undo()
+        expect(store.steps()[0]).toMatchObject({ type: 'WHERE', expression: '' })
+        store.undo()
+        expect(store.steps()).toEqual([])
+        store.redo()
+        store.redo()
+        expect(store.steps()[0]).toMatchObject({ expression: 'total > 30' })
+        expect(store.canRedo()).toBe(false)
     })
 })

@@ -22,6 +22,7 @@ describe('SessionService', () => {
         selectedTable: vi.fn(),
     }
     const pipelineStore = {
+        dialect: () => 'sqlite',
         source: vi.fn(),
         steps: vi.fn(),
         variableValues: variableValuesFn,

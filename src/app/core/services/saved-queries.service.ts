@@ -23,8 +23,9 @@ export class SavedQueriesService {
         }
     }
 
-    forTable(tableName: string): SavedQuery[] {
-        return this.load().filter((q) => q.source.tableName === tableName)
+    /** Saved queries for a table, optionally only those saved against one database. */
+    forTable(tableName: string, path?: string): SavedQuery[] {
+        return this.load().filter((q) => q.source.tableName === tableName && (!path || q.source.path === path))
     }
 
     save(query: SavedQuery): void {

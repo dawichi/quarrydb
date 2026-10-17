@@ -1,11 +1,20 @@
-import { ChangeDetectionStrategy, Component, effect, HostListener, inject, signal } from '@angular/core'
+import {
+    ChangeDetectionStrategy,
+    Component,
+    effect,
+    HostListener,
+    inject,
+    input,
+    signal,
+    untracked,
+} from '@angular/core'
 import type { ExportFormat } from '../../core/services/export.service'
 import type { QueryHistoryEntry } from '../../core/services/query-history.service'
 import { QueryHistoryService } from '../../core/services/query-history.service'
 import type { SavedQuery } from '../../core/services/saved-queries.service'
 import { SavedQueriesService } from '../../core/services/saved-queries.service'
 import { PipelineStore } from '../../core/store/pipeline.store'
-import { SqliteWorkspaceStore } from '../../core/store/sqlite-workspace.store'
+import type { PipelineTarget } from '../../core/store/pipeline-backend'
 import { StepCardComponent } from './step-card/step-card.component'
 
 @Component({
@@ -16,9 +25,12 @@ import { StepCardComponent } from './step-card/step-card.component'
     templateUrl: './pipeline-builder.component.html',
 })
 export class PipelineBuilderComponent {
+    // ─── Inputs ───────────────────────────────────────────────────────────────
+    /** The table to build on, from whichever SQL workspace hosts the builder. */
+    readonly target = input<PipelineTarget | null>(null)
+
     // ─── Injected Services ────────────────────────────────────────────────────
     protected readonly pipelineStore = inject(PipelineStore)
-    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
     private readonly savedQueriesSvc = inject(SavedQueriesService)
     private readonly queryHistorySvc = inject(QueryHistoryService)
 
@@ -37,22 +49,14 @@ export class PipelineBuilderComponent {
     protected readonly historyEnabled = signal(false)
     protected readonly historyEntries = signal<QueryHistoryEntry[]>([])
     protected readonly historySearch = signal('')
+    protected readonly loadError = signal<string | null>(null)
     private varDebounce: ReturnType<typeof setTimeout> | null = null
 
     constructor() {
-        // Initialize pipeline whenever the selected table changes
+        // Open the pipeline whenever the host selects another table
         effect(() => {
-            const sel = this.workspaceStore.selectedTable()
-            if (!sel) return
-            const schema = this.workspaceStore.schemas().find((s) => s.alias === sel.schemaAlias)
-            const table = schema?.tables.find((t) => t.name === sel.tableName)
-            if (!schema || !table) return
-            void this.pipelineStore.openForTable(
-                schema.path,
-                sel.schemaAlias,
-                sel.tableName,
-                table.columns.map((c) => c.name),
-            )
+            const target = this.target()
+            if (target) untracked(() => void this.pipelineStore.openForTable(target))
         })
     }
 
@@ -138,8 +142,7 @@ export class PipelineBuilderComponent {
 
     // ─── Saved queries ────────────────────────────────────────────────────────
     protected openQueriesPanel(): void {
-        const tableName = this.pipelineStore.source()?.tableName ?? ''
-        this.savedQueries.set(this.savedQueriesSvc.forTable(tableName))
+        this.refreshSavedQueries()
         this.showQueriesPanel.set(!this.showQueriesPanel())
         this.showSaveModal.set(false)
     }
@@ -168,14 +171,18 @@ export class PipelineBuilderComponent {
 
     protected loadQuery(query: SavedQuery): void {
         this.showQueriesPanel.set(false)
-        void this.pipelineStore.loadSavedQuery(query)
+        this.pipelineStore.loadSavedQuery(query)
     }
 
     protected deleteQuery(id: string, event: MouseEvent): void {
         event.stopPropagation()
         this.savedQueriesSvc.delete(id)
-        const tableName = this.pipelineStore.source()?.tableName ?? ''
-        this.savedQueries.set(this.savedQueriesSvc.forTable(tableName))
+        this.refreshSavedQueries()
+    }
+
+    private refreshSavedQueries(): void {
+        const src = this.pipelineStore.source()
+        this.savedQueries.set(src ? this.savedQueriesSvc.forTable(src.tableName, src.path) : [])
     }
 
     // ─── Query history ────────────────────────────────────────────────────────
@@ -205,7 +212,11 @@ export class PipelineBuilderComponent {
 
     protected loadHistoryEntry(entry: QueryHistoryEntry): void {
         this.showHistoryPanel.set(false)
-        void this.pipelineStore.loadHistoryEntry(entry)
+        this.loadError.set(
+            this.pipelineStore.loadHistoryEntry(entry)
+                ? null
+                : `That query ran on ${entry.source.alias}. Open that database to load it.`,
+        )
     }
 
     protected clearHistory(): void {

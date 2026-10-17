@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core'
 import type { DatabaseSchema, TableSchema, TriggerSchema, ViewSchema } from '@quarrydb/shared'
 import { quoteIdentifier, quoteQualifiedIdentifier } from '@quarrydb/shared/sql-identifiers'
 import { open } from '@tauri-apps/plugin-dialog'
-import { connectSql, type SqlClient, type SqlStatement } from '../native/sql-client'
+import { connectSql, type SqlClient, type SqlStatement, toRecords, uniqueColumnNames } from '../native/sql-client'
 import type { EditOperation } from '../store/edit.store'
 
 const MAX_SQLITE_PREVIEW_ROWS = 500
@@ -83,6 +83,24 @@ export class SqliteDatabaseService {
         ])
         const columns = rows.length > 0 ? Object.keys(rows[0]) : []
         return { rows, columns, total: countResult[0]?.count ?? 0 }
+    }
+
+    /** Runs a compiled pipeline query; the native layer stops reading at `maxRows`. */
+    async runBound(
+        path: string,
+        sql: string,
+        params: unknown[],
+        maxRows?: number,
+    ): Promise<{ rows: Record<string, unknown>[]; columns: string[] }> {
+        const db = await this.open(path)
+        const result = await db.query(sql, params, maxRows)
+        return { rows: toRecords(result), columns: uniqueColumnNames(result.columns) }
+    }
+
+    async countBound(path: string, sql: string, params: unknown[]): Promise<number> {
+        const db = await this.open(path)
+        const [row] = await db.select<Array<{ count: number }>>(sql, params)
+        return Number(row?.count ?? 0)
     }
 
     async queryRows(

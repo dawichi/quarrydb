@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinType, PipelineStep, SelectColumn, SortColumn, StepType } from '@quarrydb/shared'
 import { PipelineStore } from '../../../core/store/pipeline.store'
-import { SqliteWorkspaceStore } from '../../../core/store/sqlite-workspace.store'
 
 function createEmptyStep(type: StepType): PipelineStep {
     const id = crypto.randomUUID()
@@ -43,7 +42,6 @@ export class SubpipelineEditorComponent implements OnInit {
     readonly subStepsChange = output<PipelineStep[]>()
 
     // ─── Injected Services ────────────────────────────────────────────────────
-    protected readonly workspaceStore = inject(SqliteWorkspaceStore)
     protected readonly pipelineStore = inject(PipelineStore)
 
     // ─── State ────────────────────────────────────────────────────────────────
@@ -61,15 +59,9 @@ export class SubpipelineEditorComponent implements OnInit {
         { type: 'RAW_SQL', label: 'RAW SQL' },
     ]
 
-    protected readonly availableTables = computed(() => {
-        const srcAlias = this.pipelineStore.source()?.alias ?? ''
-        return this.workspaceStore.schemas().flatMap((schema) =>
-            schema.tables.map((table) => ({
-                value: schema.alias === srcAlias ? table.name : `${schema.alias}.${table.name}`,
-                label: schema.alias === srcAlias ? table.name : `${schema.alias} · ${table.name}`,
-            })),
-        )
-    })
+    protected readonly availableTables = computed(() =>
+        this.pipelineStore.tables().map((table) => ({ value: table.name, label: table.label })),
+    )
 
     protected readonly subTableColumns = computed(() => this.columnsFor(this.localSubTable()))
 
@@ -289,11 +281,7 @@ export class SubpipelineEditorComponent implements OnInit {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
     private columnsFor(table: string): string[] {
-        if (!table) return []
-        const srcAlias = this.pipelineStore.source()?.alias ?? ''
-        const [schemaAlias, tableName] = table.includes('.') ? table.split('.') : [srcAlias, table]
-        const schema = this.workspaceStore.schemas().find((s) => s.alias === schemaAlias)
-        return schema?.tables.find((t) => t.name === tableName)?.columns.map((c) => c.name) ?? []
+        return table ? this.pipelineStore.columnsOf(table) : []
     }
 
     private updateStep(j: number, updater: (s: PipelineStep) => PipelineStep): PipelineStep[] {

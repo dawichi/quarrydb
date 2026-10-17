@@ -31,7 +31,7 @@ export class SessionService {
 
         const schemas = this.workspaceStore.schemas()
         if (!schemas.length) return null
-        const src = this.pipelineStore.source()
+        const src = this.pipelineStore.dialect() === 'sqlite' ? this.pipelineStore.source() : null
         return {
             version: 1,
             providerId: 'sqlite',
@@ -46,8 +46,8 @@ export class SessionService {
                 source: src
                     ? { path: src.path, alias: src.alias, tableName: src.tableName, columns: src.columns }
                     : null,
-                steps: this.pipelineStore.steps(),
-                variableValues: this.pipelineStore.variableValues(),
+                steps: src ? this.pipelineStore.steps() : [],
+                variableValues: src ? this.pipelineStore.variableValues() : {},
             },
         }
     }

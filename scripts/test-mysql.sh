@@ -23,3 +23,4 @@ for attempt in {1..30}; do
 done
 
 QUARRY_MYSQL_INTEGRATION=1 bun run vitest run src/app/core/integration/mysql-provider.integration.spec.ts
+(cd "$ROOT_DIR/src-tauri" && QUARRY_MYSQL_INTEGRATION=1 cargo test sql::)

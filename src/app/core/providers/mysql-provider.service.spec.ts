@@ -67,8 +67,7 @@ describe('MysqlProviderService', () => {
         source: vi.fn(),
         steps: vi.fn(),
         variableValues: vi.fn(),
-        openForTable: vi.fn(),
-        restoreState: vi.fn(),
+        restoreWhenOpened: vi.fn(),
     }
 
     let service: MysqlProviderService
@@ -104,8 +103,7 @@ describe('MysqlProviderService', () => {
         pipeline.source.mockReset()
         pipeline.steps.mockReset()
         pipeline.variableValues.mockReset()
-        pipeline.openForTable.mockReset()
-        pipeline.restoreState.mockReset()
+        pipeline.restoreWhenOpened.mockReset()
         pipeline.source.mockReturnValue(null)
         pipeline.steps.mockReturnValue([])
         pipeline.variableValues.mockReturnValue({})
@@ -662,6 +660,28 @@ describe('MysqlProviderService', () => {
         workspace.activeTab.mockReturnValue('pipeline')
 
         expect(service.buildActiveSession(999)?.workspace.activeTab).toBe('pipeline')
+    })
+
+    it('persists the shared pipeline only when it runs on this connection', () => {
+        service.connectionSession.set({
+            target: { connectionId: 'mysql-1', connectionName: 'Analytics', host: 'db.internal', port: 3306 },
+            source: 'saved_profile',
+            connectedAt: 1234,
+        })
+        workspace.selectedTable.mockReturnValue(null)
+        workspace.activeTab.mockReturnValue('pipeline')
+        pipeline.steps.mockReturnValue([{ id: 'w', type: 'WHERE', expression: 'total > 1' }])
+        pipeline.variableValues.mockReturnValue({ min: '1' })
+
+        pipeline.source.mockReturnValue({ path: 'mysql:mysql-1', tableName: 'warehouse.orders', columns: ['id'] })
+        expect(service.buildActiveSession(999)?.pipeline).toEqual({
+            source: { connectionId: 'mysql-1', schemaName: 'warehouse', tableName: 'orders', columns: ['id'] },
+            steps: [{ id: 'w', type: 'WHERE', expression: 'total > 1' }],
+            variableValues: { min: '1' },
+        })
+
+        pipeline.source.mockReturnValue({ path: '/tmp/app.db', tableName: 'orders', columns: ['id'] })
+        expect(service.buildActiveSession(999)?.pipeline).toEqual({ source: null, steps: [], variableValues: {} })
     })
 
     it('fails when the pending workspace draft cannot be resolved into a connect request', async () => {
