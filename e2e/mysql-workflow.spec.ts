@@ -32,3 +32,28 @@ test('connects to MySQL and exports a browsed table', async ({ page }) => {
     await page.getByRole('button', { name: 'Apply all', exact: true }).click()
     await expect(page.getByText('Pending changes', { exact: true })).not.toBeVisible()
 })
+
+test('builds a pipeline on MySQL with the shared builder', async ({ page }) => {
+    await useMysqlFixture(page)
+    await page.goto('/')
+
+    await page.getByLabel('Connection name').fill('E2E MySQL')
+    await page.getByLabel('Host').fill('127.0.0.1')
+    await page.getByLabel('Port').fill('3306')
+    await page.getByLabel('Username').fill('root')
+    await page.getByLabel('Password').fill('quarry')
+    await page.getByLabel('Default database').fill('quarry_demo')
+    await page.getByRole('button', { name: 'Save & connect' }).click()
+    await page.getByRole('button', { name: 'products' }).first().click()
+
+    await page.getByRole('button', { name: 'pipeline', exact: true }).click()
+    await page.getByRole('button', { name: 'Add step' }).click()
+    await page.getByRole('button', { name: /WHERE Filter rows/ }).click()
+    await page.getByPlaceholder('e.g. price > 100').fill('products.price > 50')
+
+    const sql = page.locator('pre').filter({ hasText: 'WHERE products.price > 50' })
+    await expect(sql).toBeVisible()
+    await expect(sql).toContainText('`quarry_demo`.`products`')
+    await expect(sql).toContainText('step_1 AS `products`')
+    await expect(page.getByTestId('step-flow')).toContainText('2 rows')
+})

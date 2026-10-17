@@ -27,6 +27,7 @@ pipeline story.
 - [x] Schema-aware pipeline compiler: stable naming, explicit JOIN projection, bound variables
 - [x] One pipeline UI for SQLite and MySQL
 - [x] CI green and running everything the release runs
+- [x] Row-flow on every block: `1,204 → 312 rows`, plus the columns it added or dropped
 - [ ] Manual smoke test of a release build on macOS and Windows (see [release.md](release.md))
 - [ ] Tag and publish 0.2.0
 
@@ -34,8 +35,8 @@ pipeline story.
 
 Ideas in rough priority order. Each should start with a short goal/non-goal note in the PR.
 
-1. **Row-flow indicators** between blocks: `1,204 → 312 rows`, and which columns appeared or
-   disappeared, so the effect of every block is visible at a glance.
+1. **Flow diagram view:** a compact overview of the whole chain (blocks as nodes, row counts on
+   the edges) next to the detailed cards.
 2. **Structured JOIN builder:** pick left column / right column from dropdowns, with
    foreign-key suggestions from the schema (today ON is pre-filled from naming conventions).
 3. **Structured WHERE builder** for simple conditions (column, operator, value) with the free
