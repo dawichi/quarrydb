@@ -61,3 +61,110 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
 }
+
+/// Calls the SQL commands through Tauri's IPC layer with the exact JSON the frontend sends
+/// (`src/app/core/native/sql-client.ts`), so argument names cannot drift apart unnoticed.
+#[cfg(test)]
+mod ipc_tests {
+    use serde_json::{json, Value};
+    use tauri::test::{get_ipc_response, mock_builder, mock_context, noop_assets, INVOKE_KEY};
+    use tauri::webview::InvokeRequest;
+
+    fn invoke(
+        webview: &tauri::WebviewWindow<tauri::test::MockRuntime>,
+        cmd: &str,
+        args: Value,
+    ) -> Result<Value, Value> {
+        get_ipc_response(
+            webview,
+            InvokeRequest {
+                cmd: cmd.into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: "tauri://localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::Json(args),
+                headers: Default::default(),
+                invoke_key: INVOKE_KEY.to_string(),
+            },
+        )
+        .map(|body| body.deserialize::<Value>().unwrap())
+    }
+
+    #[test]
+    fn sql_commands_round_trip_through_ipc() {
+        let app = mock_builder()
+            .manage(crate::sql::SqlState::default())
+            .invoke_handler(tauri::generate_handler![
+                crate::sql::sql_connect,
+                crate::sql::sql_select,
+                crate::sql::sql_execute,
+                crate::sql::sql_disconnect
+            ])
+            .build(mock_context(noop_assets()))
+            .expect("mock app");
+        let webview = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .expect("webview");
+        let path = std::env::temp_dir().join(format!("quarry-ipc-{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+
+        let handle = invoke(
+            &webview,
+            "sql_connect",
+            json!({ "target": { "engine": "sqlite", "path": path.to_string_lossy(), "create": true } }),
+        )
+        .expect("connect");
+        let handle = handle.as_str().expect("handle string").to_string();
+
+        let results = invoke(
+            &webview,
+            "sql_execute",
+            json!({
+                "handle": handle,
+                "statements": [
+                    { "sql": "CREATE TABLE t (id INTEGER PRIMARY KEY, price REAL)" },
+                    { "sql": "INSERT INTO t (price) VALUES (?), (?)", "params": [79.99, 1299.99] }
+                ],
+                "transactional": true,
+                "onError": []
+            }),
+        )
+        .expect("execute");
+        assert_eq!(results[1], json!({ "rowsAffected": 2, "lastInsertId": 2 }));
+
+        let failed = invoke(
+            &webview,
+            "sql_execute",
+            json!({
+                "handle": handle,
+                "statements": [
+                    { "sql": "UPDATE t SET price = 0" },
+                    { "sql": "DELETE FROM t WHERE id = ?", "params": [99], "expectRows": true }
+                ]
+            }),
+        );
+        assert!(
+            failed.is_err(),
+            "a vanished edit target must fail the batch"
+        );
+
+        let rows = invoke(
+            &webview,
+            "sql_select",
+            json!({ "handle": handle, "sql": "SELECT * FROM t ORDER BY price DESC", "params": [], "maxRows": 1 }),
+        )
+        .expect("select");
+        assert_eq!(rows["columns"], json!(["id", "price"]));
+        assert_eq!(rows["rows"], json!([[2, 1299.99]]));
+        assert_eq!(rows["truncated"], json!(true));
+
+        invoke(&webview, "sql_disconnect", json!({ "handle": handle })).expect("disconnect");
+        assert!(invoke(
+            &webview,
+            "sql_select",
+            json!({ "handle": handle, "sql": "SELECT 1" })
+        )
+        .is_err());
+        let _ = std::fs::remove_file(&path);
+    }
+}
