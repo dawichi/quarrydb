@@ -1,0 +1,21 @@
+# cargo-audit policy, shared by `bun run audit:rust`, CI and the release workflow.
+# Every ignore needs a reason and an exit condition. Revisit them when dependencies move.
+
+[advisories]
+ignore = [
+    # rsa (via sqlx-mysql) — Marvin timing attack on RSA *decryption*. Quarry only encrypts
+    # the password with the server's public key during MySQL auth. No fixed release exists.
+    "RUSTSEC-2023-0071",
+    # zip 4.x (via tauri-plugin-updater) — extraction of hostile archives. Update archives are
+    # signature-verified before extraction. Drop once the updater depends on zip >= 9.
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
+    # glib (Linux GTK stack only) — unsound VariantStrIter. Quarry ships macOS and Windows builds.
+    "RUSTSEC-2024-0429",
+]
+
+[output]
+# Real vulnerabilities always fail. Unsound code fails too; "unmaintained" stays informational.
+deny = ["unsound"]
+quiet = false
