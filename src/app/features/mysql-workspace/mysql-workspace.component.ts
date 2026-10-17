@@ -1,15 +1,18 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import type { MysqlWorkspaceTab } from '@quarrydb/shared/session'
 import type { MysqlTableBrowseOptions } from '../../core/providers/mysql-backend-adapter'
+import { MysqlBackendAdapterService } from '../../core/providers/mysql-backend-adapter.service'
 import { MysqlProviderService } from '../../core/providers/mysql-provider.service'
+import { mysqlPipelineBackend } from '../../core/providers/pipeline-backends'
 import type { ExportFormat } from '../../core/services/export.service'
 import { MysqlWorkspaceStore } from '../../core/store/mysql-workspace.store'
+import type { PipelineTarget } from '../../core/store/pipeline-backend'
 import { WorkspaceHostStore } from '../../core/store/workspace-host.store'
-import { MysqlPipelineComponent } from '../mysql-pipeline/mysql-pipeline.component'
+import { PipelineBuilderComponent } from '../pipeline-builder/pipeline-builder.component'
 
 @Component({
     selector: 'app-mysql-workspace',
-    imports: [MysqlPipelineComponent],
+    imports: [PipelineBuilderComponent],
     host: { class: 'flex-1 min-h-0' },
     changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './mysql-workspace.component.html',
@@ -24,6 +27,20 @@ export class MysqlWorkspaceComponent {
     protected readonly browseFilterInput = signal('')
     protected readonly browseSortInput = signal('')
     protected readonly browseSortDirectionInput = signal<'asc' | 'desc'>('asc')
+    private readonly adapter = inject(MysqlBackendAdapterService)
+
+    /** The MySQL table the shared pipeline builder works on. */
+    protected readonly pipelineTarget = computed<PipelineTarget | null>(() => {
+        const session = this.store.connectionSession()
+        const selected = this.store.selectedTable()
+        const table = this.store.selectedTableSummary()
+        if (!session || !selected || !table) return null
+        return {
+            backend: mysqlPipelineBackend(this.adapter, session, selected.schemaName, () => this.store.tables()),
+            tableName: `${selected.schemaName}.${selected.tableName}`,
+            columns: table.columns.map((column) => column.name),
+        }
+    })
 
     constructor() {
         effect(() => {

@@ -75,12 +75,14 @@ export class SqliteProviderService implements ProviderDefinition<SqlitePersisted
         }
 
         if (session.pipeline.source) {
+            // Applied when the pipeline builder opens this table.
             const src = session.pipeline.source
-            await this.pipelineStore.openForTable(src.path, src.alias, src.tableName, src.columns)
-            if (session.pipeline.steps.length > 0) {
-                this.pipelineStore.restoreSteps(session.pipeline.steps)
-            }
-            this.pipelineStore.variableValues.set(session.pipeline.variableValues)
+            this.pipelineStore.restoreWhenOpened({
+                path: src.path,
+                tableName: src.tableName,
+                steps: session.pipeline.steps,
+                variableValues: session.pipeline.variableValues,
+            })
         }
     }
 }

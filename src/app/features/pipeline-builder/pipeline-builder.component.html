@@ -28,6 +28,19 @@
             </div>
         }
 
+        @if (loadError() || pipelineStore.exportError(); as message) {
+            <div class="flex-shrink-0 border-b border-red-500/20 bg-red-950/20 px-4 py-2 flex items-center justify-between gap-3">
+                <span class="text-xs text-red-300">{{ message }}</span>
+                <button
+                    type="button"
+                    class="text-xs text-red-400/70 hover:text-red-300"
+                    (click)="loadError.set(null); pipelineStore.exportError.set(null)"
+                >
+                    Dismiss
+                </button>
+            </div>
+        }
+
         <!-- Pipeline canvas (scrollable) -->
         <div class="flex-1 overflow-y-auto p-6 min-h-0">
             <div class="max-w-2xl mx-auto flex flex-col items-stretch gap-0">
@@ -40,6 +53,11 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-1.5-3.75h-6" />
                         </svg>
                         <span class="text-sm font-medium text-zinc-100">{{ pipelineStore.source()!.tableName }}</span>
+                        @if (pipelineStore.compiled(); as compiled) {
+                            <span class="text-xs text-zinc-500" title="Every step can refer to the rows flowing through the pipeline by this name">
+                                as <code class="font-mono text-zinc-400">{{ compiled.sourceAlias }}</code>
+                            </span>
+                        }
                     </div>
                     @if (pipelineStore.source()!.rowCount > 0) {
                         <span class="text-xs text-zinc-500">{{ pipelineStore.source()!.rowCount.toLocaleString() }} rows</span>

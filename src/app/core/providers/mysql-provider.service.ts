@@ -3,8 +3,8 @@ import type { RecentItem } from '@quarrydb/shared/recent-item'
 import type { MysqlPersistedSession } from '@quarrydb/shared/session'
 import { RecentItemsService } from '../services/recent-items.service'
 import { describeSafeError } from '../services/safe-error'
-import { MysqlPipelineStore } from '../store/mysql-pipeline.store'
 import { MysqlWorkspaceStore } from '../store/mysql-workspace.store'
+import { PipelineStore } from '../store/pipeline.store'
 import { WorkspaceHostStore } from '../store/workspace-host.store'
 import type { MysqlConnectionSession, MysqlSchemaSummary } from './mysql-backend-adapter'
 import { MysqlBackendAdapterService } from './mysql-backend-adapter.service'
@@ -31,7 +31,7 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
     private readonly secrets = inject(MysqlConnectionSecretsService)
     private readonly recentItems = inject(RecentItemsService)
     private readonly workspace = inject(MysqlWorkspaceStore)
-    private readonly pipeline = inject(MysqlPipelineStore)
+    private readonly pipeline = inject(PipelineStore)
     private readonly host = inject(WorkspaceHostStore)
     readonly workspaceDraft = signal<MysqlWorkspaceDraft | null>(null)
     readonly connectionSession = signal<MysqlConnectionSession | null>(null)
@@ -293,12 +293,29 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
         }
     }
 
+    /** Re-applies saved steps once the pipeline opens on the same table. */
     private restorePendingPipeline(session: MysqlConnectionSession): void {
         const pending = this.pendingPipeline
         this.pendingPipeline = null
         if (!pending?.source || pending.source.connectionId !== session.target.connectionId) return
-        this.pipeline.openForTable(session, pending.source.schemaName, pending.source.tableName, pending.source.columns)
-        this.pipeline.restoreState(pending.steps, pending.variableValues)
+        this.pipeline.restoreWhenOpened({
+            path: `mysql:${session.target.connectionId}`,
+            tableName: `${pending.source.schemaName}.${pending.source.tableName}`,
+            steps: pending.steps,
+            variableValues: pending.variableValues,
+        })
+    }
+
+    private pipelineSessionSource(session: MysqlConnectionSession): MysqlPersistedSession['pipeline']['source'] {
+        const source = this.pipeline.source()
+        if (!source || source.path !== `mysql:${session.target.connectionId}`) return null
+        const [schemaName, ...rest] = source.tableName.split('.')
+        return {
+            connectionId: session.target.connectionId,
+            schemaName,
+            tableName: rest.join('.'),
+            columns: source.columns,
+        }
     }
 
     buildActiveSession(savedAt = Date.now()): MysqlPersistedSession | null {
@@ -316,11 +333,13 @@ export class MysqlProviderService implements ProviderDefinition<MysqlPersistedSe
                 selectedTable: this.workspace.selectedTable(),
                 activeTab: this.workspace.activeTab(),
             },
-            pipeline: {
-                source: this.pipeline.source(),
-                steps: this.pipeline.steps(),
-                variableValues: this.pipeline.variableValues(),
-            },
+            pipeline: this.pipelineSessionSource(session)
+                ? {
+                      source: this.pipelineSessionSource(session),
+                      steps: this.pipeline.steps(),
+                      variableValues: this.pipeline.variableValues(),
+                  }
+                : { source: null, steps: [], variableValues: {} },
         }
     }
 

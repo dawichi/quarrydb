@@ -55,7 +55,7 @@ function installSqliteFixture(): void {
         if (normalized.startsWith('PRAGMA table_info("products")')) return columns
         if (normalized.startsWith('PRAGMA table_info("customers")')) return []
         if (normalized.startsWith('PRAGMA foreign_key_list') || normalized.startsWith('PRAGMA index_list')) return []
-        if (normalized.startsWith('SELECT COUNT(*) AS count FROM (')) {
+        if (normalized.startsWith('SELECT COUNT(*) AS count FROM (') || /SELECT COUNT\(\*\) AS count FROM step_\d+$/.test(normalized)) {
             const filtered = normalized.includes("category = 'Books'") ? products.filter((row) => row.category === 'Books') : products
             return [{ count: filtered.length }]
         }
@@ -69,22 +69,51 @@ function installSqliteFixture(): void {
         return []
     }
 
+    const execute = (query: string, values: unknown[] = []): number => {
+        const updateMatch = query.match(/UPDATE "products" SET "name" = \? WHERE "id" = \?/i)
+        if (updateMatch) {
+            const row = products.find((product) => product.id === Number(values[1]))
+            if (row) row.name = String(values[0])
+            return row ? 1 : 0
+        }
+        return 0
+    }
+
     window.__quarryE2eWrites = writes
     window.__TAURI_INTERNALS__ = {
-        invoke: async (command: string, args: { query?: string; values?: unknown[]; db?: string; path?: string; content?: string; ext?: string }) => {
-            if (command === 'plugin:sql|load') return args.db ?? 'sqlite:/e2e.db'
-            if (command === 'plugin:sql|select') return select(args.query ?? '', args.values ?? [])
-            if (command === 'plugin:sql|execute') {
-                const query = args.query ?? ''
-                const values = args.values ?? []
-                const updateMatch = query.match(/UPDATE "products" SET "name" = \? WHERE "id" = \?/i)
-                if (updateMatch) {
-                    const row = products.find((product) => product.id === Number(values[1]))
-                    if (row) row.name = String(values[0])
+        invoke: async (
+            command: string,
+            args: {
+                sql?: string
+                params?: unknown[]
+                maxRows?: number
+                statements?: Array<{ sql: string; params?: unknown[] }>
+                target?: { path?: string }
+                path?: string
+                content?: string
+                ext?: string
+            },
+        ) => {
+            // Native SQL commands (src-tauri/src/sql): rows travel as arrays plus column names.
+            if (command === 'sql_connect') return `sqlite:${args.target?.path ?? '/e2e.db'}`
+            if (command === 'sql_disconnect') return null
+            if (command === 'sql_select') {
+                const rows = select(args.sql ?? '', args.params ?? []) as Record<string, unknown>[]
+                const limited = rows.slice(0, args.maxRows ?? rows.length)
+                const columns = Object.keys(rows[0] ?? {})
+                return {
+                    columns,
+                    rows: limited.map((row) => columns.map((column) => row[column])),
+                    truncated: limited.length < rows.length,
+                    durationMs: 0,
                 }
-                return [0, 0]
             }
-            if (command === 'plugin:sql|close') return true
+            if (command === 'sql_execute') {
+                return (args.statements ?? []).map((statement) => ({
+                    rowsAffected: execute(statement.sql, statement.params ?? []),
+                    lastInsertId: null,
+                }))
+            }
             if (command === 'plugin:dialog|open' || command === 'plugin:dialog|save') return '/e2e.db'
             if (command === 'write_text_file') {
                 writes.push({ path: args.path ?? '', content: args.content ?? '', ext: args.ext ?? '' })

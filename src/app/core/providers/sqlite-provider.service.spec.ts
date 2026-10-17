@@ -12,11 +12,8 @@ describe('SqliteProviderService', () => {
         setActiveTab: vi.fn(),
         selectTable: vi.fn(),
     }
-    const variableValuesSet = vi.fn()
     const pipelineStore = {
-        openForTable: vi.fn(),
-        restoreSteps: vi.fn(),
-        variableValues: { set: variableValuesSet },
+        restoreWhenOpened: vi.fn(),
     }
     const db = {
         loadSchema: vi.fn(),
@@ -31,9 +28,7 @@ describe('SqliteProviderService', () => {
         workspaceStore.restoreWorkspace.mockReset()
         workspaceStore.setActiveTab.mockReset()
         workspaceStore.selectTable.mockReset()
-        pipelineStore.openForTable.mockReset()
-        pipelineStore.restoreSteps.mockReset()
-        variableValuesSet.mockReset()
+        pipelineStore.restoreWhenOpened.mockReset()
         db.loadSchema.mockReset()
 
         provider = Object.assign(Object.create(SqliteProviderService.prototype), {
@@ -102,9 +97,12 @@ describe('SqliteProviderService', () => {
         )
         expect(workspaceStore.setActiveTab).toHaveBeenCalledWith('edit')
         expect(workspaceStore.selectTable).toHaveBeenCalledWith('main', 'users')
-        expect(pipelineStore.openForTable).toHaveBeenCalledWith('/tmp/app.db', 'main', 'users', ['id', 'name'])
-        expect(pipelineStore.restoreSteps).toHaveBeenCalledWith([{ id: 's1', type: 'WHERE', expression: 'id > 1' }])
-        expect(variableValuesSet).toHaveBeenCalledWith({ limit: '10' })
+        expect(pipelineStore.restoreWhenOpened).toHaveBeenCalledWith({
+            path: '/tmp/app.db',
+            tableName: 'users',
+            steps: [{ id: 's1', type: 'WHERE', expression: 'id > 1' }],
+            variableValues: { limit: '10' },
+        })
     })
 
     it('throws when SQLite schemas cannot be reloaded during restore', async () => {

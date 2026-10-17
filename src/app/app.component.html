@@ -86,7 +86,7 @@
                         } @else if (workspaceStore.activeTab() === 'edit') {
                             <app-edit-mode />
                         } @else {
-                            <app-pipeline-builder />
+                            <app-pipeline-builder [target]="sqlitePipelineTarget()" />
                         }
                     } @placeholder {
                         <div class="flex flex-1 items-center justify-center text-sm text-zinc-600">Loading SQLite workspace…</div>
