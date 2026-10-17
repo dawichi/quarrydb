@@ -77,6 +77,19 @@ describe('PipelineStore', () => {
         expect(store.inputColumns(1)).toEqual(['id', 'customer_id', 'total'])
     })
 
+    it('reports what each step did to rows and columns, skipping pass-through steps', async () => {
+        store.addStep()
+        store.updateStepExpression(0, 'total > 30')
+        store.addStep()
+        store.addJoinStep()
+        store.updateJoinStep(2, 'INNER', 'customers', undefined, 'orders.customer_id = customers.id')
+        await settle()
+
+        expect(store.flow(0)).toEqual({ rowsIn: 3, rowsOut: 2, added: [], removed: [] })
+        expect(store.flow(1)).toBeNull()
+        expect(store.flow(2)).toEqual({ rowsIn: 2, rowsOut: 2, added: ['customers_id', 'name'], removed: [] })
+    })
+
     it('shows compile errors on the step and blocks the ones after it', async () => {
         store.addStep()
         store.updateStepExpression(0, 'total > :min')

@@ -11,8 +11,9 @@ visible on purpose; Quarry teaches it rather than hiding it.
 
 ## The pipeline (SQLite and MySQL)
 
-A pipeline starts from a table and stacks blocks. Each block shows its own rows and row count,
-updating live as you type.
+A pipeline starts from a table and stacks blocks. Each block shows its own rows and its effect
+(`14 → 3 rows`, `+customers_id`, ~~`status`~~ for added and dropped columns), updating live as
+you type.
 
 | Block | What it does |
 |-------|--------------|

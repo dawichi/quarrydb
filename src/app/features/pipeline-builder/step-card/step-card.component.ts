@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, signal } from '@angular/core'
 import type { AggFn, Aggregation, JoinMode, JoinType, PipelineStep, SelectColumn, SortColumn } from '@quarrydb/shared'
 import { suggestJoinOn } from '@quarrydb/shared/pipeline-sql'
-import { PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
+import { BLOCKED_STEP_MESSAGE, PipelineStore, type StepResultState } from '../../../core/store/pipeline.store'
 import { SubpipelineEditorComponent } from './subpipeline-editor.component'
 
 @Component({
@@ -45,6 +45,10 @@ export class StepCardComponent implements OnInit {
     protected readonly availableTables = computed(() =>
         this.pipelineStore.tables().map((table) => ({ value: table.name, label: table.label })),
     )
+    protected readonly isBlocked = computed(() => this.result()?.error === BLOCKED_STEP_MESSAGE)
+    /** Rows in → rows out and the columns this step added or dropped. */
+    protected readonly flow = computed(() => this.pipelineStore.flow(this.stepIndex()))
+    protected readonly FLOW_CHIP_LIMIT = 6
     /** Columns flowing into this step, i.e. what its expressions can reference. */
     protected readonly availableColumns = computed(() => this.pipelineStore.inputColumns(this.stepIndex()))
     /** The name steps use for the rows flowing through the pipeline. */

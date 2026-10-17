@@ -48,7 +48,16 @@ interface PendingRestore {
 
 const EMPTY_RESULT: StepResultState = { rows: [], columns: [], total: 0, error: null, isLoading: false }
 const PREVIEW_LIMIT = 50
-const BLOCKED = 'Blocked by an error in an earlier step'
+export const BLOCKED_STEP_MESSAGE = 'Blocked by an error in an earlier step'
+const BLOCKED = BLOCKED_STEP_MESSAGE
+
+/** What a step did to the data flowing through it. */
+export interface StepFlow {
+    rowsIn: number
+    rowsOut: number
+    added: string[]
+    removed: string[]
+}
 
 /**
  * How long the full pipeline must stay unchanged before its query is logged to history.
@@ -200,6 +209,35 @@ export class PipelineStore {
         const previous = this.stepResults()[index - 1]
         if (previous?.columns.length) return previous.columns
         return this.source()?.columns ?? []
+    }
+
+    /**
+     * Rows and columns before and after a step, measured against the nearest earlier step that
+     * actually ran (pass-through steps are skipped), or the source table.
+     */
+    flow(index: number): StepFlow | null {
+        const results = this.stepResults()
+        const compiled = this.compiled()
+        const out = results[index]
+        if (!out || out.isLoading || out.error || compiled?.steps[index]?.isNoop) return null
+        let rowsIn = this.source()?.rowCount ?? 0
+        let columnsIn = this.source()?.columns ?? []
+        for (let k = index - 1; k >= 0; k--) {
+            const previous = results[k]
+            if (previous && !previous.error && !compiled?.steps[k]?.isNoop && previous.columns.length) {
+                rowsIn = previous.total
+                columnsIn = previous.columns
+                break
+            }
+        }
+        const before = new Set(columnsIn)
+        const after = new Set(out.columns)
+        return {
+            rowsIn,
+            rowsOut: out.total,
+            added: out.columns.filter((column) => !before.has(column)),
+            removed: columnsIn.filter((column) => !after.has(column)),
+        }
     }
 
     columnsOf(table: string): string[] {

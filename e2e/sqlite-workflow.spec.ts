@@ -24,5 +24,7 @@ test.describe('SQLite golden path', () => {
         await expect(page.locator('pre').filter({ hasText: "WHERE category = 'Books'" })).toBeVisible()
         await expect(page.getByText('Clean Code')).toBeVisible()
         await expect(page.getByText('The Pragmatic Programmer')).toBeVisible()
+        // The block shows its effect: 14 products in, 3 books out.
+        await expect(page.getByTestId('step-flow')).toContainText(/14 →\s*3\s*rows/)
     })
 })

@@ -1,6 +1,6 @@
 <div
     class="rounded-lg border bg-zinc-900 overflow-hidden transition-opacity"
-    [class]="result()?.error === 'Blocked by upstream error' ? 'border-zinc-700/30 opacity-60' : 'border-zinc-700'"
+    [class]="isBlocked() ? 'border-zinc-700/30 opacity-60' : 'border-zinc-700'"
 >
 
     <!-- Header -->
@@ -8,9 +8,9 @@
         <div class="flex items-center gap-2">
             <span
                 class="text-xs font-semibold uppercase tracking-wider"
-                [class]="result()?.error === 'Blocked by upstream error' ? 'text-zinc-600' : 'text-sky-500'"
+                [class]="isBlocked() ? 'text-zinc-600' : 'text-sky-500'"
             >{{ step().type.replaceAll('_', ' ') }}</span>
-            @if (result()?.error === 'Blocked by upstream error') {
+            @if (isBlocked()) {
                 <span class="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-red-950/60 text-red-400">
                     <svg aria-hidden="true" class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
@@ -32,7 +32,7 @@
     </div>
 
     <!-- Config body — non-interactive when blocked (upstream must be fixed, not this step) -->
-    <div [class.pointer-events-none]="result()?.error === 'Blocked by upstream error'">
+    <div [class.pointer-events-none]="isBlocked()">
 
     <!-- Config: WHERE -->
     @if (step().type === 'WHERE') {
@@ -523,7 +523,7 @@
                     Running...
                 </div>
 
-            } @else if (r.error === 'Blocked by upstream error') {
+            } @else if (isBlocked()) {
                 <!-- header badge handles blocked state — no additional UI needed -->
 
             } @else if (r.error) {
@@ -539,16 +539,42 @@
 
             } @else {
                 <!-- Result count -->
-                <div class="px-3 py-1.5 flex items-center gap-1.5 border-b border-zinc-700/40">
+                <div class="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-b border-zinc-700/40" data-testid="step-flow">
                     <svg aria-hidden="true"class="w-3 h-3 text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                     </svg>
                     <span class="text-xs text-zinc-400">
-                        {{ r.total.toLocaleString() }} rows
+                        @if (flow(); as f) {
+                            @if (f.rowsIn !== f.rowsOut) {
+                                <span class="text-zinc-600">{{ f.rowsIn.toLocaleString() }} →</span>
+                            }
+                            <span [class]="f.rowsOut < f.rowsIn ? 'text-amber-400' : f.rowsOut > f.rowsIn ? 'text-emerald-400' : ''">
+                                {{ r.total.toLocaleString() }}
+                            </span>
+                            rows
+                        } @else {
+                            {{ r.total.toLocaleString() }} rows
+                        }
                         @if (r.rows.length !== r.total) {
                             <span class="text-zinc-600"> · showing {{ r.rows.length }}</span>
                         }
                     </span>
+                    @if (flow(); as f) {
+                        <span class="flex flex-wrap items-center gap-1 ml-1" data-testid="step-flow-columns">
+                            @for (column of f.added.slice(0, FLOW_CHIP_LIMIT); track column) {
+                                <span class="px-1 rounded font-mono text-[10px] bg-emerald-500/10 text-emerald-400" [title]="'New column ' + column">+{{ column }}</span>
+                            }
+                            @if (f.added.length > FLOW_CHIP_LIMIT) {
+                                <span class="text-[10px] text-emerald-500/70">+{{ f.added.length - FLOW_CHIP_LIMIT }} more</span>
+                            }
+                            @for (column of f.removed.slice(0, FLOW_CHIP_LIMIT); track column) {
+                                <span class="px-1 rounded font-mono text-[10px] bg-zinc-800 text-zinc-500 line-through" [title]="'Dropped column ' + column">{{ column }}</span>
+                            }
+                            @if (f.removed.length > FLOW_CHIP_LIMIT) {
+                                <span class="text-[10px] text-zinc-600">−{{ f.removed.length - FLOW_CHIP_LIMIT }} more</span>
+                            }
+                        </span>
+                    }
                 </div>
 
                 <!-- Mini table -->
