@@ -79,7 +79,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Quarry ${{ github.ref_name }}'
           releaseBody: |
-            Release notes: https://github.com/dawichi/quarrydb/blob/${{ github.ref_name }}/docs/release-notes-0.2.0.md
+            Release notes: https://github.com/dawichi/quarrydb/blob/${{ github.ref_name }}/docs/release-notes-0.2.1.md
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: false

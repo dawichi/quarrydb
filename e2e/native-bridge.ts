@@ -30,7 +30,7 @@ function installNativeBridge(dir: string): void {
             }
             if (command === 'plugin:event|unlisten') return null
             if (command === 'plugin:updater|check') return null
-            if (command === 'plugin:app|version') return '0.2.0'
+            if (command === 'plugin:app|version') return '0.2.1'
             const secret = command.match(/^(get|set|delete)_(mysql|redis)_password$/)
             if (secret) {
                 const key = `${secret[2]}:${args.connectionId}`

@@ -10,7 +10,7 @@ Start with [AGENTS.md](AGENTS.md).
 | [product-spec.md](product-spec.md) | User-facing behavior of each feature |
 | [testing.md](testing.md) | Test commands and what each layer proves |
 | [release.md](release.md) | How to cut a release, including the manual smoke test |
-| [release-notes-0.2.0.md](release-notes-0.2.0.md) | Draft notes for the next release |
+| [release-notes-0.2.1.md](release-notes-0.2.1.md) | Notes for the current release |
 | [dependency-security.md](dependency-security.md) | Audit gates and how advisories are accepted |
 | [recovery-runbook.md](recovery-runbook.md) | Data ownership; exports are not backups |
 | [local-test-services.md](local-test-services.md) | Docker MySQL/Redis for local testing |
