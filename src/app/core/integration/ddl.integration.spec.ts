@@ -1,11 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildDropColumnScript } from '../../features/table-settings-modal/alter-table.utils'
 import { SqliteDatabaseService } from '../services/sqlite-database.service'
-import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-tauri-database'
+import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-sql-client'
 
-vi.mock('@tauri-apps/plugin-sql', async () => {
-    const { FakeDatabase } = await import('./fixtures/fake-tauri-database')
-    return { default: FakeDatabase }
+vi.mock('../native/sql-client', async (importOriginal) => {
+    const { fakeConnectSql } = await import('./fixtures/fake-sql-client')
+    return { ...(await importOriginal<object>()), connectSql: fakeConnectSql }
 })
 
 const FIXTURE_PATH = 'ddl.test.db'

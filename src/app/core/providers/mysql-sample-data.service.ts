@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core'
-import type { MysqlDatabaseClient } from './mysql-backend-adapter'
+import type { SqlClient } from '../native/sql-client'
 
 @Injectable({ providedIn: 'root' })
 export class MysqlSampleDataService {
-    async seed(db: MysqlDatabaseClient, schemaName: string): Promise<boolean> {
+    async seed(db: SqlClient, schemaName: string): Promise<boolean> {
         await this.createTables(db, schemaName)
 
         const [{ count }] = await db.select<Array<{ count: number }>>(
@@ -59,7 +59,7 @@ export class MysqlSampleDataService {
         ]
     }
 
-    private async createTables(db: MysqlDatabaseClient, schemaName: string): Promise<void> {
+    private async createTables(db: SqlClient, schemaName: string): Promise<void> {
         for (const sql of this.buildCreateTableStatements(schemaName)) {
             await db.execute(sql)
         }

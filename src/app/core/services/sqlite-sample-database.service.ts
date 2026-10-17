@@ -1,21 +1,17 @@
 import { Injectable } from '@angular/core'
-import Database from '@tauri-apps/plugin-sql'
+import { connectSql, type SqlClient } from '../native/sql-client'
 
 @Injectable({ providedIn: 'root' })
 export class SqliteSampleDatabaseService {
     async generate(path: string): Promise<void> {
-        const db = await Database.load(`sqlite://${path}`)
-        try {
-            await this.createTables(db)
-            await this.seedIfEmpty(db)
-        } finally {
-            await db.close()
-        }
+        const db = await connectSql({ engine: 'sqlite', path, create: true })
+        await this.createTables(db)
+        await this.seedIfEmpty(db)
     }
 
     // ─── Private ──────────────────────────────────────────────────────────────
 
-    private async createTables(db: Database): Promise<void> {
+    private async createTables(db: SqlClient): Promise<void> {
         await db.execute(`CREATE TABLE IF NOT EXISTS products (
             id       INTEGER PRIMARY KEY AUTOINCREMENT,
             name     TEXT    NOT NULL,
@@ -46,7 +42,7 @@ export class SqliteSampleDatabaseService {
         )`)
     }
 
-    private async seedIfEmpty(db: Database): Promise<void> {
+    private async seedIfEmpty(db: SqlClient): Promise<void> {
         const [{ count }] = await db.select<[{ count: number }]>('SELECT COUNT(*) as count FROM products')
         if (count > 0) return
 

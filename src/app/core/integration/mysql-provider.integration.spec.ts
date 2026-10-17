@@ -1,40 +1,73 @@
 import type { PipelineStep } from '@quarrydb/shared'
 import { buildPipelineSql } from '@quarrydb/shared/pipeline-sql'
-import { type Connection, createConnection, type RowDataPacket } from 'mysql2/promise'
+import { type Connection, createConnection, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { MysqlDatabaseClient } from '../providers/mysql-backend-adapter'
+import type { SqlClient, SqlExecResult, SqlRows, SqlStatement } from '../native/sql-client'
+import { toRecords } from '../native/sql-records'
 import { MysqlBackendAdapterService } from '../providers/mysql-backend-adapter.service'
+import type { MysqlConnectRequest } from '../providers/mysql-connect-request'
 
 const describeMysql = process.env.QUARRY_MYSQL_INTEGRATION === '1' ? describe : describe.skip
 
+/**
+ * Talks to MySQL through `mysql2` instead of the Tauri runtime. The SQL each service method
+ * sends is real; value decoding is covered by the native tests in `src-tauri/src/sql`.
+ */
 class Mysql2BackendAdapterService extends MysqlBackendAdapterService {
     private readonly connections: Connection[] = []
 
-    protected override async loadDatabase(dsn: string): Promise<MysqlDatabaseClient> {
-        const connection = await createConnection(dsn)
+    protected override async openClient(request: MysqlConnectRequest): Promise<SqlClient> {
+        const connection = await createConnection({
+            host: request.target.host,
+            port: request.target.port,
+            user: request.username,
+            password: request.password,
+            database: request.target.defaultDatabase,
+            decimalNumbers: true,
+            dateStrings: true,
+        })
         this.connections.push(connection)
 
+        const query = async (sql: string, params: unknown[] = [], maxRows?: number): Promise<SqlRows> => {
+            const [rows, fields] = await connection.query<RowDataPacket[]>({ sql, rowsAsArray: true }, params)
+            const limit = maxRows ?? rows.length
+            return {
+                columns: (fields ?? []).map((field) => field.name),
+                rows: (rows as unknown as unknown[][]).slice(0, limit),
+                truncated: rows.length > limit,
+                durationMs: 0,
+            }
+        }
+        const run = async (statement: SqlStatement): Promise<SqlExecResult> => {
+            const [result] = statement.params?.length
+                ? await connection.execute<ResultSetHeader>(statement.sql, statement.params)
+                : await connection.query<ResultSetHeader>(statement.sql)
+            if (statement.expectRows && result.affectedRows === 0) {
+                throw new Error('The target row was not found; it may have changed. Refresh and retry.')
+            }
+            return { rowsAffected: result.affectedRows, lastInsertId: result.insertId || null }
+        }
+
         return {
-            select: async <T>(query: string, bindValues?: unknown[]) => {
-                const [rows] = await connection.query<RowDataPacket[]>(query, bindValues)
-                return rows as T
-            },
-            execute: async (query: string, bindValues?: unknown[]) => {
-                const [result] = bindValues?.length
-                    ? await connection.execute(query, bindValues)
-                    : await connection.query(query)
-                return {
-                    rowsAffected: result.affectedRows,
-                    lastInsertId: result.insertId,
+            handle: `mysql:${request.target.connectionId}`,
+            query,
+            select: async <T>(sql: string, params?: unknown[], maxRows?: number) =>
+                toRecords(await query(sql, params, maxRows)) as T,
+            execute: (sql, params) => run({ sql, params }),
+            batch: async (statements, options = {}) => {
+                const transactional = options.transactional ?? true
+                if (transactional) await connection.beginTransaction()
+                try {
+                    const results: SqlExecResult[] = []
+                    for (const statement of statements) results.push(await run(statement))
+                    if (transactional) await connection.commit()
+                    return results
+                } catch (error) {
+                    if (transactional) await connection.rollback()
+                    throw error
                 }
             },
-            close: async () => {
-                await connection.end()
-                const index = this.connections.indexOf(connection)
-                if (index >= 0) {
-                    this.connections.splice(index, 1)
-                }
-            },
+            close: async () => undefined,
         }
     }
 
@@ -91,13 +124,13 @@ describeMysql('MySQL provider against a real MySQL server', () => {
         )
     })
 
-    it('loads paged rows while normalizing MySQL preview-only decimal values', async () => {
+    it('loads paged rows with exact decimal values', async () => {
         const result = await service.queryTableRows(session, 'quarry_demo', 'products', 3, 2)
 
         expect(result.total).toBe(14)
         expect(result.rows).toHaveLength(3)
         expect(result.columns).toContain('price')
-        expect(typeof result.rows[0]?.['price']).toBe('string')
+        expect(typeof result.rows[0]?.['price']).toBe('number')
     })
 
     it('applies server-side browse filters and identifier-safe sorting', async () => {
@@ -109,7 +142,7 @@ describeMysql('MySQL provider against a real MySQL server', () => {
 
         expect(result.total).toBe(2)
         expect(result.rows.map((row) => row['name'])).toEqual(['Laptop Pro 15"', 'Laptop Backpack 15"'])
-        expect(result.rows.map((row) => row['price'])).toEqual(['1299.99', '79.99'])
+        expect(result.rows.map((row) => row['price'])).toEqual([1299.99, 79.99])
     })
 
     it('runs raw expression and joined queries with preview limits', async () => {
@@ -158,8 +191,8 @@ describeMysql('MySQL provider against a real MySQL server', () => {
         expect(sql).toContain('`quarry_demo`.`orders`')
         expect(sql).toContain('INNER JOIN `quarry_demo`.`customers`')
         expect(rows).toHaveLength(10)
-        expect(rows[0]).toMatchObject({ name: 'Alice Martin', revenue: '1569.96' })
-        expect(rows.at(-1)).toMatchObject({ name: "James O'Brien", revenue: '119.98' })
+        expect(rows[0]).toMatchObject({ name: 'Alice Martin', revenue: 1569.96 })
+        expect(rows.at(-1)).toMatchObject({ name: "James O'Brien", revenue: 119.98 })
         expect(preview.rows).toHaveLength(3)
         expect(preview.columns).toEqual(['name', 'revenue'])
     })
