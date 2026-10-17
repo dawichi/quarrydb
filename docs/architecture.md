@@ -4,195 +4,144 @@
 
 | Layer | Choice |
 |-------|--------|
-| Shell | Tauri 2.11.5 |
+| Shell | Tauri 2.12 (Rust) |
 | Frontend | Angular 22 + TypeScript + Signals |
 | Styling | Tailwind CSS v4 (SCSS only for animations/keyframes) |
-| State | Angular Signals (no NgRx) |
-| Data providers | SQLite and MySQL via `tauri-plugin-sql`; Redis/Valkey via typed Tauri commands |
+| SQL access | Native `sqlx` layer in Rust (SQLite and MySQL), see `src-tauri/src/sql` |
+| Redis/Valkey | Native `redis` crate behind typed Tauri commands, see `src-tauri/src/redis.rs` |
 | Auto-updates | `tauri-plugin-updater` (GitHub Releases) |
 | Package manager | Bun |
-| Linter / Formatter | Biome (`bun run check`) |
-| Testing | Vitest (unit/integration) + Playwright (browser E2E) |
+| Linter / Formatter | Biome (`bun run check`), rustfmt + clippy |
+| Testing | Vitest, Playwright, `cargo test` (incl. live MySQL/Redis in CI) |
 | Landing | Astro |
 
-## Native capability boundary
-
-The main Tauri window uses an explicit capability allowlist. File selection is limited to the
-open/save dialog commands, SQLite/MySQL use only the SQL load/select/execute/close commands, and
-the updater is limited to checking and downloading/installing signed updates. External links use
-only the URL opener permission, while restart is granted solely for the post-update relaunch.
-Unused path permissions and broad opener/updater defaults are intentionally excluded. Any new
-native plugin or command must add the narrowest permission it needs and update the native-shell
-smoke checklist when platform behavior changes.
-
-## Repository Layout (Monorepo)
+## Repository layout
 
 ```
 quarrydb/
-├── src/                  # Angular app — the desktop UI
-│   └── app/
-│       ├── core/         # provider services, persistence, and host/provider state stores
-│       ├── layout/       # app shell (sidebar / schema browser)
-│       ├── features/     # table-viewer, pipeline-builder, edit-mode, tutorial,
-│       │                 # welcome, update-check-modal, update-banner
-│       └── shared/       # cross-feature directives
-├── src-tauri/            # Rust shell (Tauri standard location)
-│                         # SQL plugin for SQLite/MySQL plus typed Redis/keyring/file commands
-├── landing/              # Astro site for quarrydb.app
-└── packages/
-    └── shared/           # Shared TypeScript types (PipelineStep & variants),
-                          # imported by both the app and the landing page's interactive demo
+├── src/app/
+│   ├── core/native/       # sql-client.ts: the only TypeScript door to native SQL
+│   ├── core/providers/    # SQLite / MySQL / Redis adapters, pipeline backends
+│   ├── core/store/        # Signal stores; pipeline.store.ts is engine-agnostic
+│   ├── features/          # pipeline-builder, table-viewer, edit-mode, workspaces, …
+│   └── layout/            # app shell (sidebar / schema browser)
+├── src-tauri/src/
+│   ├── sql/               # pools, value decoding, bound params, transactions
+│   ├── redis.rs           # Redis/Valkey commands
+│   ├── secrets.rs         # OS keyring
+│   ├── menu.rs, files.rs  # native menu, export writes
+│   └── lib.rs             # wiring only
+├── packages/shared/       # pipeline model + compiler (pipeline-sql.ts), shared types
+└── landing/               # Astro site (quarrydb.app)
 ```
 
-## Direction: Shared Shell, Provider-Specific Workspaces
+## The pipeline (the core of the product)
 
-The current codebase is intentionally SQLite-first. That was the right choice for shipping
-a real product quickly. It is not the long-term architectural endpoint.
+A pipeline is a source table followed by steps (WHERE, SELECT, ORDER BY, GROUP BY, JOIN, raw
+SQL). Each step shows the rows it produces, so a query reads like `.filter().map()`.
 
-Quarry is now moving toward:
-
-- a shared app shell
-- provider-aware recent items and session restore
-- provider-specific workspaces
-- capability-based reuse where it is real, not speculative
-
-That means the app should feel unified, but opening a SQLite file, a MySQL server, or a
-Redis instance should be allowed to produce meaningfully different interfaces.
-
-The provider model and refactor plan live in `docs/multi-engine-architecture.md`.
-
-## Data Flow: Pipeline → CTE Chain → SQL
-
-The pipeline builder is the core of the app. Each step the user adds is a transformation on
-the result set, and the whole pipeline compiles down to a single **CTE chain** — one named
-CTE per step:
+`packages/shared/src/pipeline-sql.ts` compiles a pipeline into one CTE per step:
 
 ```sql
-WITH step_1 AS (SELECT * FROM users),
-     step_2 AS (SELECT * FROM step_1 WHERE active = true),
-     step_3 AS (SELECT * FROM step_2 WHERE id >= 100)
+WITH step_1 AS (SELECT * FROM "orders"),
+     step_2 AS (SELECT * FROM step_1 AS "orders" WHERE total > ?),
+     step_3 AS (SELECT "orders".*, "customers"."id" AS "customers_id", "customers"."name" AS "name"
+                FROM step_2 AS "orders" INNER JOIN "customers" AS "customers"
+                ON orders.customer_id = customers.id)
 SELECT * FROM step_3
 ```
 
-This keeps the generated SQL readable, debuggable, and easy to compose — and it's always
-visible to the user in the generated SQL panel (live-updating, copyable). The **Raw SQL**
-step type is the escape hatch: it receives the previous step as a named CTE
-(`WITH prev AS (...)`), so users can drop into arbitrary SQL without breaking the chain.
+Rules the compiler guarantees (each one is tested by running real SQL):
 
-Execution is live: as the user edits a step's config, the query for that step (and every
-step after it) re-runs automatically (debounced) against the current SQLite backend, and
-each step renders its own intermediate result inline. Live preview results are capped at N
-rows; the full, uncapped result set is only fetched on explicit export.
+- **Stable naming.** Every step reads the previous result under the source table's own name
+  (`orders`), so expressions mean the same thing at any position and survive reordering.
+  CTE names are an implementation detail users never type. Pipelines saved before 0.2 that
+  referenced `step_N` in a JOIN condition still compile.
+- **Column tracking.** The compiler knows the columns flowing out of every step (from the
+  schema, SELECT aliases, GROUP BY keys and aggregates). The UI offers exactly those columns.
+  A raw SQL step makes them unknown until it runs.
+- **Explicit JOIN projection.** Joined columns keep their names unless the left side already
+  has them; then they become `<alias>_<column>`. Results never contain duplicate names.
+- **Bound variables.** `:name` placeholders become parameters. String literals, quoted
+  identifiers and comments are skipped. Numeric-looking values bind as numbers.
+- **Ordering survives.** The last effective ORDER BY is re-applied to the final query, because
+  databases (MySQL in particular) may ignore ordering inside derived tables.
+- **Compile errors stay on the step.** An unset variable, unknown table, MySQL `FULL JOIN` or an
+  unaliased self-join is reported on that step; later steps show as blocked.
 
-If a step errors (bad SQL, missing column, etc.), every downstream step enters a "blocked"
-state and does not execute — errors propagate forward through the chain, never silently.
+`PipelineStore` runs each step's preview (`LIMIT 50`) and `COUNT(*)` through a
+`PipelineBackend` (`core/store/pipeline-backend.ts`). SQLite and MySQL each supply one
+(`core/providers/pipeline-backends.ts`), so both workspaces render the same
+`<app-pipeline-builder>`. A newer run supersedes an older one; stale results are discarded.
 
-See `docs/product-spec.md` for the full breakdown of step types, JOIN modes, and the
-pipeline interaction model (drag-reorder, undo/redo, error badges, etc.).
+## Native SQL layer
 
-## Current Workspace Model
+The webview never builds connection strings or talks to a database driver. It calls four
+commands (`src/app/core/native/sql-client.ts` ↔ `src-tauri/src/sql/mod.rs`):
 
-A **SQLite workspace** is a named collection of one or more `.db` files. Quarry uses SQLite's
-`ATTACH DATABASE` to make cross-file JOINs possible within a workspace — the schema browser
-shows each attached file as a collapsible section, with its ATTACH alias visible next to the
-filename (so users can see where the `alias.table` prefix in generated CTE SQL comes from).
+| Command | Purpose |
+|---------|---------|
+| `sql_connect(target)` | Open or reuse a pool; returns a secret-free handle (`sqlite:<path>`, `mysql:<id>`) |
+| `sql_select(handle, sql, params, maxRows)` | Rows as arrays + column names; stops reading at `maxRows` |
+| `sql_execute(handle, statements, transactional, onError)` | Ordered statements on **one** connection |
+| `sql_disconnect(handle)` | Close the pool |
 
-Workspaces persist to the app data folder by default (zero friction to resume), and can be
-exported as a `.quarry` config file to share or version-control.
+- Values are decoded by engine type: integers and floats as numbers, MySQL `DECIMAL` as a number
+  when that is exact (string otherwise), dates as ISO-like strings, `JSON` as JSON, binary data
+  as UTF-8 text or a `{ encoding: "base64", data }` envelope.
+- Staged edits run as one transaction. Statements marked `expectRows` fail the batch when they
+  touch nothing (a row changed underneath you), and the whole batch rolls back.
+- DDL scripts that manage their own transaction run non-transactionally on one connection, with
+  `onError` cleanup (`ROLLBACK`, `PRAGMA foreign_keys = ON`) before the connection is reused.
+- Every statement has a 60 s timeout; MySQL sessions also set `max_execution_time`.
+- Rust and TypeScript agree on argument names through an IPC test (`lib.rs`, `ipc_tests`).
 
-This model is SQLite-specific and should not become the app-wide definition of "workspace"
-once more providers exist. Future providers will need their own workspace bootstrap and
-navigation models.
+## Providers
 
-## Current SQLite-Coupled Assumptions
+- **SQLite** — a workspace of one or more `.db` files. Each file is its own pipeline backend;
+  joins happen within one file (Quarry does not `ATTACH` databases).
+- **MySQL** — saved connection profiles, passwords optionally in the OS keyring. One pipeline
+  backend per connection; tables are addressed as `schema.table`.
+- **Redis/Valkey** — key browser and command runner. Redis is deliberately not forced through
+  the relational pipeline. Commands run off the main thread with bounded previews.
 
-Today, several paths are provider-specific even when they live under shared-looking folders:
+## Native capability boundary
 
-- `SqliteDatabaseService` is a SQLite bridge
-- `SqliteWorkspaceStore` owns file-backed SQLite workspaces
-- session persistence is provider-aware but still has provider-specific payloads
-- recent items are recent SQLite files
-- the schema browser assumes SQLite tables/views/triggers
-- the query pipeline assumes SQLite dialect and source-selection rules
-- DDL flows assume SQLite-specific behavior
-- `RedisWorkspaceStore` owns SCAN/key/value state and never routes Redis through SQL or the
-  relational pipeline
-- Redis sockets are opened only by the native Rust command boundary; the webview uses typed
-  invoke payloads and does not open arbitrary TCP connections
+The main window's capability allowlist (`src-tauri/capabilities/default.json`) grants only the
+open/save dialogs, URL opener, updater check/install and restart. Custom commands (SQL, Redis,
+keyring, export) are registered explicitly in `lib.rs`. Any new command needs a boundary test.
 
-These assumptions were correct for the first product phase. The next architectural step is
-to move them behind a provider boundary rather than treating them as universal app behavior.
-
-## Release Pipeline & Auto-Updates
+## Release pipeline and auto-updates
 
 Distribution is via GitHub Releases, consumed in-app by `tauri-plugin-updater`. Users see an
-in-app banner when an update is available — downloading and installing is always a manual,
-two-click action (no silent background installs).
+in-app banner when an update is available; installing is always a manual two-click action.
 
-**Build pipeline:** GitHub Actions matrix build (macOS arm64, macOS x64, Windows) triggered
-on `v*` tag push, via `tauri-action`.
+**Build pipeline:** pushing a `v*` tag runs the full CI suite (`release.yml` reuses `ci.yml`),
+then a matrix build (macOS arm64, macOS x64, Windows) via `tauri-action`.
 
 **The manifest-assembly problem:** `tauri-action` repacks the signed `.tar.gz` artifact
-*before* reading its signature, which breaks the signature match in the `latest.json` update
-manifest it generates. The fix (shipped in v0.1.2) is a dedicated `finalize` job that runs
-*after* all matrix builds complete, and assembles `latest.json` itself directly from the
-already-signed `.tar.gz.sig` / `.exe.sig` files — bypassing `tauri-action`'s own manifest
-generation entirely.
+*before* reading its signature, which breaks the signature in the `latest.json` it generates.
+A dedicated `finalize` job assembles `latest.json` itself from the already-signed
+`.tar.gz.sig` / `.exe.sig` files after all matrix builds complete. If you touch the release
+workflow: **assemble the final update manifest yourself, after signing, in a dedicated step.**
 
-This is a structural property of multi-architecture matrix builds, not a one-off bug: the
-build tool's default manifest assembly does not survive being run per-architecture and then
-merged. If you're touching the release workflow, the rule is **assemble the final update
-manifest yourself, after signing, in a dedicated step** — don't trust the per-arch build
-outputs to compose correctly on their own.
+**Testing the update flow locally:** `scripts/local-update-test.ts` runs the real chain
+(detect, download, verify, install, relaunch) on localhost with a test-only keypair and
+distinct app identifiers:
 
-**Testing the update flow locally:** the only way to exercise the real chain — detect,
-download, signature verification, install, relaunch — is on a real install, and manually
-babysitting every release doesn't scale. `scripts/local-update-test.ts`
-runs that chain end-to-end on localhost:
-
-1. `bun scripts/local-update-test.ts baseline <low version>` — builds and opens an
-   installable "old" app (`QuarryUpdateTest` / `dev.quarrydb.app.localtest`, distinct
-   identifiers so it can never collide with your real Quarry install).
+1. `bun scripts/local-update-test.ts baseline <low version>` builds an installable "old" app.
 2. Install and launch it.
-3. `bun scripts/local-update-test.ts release <higher version>` — builds a "new" version,
-   signs the updater artifact, writes `latest.json`, and serves both on `localhost:17420`.
-4. In the running baseline app, trigger "Check for Updates…" (or wait for the 4-minute
-   background poll) and watch it detect, download, verify, install, and relaunch into
-   the new version for real.
+3. `bun scripts/local-update-test.ts release <higher version>` builds, signs and serves a newer
+   version on `localhost:17420`.
+4. In the baseline app, "Check for Updates…" and watch it update and relaunch.
 
-Both builds are signed with a dedicated test-only keypair (gitignored, generated once via
-`bunx tauri signer generate --ci -p "" -w scripts/local-update-test/keys/test.key`) and
-point `plugins.updater.endpoints` at `localhost` instead of GitHub Releases — fully
-decoupled from the production signing key and pipeline, so there's no risk to either.
-Logic-level regressions (banner triggering, `update.body` parsing, polling cadence) are
-covered separately by `src/app/core/services/updater.service.spec.ts`'s mocked unit tests.
+Differential updates were investigated and declined (2026-06-07): bundles are ~4–6 MB and Tauri
+has no binary-diff support (`tauri-apps/tauri#11863`).
 
-**Differential ("delta") updates — investigated, declined (2026-06-07):** full update
-bundles are already small (~6MB macOS, ~4MB Windows), and Tauri has no built-in support for
-binary-diff updates (open upstream request: `tauri-apps/tauri#11863`, unaddressed since
-Dec 2024). Building it ourselves would mean bypassing `tauri-plugin-updater` for a custom
-patch-and-replace flow on a signed executable — high complexity and risk for savings that
-compiled-binary diffing likely wouldn't even deliver (small source changes reshuffle binary
-layout, so patches stay large). Revisit only if the bundle grows substantially or Tauri
-ships native support.
+## Known platform issues
 
-## Known Platform Issues
+**macOS "app is damaged":** builds are not notarized. After dragging to `/Applications`:
+`xattr -cr /Applications/Quarry.app`. The release workflow supports notarization once
+`APPLE_CERTIFICATE` / `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` secrets exist.
 
-### macOS: "app is damaged" on first install
-
-The app is not signed with an Apple Developer certificate, so Gatekeeper blocks it after
-download. One-time workaround after dragging to `/Applications`:
-
-```bash
-xattr -cr /Applications/Quarry.app
-```
-
-Permanent fix requires an Apple Developer Program membership ($99/yr) + notarization — the
-GitHub Actions workflow already supports this via `tauri-action`, it just needs
-`APPLE_CERTIFICATE` / `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` secrets configured.
-
-### Windows: SmartScreen warning on first install
-
-Same root cause (no code signing certificate). Workaround is a single click ("More info" →
-"Run anyway"). Lower priority than macOS — fixing it requires an EV code signing certificate
-(~$300/yr from a CA), and the workaround is trivial enough that it's not worth the cost yet.
+**Windows SmartScreen:** unsigned installer; "More info" → "Run anyway".

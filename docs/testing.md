@@ -1,73 +1,38 @@
-# Automated Testing
-
-Quarry's local QA loop is split into fast logic tests and browser tests:
+# Testing
 
 ```bash
-bun run check       # Biome lint + formatting check
-bun run check:docs  # Verify maintained relative Markdown links
-bun run test:run    # Vitest unit and SQLite integration tests
-bun run test:e2e    # Playwright browser tests against Angular
-bun run test:landing # Playwright smoke tests against the Astro landing site
-bun run test:mysql  # Real MySQL provider integration tests via Docker
-bun run test:redis  # Redis provider integration tests when Docker is available
-bun run build       # Production Angular bundle
-bun run build:landing # Production Astro landing bundle
+bun run check        # Biome lint + format (auto-fix); check:ci is the non-mutating version
+bun run check:docs   # Relative Markdown links resolve
+bun run test:run     # Vitest: compiler, stores, adapters, SQLite integration
+bun run test:e2e     # Playwright against the Angular app with a faked Tauri IPC layer
+bun run test:landing # Playwright smoke tests for the Astro site
+bun run test:mysql   # Starts MySQL in Docker; runs the Vitest and Rust MySQL suites
+bun run test:redis   # Starts Redis in Docker; runs the live Redis suite
+bun run qa           # Everything above except the Docker suites, plus both builds
+(cd src-tauri && cargo test && cargo clippy --all-targets && cargo fmt --check)
 ```
 
-Run the complete local verification sequence with:
+CI (`.github/workflows/ci.yml`) runs all of it, including the live MySQL and Redis suites.
+The release workflow reuses CI, so a tag cannot ship what `main` would not.
 
-```bash
-bun run qa
-```
+## What each layer proves
 
-For the full local loop, including Docker-backed MySQL:
+| Layer | Where | Proves |
+|-------|-------|--------|
+| Compiler | `packages/shared/src/pipeline-sql.spec.ts` | Generated SQL **runs** on real SQLite and returns the right rows (JOIN projection, naming, variables, ordering) |
+| Store | `src/app/core/store/pipeline.store.spec.ts` | Step execution, error blocking, restore, undo/redo against an in-memory SQLite backend |
+| Services | `src/app/core/integration/*.spec.ts` | SQLite services run real SQL through a fake native client backed by `node:sqlite` |
+| MySQL | `mysql-provider.integration.spec.ts` | Adapter SQL against a live server: metadata, paging, numeric sorting, pipelines, transactional edits |
+| Native | `src-tauri/src/sql/mod.rs` | Value decoding (SQLite and live MySQL), rollback on stale edit targets |
+| IPC | `src-tauri/src/lib.rs` (`ipc_tests`) | The JSON the frontend sends matches the Rust command signatures |
+| Browser | `e2e/` | Golden paths through the UI with the Tauri IPC layer faked |
 
-```bash
-bun run qa
-bun run test:mysql
-```
+## Rule
 
-The Playwright configuration starts the Angular dev server automatically and uses a fresh
-Chromium context for each test. It covers the welcome/provider flow and a deterministic
-SQLite golden path: session restore, table browsing, query-tab navigation, WHERE-step
-creation, generated SQL, result rendering, staged row updates, apply, and CSV export. The
-SQLite browser fixture mocks only the Tauri IPC boundary, while real adapter behavior is
-tested separately against MySQL and SQLite integration fixtures.
-The Tauri native shell is deliberately not required for these tests, so native dialogs and
-menu registration do not block browser QA.
+A feature is not done until a test that would fail without it passes. Do not record anything as
+verified in docs or release notes unless a test run proved it.
 
-The landing Playwright configuration builds the Astro site, starts its preview server, and
-uses a fresh Chromium context for each test. It covers the public page contract, release-link
-fallback when GitHub is unavailable, and the interactive demo's pipeline/SQL/result updates.
-The GitHub release API is stubbed in these tests so landing QA remains deterministic and does
-not consume a network-dependent rate limit.
-The landing suite uses port `4323` by default and does not reuse an arbitrary existing server;
-set `QUARRY_LANDING_PORT` to override the port or `QUARRY_REUSE_LANDING_SERVER=1` only when
-reusing a known Quarry preview is intentional.
+## Not covered automatically
 
-Install the browser once on a new machine:
-
-```bash
-bunx playwright install chromium
-```
-
-GitHub Actions runs the same checks on pushes to `main` and pull requests. The MySQL and Redis
-integration suites start disposable containers, exercise the real provider boundaries, and stop
-them afterward. MySQL uses a `mysql2` test transport and covers
-schema discovery, metadata, sample seeding, paging, type normalization, server-side browse
-filtering/sorting, raw expressions, and joined query previews. Redis exercises the native Rust
-command against a live local server, including bounded previews for string, list, set, sorted-set,
-hash, and stream values.
-
-Redis native command tests run at the Rust unit boundary in every local run. CI also provisions
-Redis and runs the live protocol test. On a developer machine, `bun run test:redis` provisions the
-same fixture; when Docker is unavailable, it reports that fact without pretending the remote
-protocol was tested.
-
-## Native shell boundary
-
-Playwright covers the webview and the Tauri IPC boundary, but it does not drive OS-native
-macOS/Windows dialogs or menu bars. Those require a native WebDriver stack such as
-`tauri-driver` plus an installed platform driver, or a small manual smoke check on each
-target OS. The browser tests still verify that export and database operations issue the
-expected IPC calls, which keeps most regressions out of that final platform-specific layer.
+Native menus, OS dialogs, the keyring, installers and the updater run only in a real install;
+see the smoke test in [release.md](release.md).
