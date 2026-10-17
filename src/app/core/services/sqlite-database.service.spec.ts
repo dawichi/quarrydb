@@ -1,25 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SqliteDatabaseService } from './sqlite-database.service'
 
-const { close, select, load } = vi.hoisted(() => {
-    const close = vi.fn()
+const { select, connectSql } = vi.hoisted(() => {
     const select = vi.fn()
-    const load = vi.fn(async () => ({ close, select }))
-    return { close, select, load }
+    const connectSql = vi.fn(async () => ({ select }))
+    return { select, connectSql }
 })
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn() }))
-vi.mock('@tauri-apps/plugin-sql', () => ({ default: { load } }))
+vi.mock('../native/sql-client', () => ({ connectSql }))
 
 describe('SqliteDatabaseService', () => {
     let service: SqliteDatabaseService
 
     beforeEach(() => {
         service = new SqliteDatabaseService()
-        load.mockReset()
-        close.mockReset()
         select.mockReset()
-        load.mockResolvedValue({ close, select })
     })
 
     it('caps table browse previews at 500 rows', async () => {

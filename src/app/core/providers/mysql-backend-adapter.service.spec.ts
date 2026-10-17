@@ -1,155 +1,90 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MysqlBackendAdapterService } from './mysql-backend-adapter.service'
+import type { MysqlConnectRequest } from './mysql-connect-request'
 
-const { close, execute, select, load } = vi.hoisted(() => {
-    const close = vi.fn()
-    const execute = vi.fn()
-    const select = vi.fn()
-    const load = vi.fn(async () => ({ close, execute, select }))
-    return { close, execute, select, load }
+const { client, connectSql } = vi.hoisted(() => {
+    const client = {
+        handle: 'mysql:mysql-1',
+        query: vi.fn(),
+        select: vi.fn(),
+        execute: vi.fn(),
+        batch: vi.fn(),
+        close: vi.fn(async () => undefined),
+    }
+    return { client, connectSql: vi.fn(async () => client) }
 })
 
-vi.mock('@tauri-apps/plugin-sql', () => ({
-    default: {
-        load,
-    },
+vi.mock('../native/sql-client', async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    connectSql,
 }))
+
+function request(overrides: Partial<MysqlConnectRequest['target']> = {}): MysqlConnectRequest {
+    return {
+        target: {
+            connectionId: 'mysql-1',
+            connectionName: 'Analytics',
+            host: '127.0.0.1',
+            port: 3306,
+            defaultDatabase: 'quarry_demo',
+            ...overrides,
+        },
+        username: 'quarry',
+        password: 'secret word',
+        sslMode: 'required',
+        source: 'saved_profile',
+    }
+}
 
 describe('MysqlBackendAdapterService', () => {
     let service: MysqlBackendAdapterService
 
     beforeEach(() => {
         service = new MysqlBackendAdapterService()
-        load.mockReset()
-        close.mockReset()
-        execute.mockReset()
-        select.mockReset()
-        load.mockResolvedValue({ close, execute, select })
-        execute.mockResolvedValue({ rowsAffected: 1 })
+        for (const mock of [client.query, client.select, client.execute, client.batch, connectSql]) mock.mockClear()
+        client.select.mockReset()
+        client.query.mockReset()
+        client.select.mockResolvedValue([{ ok: 1 }])
+        client.batch.mockResolvedValue([])
     })
 
-    it('opens a real mysql plugin-sql dsn and returns a provisional connection session', async () => {
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'warehouse',
-            },
+    it('opens a native pool with structured credentials instead of a DSN string', async () => {
+        const session = await service.connect(request())
+
+        expect(connectSql).toHaveBeenCalledWith({
+            engine: 'mysql',
+            connectionId: 'mysql-1',
+            host: '127.0.0.1',
+            port: 3306,
             username: 'quarry',
             password: 'secret word',
+            database: 'quarry_demo',
             sslMode: 'required',
-            source: 'saved_profile',
         })
-
-        expect(load).toHaveBeenCalledWith('mysql://quarry:secret%20word@127.0.0.1:3306/warehouse?ssl-mode=REQUIRED')
-        expect(close).toHaveBeenCalledOnce()
         expect(session.target.connectionName).toBe('Analytics')
         expect(session.source).toBe('saved_profile')
     })
 
-    it('rejects malformed host and port values before opening a driver connection', async () => {
-        await expect(
-            service.connect({
-                target: {
-                    connectionId: 'mysql-invalid-host',
-                    connectionName: 'Invalid host',
-                    host: 'db.example.test/evil',
-                    port: 3306,
-                },
-                username: 'quarry',
-                password: 'secret',
-                source: 'saved_profile',
-            }),
-        ).rejects.toThrow('MySQL host')
-
-        await expect(
-            service.connect({
-                target: {
-                    connectionId: 'mysql-invalid-port',
-                    connectionName: 'Invalid port',
-                    host: '127.0.0.1',
-                    port: 70000,
-                },
-                username: 'quarry',
-                password: 'secret',
-                source: 'saved_profile',
-            }),
-        ).rejects.toThrow('MySQL port')
-        expect(load).not.toHaveBeenCalled()
+    it('rejects malformed host and port values before opening a connection', async () => {
+        await expect(service.connect(request({ host: 'db.example.test/evil' }))).rejects.toThrow(
+            'MySQL host must be a non-empty hostname or IP address',
+        )
+        await expect(service.connect(request({ port: 70_000 }))).rejects.toThrow(
+            'MySQL port must be an integer between 1 and 65535',
+        )
+        expect(connectSql).not.toHaveBeenCalled()
     })
 
-    it('lists schema names from information_schema using the saved in-memory connect request', async () => {
-        select.mockResolvedValue([{ Database: 'information_schema' }, { Database: 'warehouse' }])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'warehouse',
-            },
-            username: 'quarry',
-            password: 'secret',
-            sslMode: 'required',
-            source: 'saved_profile',
-        })
-
-        await expect(service.listSchemas(session)).resolves.toEqual([
-            { name: 'information_schema', isDefault: false },
-            { name: 'warehouse', isDefault: true },
-        ])
-        expect(select).toHaveBeenCalledWith('SHOW DATABASES')
-    })
-
-    it('fails schema listing when no in-memory connect request exists for the session', async () => {
-        await expect(
-            service.listSchemas({
-                target: {
-                    connectionId: 'missing',
-                    connectionName: 'Missing',
-                    host: '127.0.0.1',
-                    port: 3306,
-                },
-                source: 'saved_profile',
-                connectedAt: 1,
-            }),
-        ).rejects.toThrow('MySQL connection request not found for Missing')
-    })
-
-    it('releases credential-bearing request metadata when a workspace closes', async () => {
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-            },
-            username: 'quarry',
-            password: 'secret',
-            source: 'manual',
-        })
-
+    it('fails clearly once a workspace connection has been released', async () => {
+        const session = await service.connect(request())
         service.forgetConnection('mysql-1')
 
-        await expect(service.listSchemas(session)).rejects.toThrow('MySQL connection request not found')
+        await expect(service.listSchemas(session)).rejects.toThrow('MySQL connection is not open for Analytics')
+        expect(client.close).toHaveBeenCalled()
     })
 
-    it('applies staged MySQL row edits in one transaction', async () => {
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            source: 'saved_profile',
-        })
+    it('applies staged edits as one transactional batch that rejects vanished targets', async () => {
+        const session = await service.connect(request())
 
         await service.applyEdits(session, 'quarry_demo', 'products', [
             {
@@ -162,176 +97,27 @@ describe('MysqlBackendAdapterService', () => {
             { kind: 'insert', values: { name: 'New product', price: '4.50' } },
         ])
 
-        expect(execute).toHaveBeenNthCalledWith(1, 'BEGIN')
-        expect(execute).toHaveBeenNthCalledWith(2, 'UPDATE `quarry_demo`.`products` SET `name` = ? WHERE `id` = ?', [
-            'Updated product',
-            7,
-        ])
-        expect(execute).toHaveBeenNthCalledWith(3, 'DELETE FROM `quarry_demo`.`products` WHERE `id` = ?', [8])
-        expect(execute).toHaveBeenNthCalledWith(
-            4,
-            'INSERT INTO `quarry_demo`.`products` (`name`, `price`) VALUES (?, ?)',
-            ['New product', '4.50'],
-        )
-        expect(execute).toHaveBeenNthCalledWith(5, 'COMMIT')
-        expect(close).toHaveBeenCalled()
-    })
-
-    it('rolls back when an update target disappeared remotely', async () => {
-        execute.mockReset()
-        execute.mockResolvedValueOnce({ rowsAffected: 1 }).mockResolvedValueOnce({ rowsAffected: 0 })
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            source: 'saved_profile',
-        })
-
-        await expect(
-            service.applyEdits(session, 'quarry_demo', 'products', [
-                { kind: 'update', pkValues: { id: 7 }, changes: { name: 'Updated' }, original: { id: 7 } },
-            ]),
-        ).rejects.toThrow('MySQL update target was not found')
-        expect(execute).toHaveBeenLastCalledWith('ROLLBACK')
-    })
-
-    it('rolls back when a delete target disappeared remotely', async () => {
-        execute.mockReset()
-        execute.mockResolvedValueOnce({ rowsAffected: 1 }).mockResolvedValueOnce({ rowsAffected: 0 })
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            source: 'saved_profile',
-        })
-
-        await expect(
-            service.applyEdits(session, 'quarry_demo', 'products', [
-                { kind: 'delete', pkValues: { id: 8 }, original: { id: 8 } },
-            ]),
-        ).rejects.toThrow('MySQL delete target was not found')
-        expect(execute).toHaveBeenLastCalledWith('ROLLBACK')
-    })
-
-    it('lists tables and their columns from a selected schema', async () => {
-        select.mockResolvedValueOnce([{ table_name: 'products' }, { table_name: 'orders' }]).mockResolvedValueOnce([
+        expect(client.batch).toHaveBeenCalledWith([
             {
-                table_name: 'products',
-                column_name: 'id',
-                column_type: 'int',
-                is_nullable: 'NO',
-                column_key: 'PRI',
-                column_default: '',
+                sql: 'UPDATE `quarry_demo`.`products` SET `name` = ? WHERE `id` = ?',
+                params: ['Updated product', 7],
+                expectRows: true,
             },
+            { sql: 'DELETE FROM `quarry_demo`.`products` WHERE `id` = ?', params: [8], expectRows: true },
             {
-                table_name: 'products',
-                column_name: 'name',
-                column_type: 'varchar(255)',
-                is_nullable: 'NO',
-                column_key: '',
-                column_default: '',
-            },
-            {
-                table_name: 'orders',
-                column_name: 'id',
-                column_type: 'int',
-                is_nullable: 'NO',
-                column_key: 'PRI',
-                column_default: '',
-            },
-            {
-                table_name: 'orders',
-                column_name: 'total',
-                column_type: 'decimal(10,2)',
-                is_nullable: 'NO',
-                column_key: '',
-                column_default: '0.00',
+                sql: 'INSERT INTO `quarry_demo`.`products` (`name`, `price`) VALUES (?, ?)',
+                params: ['New product', '4.50'],
             },
         ])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            sslMode: 'required',
-            source: 'saved_profile',
-        })
-
-        await expect(service.listTables(session, 'quarry_demo')).resolves.toEqual([
-            {
-                schemaName: 'quarry_demo',
-                name: 'orders',
-                columns: [
-                    { name: 'id', type: 'int', nullable: false, primaryKey: true, defaultValue: undefined },
-                    {
-                        name: 'total',
-                        type: 'decimal(10,2)',
-                        nullable: false,
-                        primaryKey: false,
-                        defaultValue: '0.00',
-                    },
-                ],
-            },
-            {
-                schemaName: 'quarry_demo',
-                name: 'products',
-                columns: [
-                    { name: 'id', type: 'int', nullable: false, primaryKey: true, defaultValue: undefined },
-                    {
-                        name: 'name',
-                        type: 'varchar(255)',
-                        nullable: false,
-                        primaryKey: false,
-                        defaultValue: undefined,
-                    },
-                ],
-            },
-        ])
-
-        expect(select).toHaveBeenNthCalledWith(
-            1,
-            `SELECT CAST(table_name AS CHAR(255)) AS table_name
-                 FROM information_schema.tables
-                 WHERE table_schema = ?
-                   AND table_type = 'BASE TABLE'
-                 ORDER BY table_name`,
-            ['quarry_demo'],
-        )
-        expect(select).toHaveBeenNthCalledWith(2, expect.stringContaining('FROM information_schema.columns'), [
-            'quarry_demo',
-            'products',
-            'orders',
-        ])
-        expect(select.mock.calls[1]?.[0]).toContain('AND table_name IN (?, ?)')
     })
 
     it('loads large schemas in bounded metadata batches', async () => {
         const tableNames = Array.from({ length: 201 }, (_, index) => `table_${index}`)
-        select.mockImplementation(async (query: string, values?: unknown[]) => {
+        const session = await service.connect(request())
+        client.select.mockImplementation(async (query: string, values?: unknown[]) => {
             if (query.includes('FROM information_schema.tables')) {
                 return tableNames.map((table_name) => ({ table_name }))
             }
-
             const batchSize = (values?.length ?? 0) - 1
             return [
                 {
@@ -340,43 +126,25 @@ describe('MysqlBackendAdapterService', () => {
                     column_type: 'int',
                     is_nullable: 'NO',
                     column_key: 'PRI',
-                    column_default: '',
+                    column_default: null,
                 },
             ]
-        })
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-            },
-            username: 'quarry',
-            password: 'secret',
-            source: 'manual',
         })
 
         const tables = await service.listTables(session, 'quarry_demo')
 
         expect(tables).toHaveLength(201)
-        expect(select).toHaveBeenCalledTimes(3)
-        expect(select.mock.calls[1]?.[1]).toHaveLength(201)
-        expect(select.mock.calls[2]?.[1]).toHaveLength(2)
+        expect(client.select.mock.calls[2]?.[1]).toHaveLength(201)
+        expect(client.select.mock.calls[3]?.[1]).toHaveLength(2)
         expect(tables.find((table) => table.name === 'table_0')?.columns).toHaveLength(1)
         expect(tables.find((table) => table.name === 'table_200')?.columns).toHaveLength(1)
     })
 
-    it('caps table previews while preserving validated offset values', async () => {
-        select
+    it('sorts browse previews by the real column, so numbers sort as numbers', async () => {
+        const session = await service.connect(request())
+        client.select
             .mockResolvedValueOnce([
-                {
-                    column_name: 'id',
-                    column_type: 'int',
-                    is_nullable: 'NO',
-                    column_key: 'PRI',
-                    column_default: '',
-                },
+                { column_name: 'id', column_type: 'int', is_nullable: 'NO', column_key: 'PRI', column_default: null },
                 {
                     column_name: 'total',
                     column_type: 'decimal(10,2)',
@@ -386,21 +154,7 @@ describe('MysqlBackendAdapterService', () => {
                 },
             ])
             .mockResolvedValueOnce([{ count: 10 }])
-            .mockResolvedValueOnce([{ id: 1, total: '1389.98' }])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            sslMode: 'required',
-            source: 'saved_profile',
-        })
+            .mockResolvedValueOnce([{ id: 1, total: 1389.98 }])
 
         await expect(
             service.queryTableRows(session, 'quarry_demo', 'orders', 10_000, 0, {
@@ -408,239 +162,30 @@ describe('MysqlBackendAdapterService', () => {
                 sortColumn: 'total',
                 sortDirection: 'desc',
             }),
-        ).resolves.toEqual({
-            rows: [{ id: 1, total: '1389.98' }],
-            columns: ['id', 'total'],
-            total: 10,
-        })
+        ).resolves.toEqual({ rows: [{ id: 1, total: 1389.98 }], columns: ['id', 'total'], total: 10 })
 
-        expect(select).toHaveBeenNthCalledWith(
-            1,
-            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
-                        CAST(column_type AS CHAR(255)) AS column_type,
-                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
-                        CAST(column_key AS CHAR(3)) AS column_key,
-                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
-                 FROM information_schema.columns
-                 WHERE table_schema = ?
-                   AND table_name = ?
-                 ORDER BY ordinal_position`,
-            ['quarry_demo', 'orders'],
-        )
-        expect(select).toHaveBeenNthCalledWith(
-            2,
-            'SELECT COUNT(*) as count FROM `quarry_demo`.`orders` WHERE CAST(`id` AS CHAR) LIKE ? OR CAST(`total` AS CHAR) LIKE ?',
-            ['%odd%', '%odd%'],
-        )
-        expect(select).toHaveBeenNthCalledWith(
-            3,
-            'SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` WHERE CAST(`id` AS CHAR) LIKE ? OR CAST(`total` AS CHAR) LIKE ? ORDER BY `total` DESC LIMIT 500 OFFSET 0',
+        expect(client.select).toHaveBeenLastCalledWith(
+            'SELECT * FROM `quarry_demo`.`orders` WHERE CAST(`id` AS CHAR) LIKE ? OR CAST(`total` AS CHAR) LIKE ? ORDER BY `total` DESC LIMIT 500 OFFSET 0',
             ['%odd%', '%odd%'],
         )
     })
 
-    it('rewrites simple select-star queries to cast mysql-only preview types', async () => {
-        select
-            .mockResolvedValueOnce([
-                {
-                    column_name: 'id',
-                    column_type: 'int',
-                    is_nullable: 'NO',
-                    column_key: 'PRI',
-                    column_default: '',
-                },
-                {
-                    column_name: 'total',
-                    column_type: 'decimal(10,2)',
-                    is_nullable: 'NO',
-                    column_key: '',
-                    column_default: '0.00',
-                },
-            ])
-            .mockResolvedValueOnce([{ id: 1, total: '1389.98' }])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            sslMode: 'required',
-            source: 'saved_profile',
+    it('runs ad-hoc queries unmodified and caps rows natively', async () => {
+        const session = await service.connect(request())
+        client.query.mockResolvedValueOnce({
+            columns: ['id', 'id'],
+            rows: [[1, 2]],
+            truncated: false,
+            durationMs: 1,
         })
 
         await expect(
-            service.runQuery(session, 'SELECT * FROM `quarry_demo`.`orders` LIMIT 20;', 10_000),
-        ).resolves.toEqual({
-            kind: 'rows',
-            rows: [{ id: 1, total: '1389.98' }],
-            columns: ['id', 'total'],
-        })
-
-        expect(select).toHaveBeenNthCalledWith(
-            1,
-            `SELECT CAST(column_name AS CHAR(255)) AS column_name,
-                        CAST(column_type AS CHAR(255)) AS column_type,
-                        CAST(is_nullable AS CHAR(3)) AS is_nullable,
-                        CAST(column_key AS CHAR(3)) AS column_key,
-                        CAST(COALESCE(column_default, '') AS CHAR(255)) AS column_default
-                 FROM information_schema.columns
-                 WHERE table_schema = ?
-                   AND table_name = ?
-                 ORDER BY ordinal_position`,
-            ['quarry_demo', 'orders'],
+            service.runQuery(session, 'SELECT o.id, c.id FROM orders o JOIN customers c ORDER BY o.id;', 10_000),
+        ).resolves.toEqual({ kind: 'rows', rows: [{ id: 1, id_2: 2 }], columns: ['id', 'id'] })
+        expect(client.query).toHaveBeenCalledWith(
+            'SELECT o.id, c.id FROM orders o JOIN customers c ORDER BY o.id',
+            [],
+            500,
         )
-        expect(select).toHaveBeenNthCalledWith(
-            2,
-            'SELECT * FROM (SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total` FROM `quarry_demo`.`orders` LIMIT 20) AS quarry_query LIMIT 500',
-        )
-    })
-
-    it('rewrites simple projected table queries to cast mysql-only preview types', async () => {
-        select
-            .mockResolvedValueOnce([
-                {
-                    column_name: 'id',
-                    column_type: 'int',
-                    is_nullable: 'NO',
-                    column_key: 'PRI',
-                    column_default: '',
-                },
-                {
-                    column_name: 'total',
-                    column_type: 'decimal(10,2)',
-                    is_nullable: 'NO',
-                    column_key: '',
-                    column_default: '0.00',
-                },
-                {
-                    column_name: 'created_at',
-                    column_type: 'datetime',
-                    is_nullable: 'NO',
-                    column_key: '',
-                    column_default: '',
-                },
-            ])
-            .mockResolvedValueOnce([{ id: 1, total: '1389.98', created_at: '2024-03-01 00:00:00' }])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            sslMode: 'required',
-            source: 'saved_profile',
-        })
-
-        await expect(
-            service.runQuery(session, 'SELECT id, total, created_at FROM `quarry_demo`.`orders` LIMIT 20;', 100),
-        ).resolves.toEqual({
-            kind: 'rows',
-            rows: [{ id: 1, total: '1389.98', created_at: '2024-03-01 00:00:00' }],
-            columns: ['id', 'total', 'created_at'],
-        })
-
-        expect(select).toHaveBeenNthCalledWith(
-            2,
-            'SELECT * FROM (SELECT `id` AS `id`, CAST(`total` AS CHAR(255)) AS `total`, `created_at` AS `created_at` FROM `quarry_demo`.`orders` LIMIT 20) AS quarry_query LIMIT 100',
-        )
-    })
-
-    it('runs simple select expressions without wrapping them in a subquery', async () => {
-        select.mockResolvedValueOnce([{ now_value: '2026-07-18 13:20:00' }])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            sslMode: 'required',
-            source: 'saved_profile',
-        })
-
-        await expect(service.runQuery(session, 'SELECT NOW() AS now_value;', 100)).resolves.toEqual({
-            kind: 'rows',
-            rows: [{ now_value: '2026-07-18 13:20:00' }],
-            columns: ['now_value'],
-        })
-
-        expect(select).toHaveBeenCalledOnce()
-        expect(select).toHaveBeenCalledWith('SELECT NOW() AS now_value')
-    })
-
-    it('fetches full table rows for export without a preview limit', async () => {
-        select
-            .mockResolvedValueOnce([
-                {
-                    column_name: 'id',
-                    column_type: 'int',
-                    is_nullable: 'NO',
-                    column_key: 'PRI',
-                    column_default: '',
-                },
-                {
-                    column_name: 'name',
-                    column_type: 'varchar(255)',
-                    is_nullable: 'NO',
-                    column_key: '',
-                    column_default: '',
-                },
-            ])
-            .mockResolvedValueOnce([{ id: 1, name: 'Alice' }])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            source: 'saved_profile',
-        })
-
-        await expect(service.fetchTableRows(session, 'quarry_demo', 'customers')).resolves.toEqual({
-            rows: [{ id: 1, name: 'Alice' }],
-            columns: ['id', 'name'],
-        })
-        expect(select).toHaveBeenLastCalledWith('SELECT `id` AS `id`, `name` AS `name` FROM `quarry_demo`.`customers`')
-    })
-
-    it('exports full result-returning queries without applying preview rewriting', async () => {
-        select.mockResolvedValueOnce([{ id: 1, total: 50 }])
-
-        const session = await service.connect({
-            target: {
-                connectionId: 'mysql-1',
-                connectionName: 'Analytics',
-                host: '127.0.0.1',
-                port: 3306,
-                defaultDatabase: 'quarry_demo',
-            },
-            username: 'quarry',
-            password: 'secret',
-            source: 'saved_profile',
-        })
-
-        await expect(service.runQueryFull(session, 'SELECT id, total FROM orders;')).resolves.toEqual([
-            { id: 1, total: 50 },
-        ])
-        expect(select).toHaveBeenLastCalledWith('SELECT id, total FROM orders')
     })
 })

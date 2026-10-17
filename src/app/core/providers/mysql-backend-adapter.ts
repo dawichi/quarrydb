@@ -3,12 +3,6 @@ import type { MysqlConnectionTarget } from '@quarrydb/shared/mysql-connection-ta
 import type { EditOperation } from '../store/edit.store'
 import type { MysqlConnectRequest } from './mysql-connect-request'
 
-export interface MysqlDatabaseClient {
-    select<T>(query: string, bindValues?: unknown[]): Promise<T>
-    execute(query: string, bindValues?: unknown[]): Promise<{ rowsAffected?: number; lastInsertId?: number }>
-    close(): Promise<void>
-}
-
 export interface MysqlConnectionSession {
     target: MysqlConnectionTarget
     source: MysqlConnectRequest['source']

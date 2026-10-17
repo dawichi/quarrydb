@@ -1,13 +1,13 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SqliteDatabaseService } from '../services/sqlite-database.service'
 import type { EditOperation } from '../store/edit.store'
-import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-tauri-database'
+import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-sql-client'
 import { SAMPLE_SCHEMA_SQL } from './fixtures/sample-schema'
 
 // See pipeline-run.integration.spec.ts for why this mock exists and how it's hoisted.
-vi.mock('@tauri-apps/plugin-sql', async () => {
-    const { FakeDatabase } = await import('./fixtures/fake-tauri-database')
-    return { default: FakeDatabase }
+vi.mock('../native/sql-client', async (importOriginal) => {
+    const { fakeConnectSql } = await import('./fixtures/fake-sql-client')
+    return { ...(await importOriginal<object>()), connectSql: fakeConnectSql }
 })
 
 const FIXTURE_PATH = 'edit-mode.test.db'

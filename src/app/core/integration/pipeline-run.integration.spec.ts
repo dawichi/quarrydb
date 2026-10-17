@@ -3,14 +3,14 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExportService } from '../services/export.service'
 import { SqliteDatabaseService } from '../services/sqlite-database.service'
 import { buildPipelineSql } from '../store/pipeline.store'
-import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-tauri-database'
+import { closeFixtureDbs, seedFixtureDb } from './fixtures/fake-sql-client'
 import { SAMPLE_SCHEMA_SQL } from './fixtures/sample-schema'
 
-// Replace the Tauri SQL plugin with a real-SQLite-backed fake — see fixtures/fake-tauri-database.
+// Replace the native SQL client with a real-SQLite-backed fake — see fixtures/fake-sql-client.
 // `vi.mock` factories are hoisted above imports, so SqliteDatabaseService picks up the fake transparently.
-vi.mock('@tauri-apps/plugin-sql', async () => {
-    const { FakeDatabase } = await import('./fixtures/fake-tauri-database')
-    return { default: FakeDatabase }
+vi.mock('../native/sql-client', async (importOriginal) => {
+    const { fakeConnectSql } = await import('./fixtures/fake-sql-client')
+    return { ...(await importOriginal<object>()), connectSql: fakeConnectSql }
 })
 
 const FIXTURE_PATH = 'pipeline-run.test.db'
@@ -28,7 +28,7 @@ async function runPipeline(table: string, steps: PipelineStep[]): Promise<Record
 // ─── Pipeline build → run ─────────────────────────────────────────────────────
 
 describe('pipeline run (integration)', () => {
-    it('runs a generated CTE chain through tauri-plugin-sql and returns real rows', async () => {
+    it('runs a generated CTE chain through the SQL client and returns real rows', async () => {
         const steps: PipelineStep[] = [{ id: 's1', type: 'WHERE', expression: "status = 'shipped'" }]
         const rows = await runPipeline('orders', steps)
         expect(rows.map((r) => r.id)).toEqual([1, 3])
