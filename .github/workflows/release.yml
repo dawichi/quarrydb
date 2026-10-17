@@ -79,7 +79,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Quarry ${{ github.ref_name }}'
           releaseBody: |
-            Release notes: https://github.com/dawichi/quarrydb/blob/${{ github.ref_name }}/docs/release-notes-0.2.0.md
+            Release notes: https://github.com/dawichi/quarrydb/blob/${{ github.ref_name }}/docs/release-notes-0.2.1.md
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: false
@@ -104,7 +104,8 @@ jobs:
           # `tauri build` reads TAURI_SIGNING_PRIVATE_KEY directly and tolerates a
           # trailing newline, but `signer sign -k`'s base64 decoder does not — strip it.
           KEY=$(printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" | tr -d '\n\r')
-          bunx tauri signer sign -k "$KEY" -p "" "$BUNDLE"
+          # `--password=` stays one argument; bunx on Windows drops a separate empty "".
+          bunx tauri signer sign --private-key "$KEY" --password= "$BUNDLE"
 
           cp "$BUNDLE.sig" "Quarry_${ARCH}.app.tar.gz.sig"
           gh release upload "$TAG" "Quarry_${ARCH}.app.tar.gz.sig" --clobber
@@ -138,7 +139,8 @@ jobs:
           fi
 
           KEY=$(printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" | tr -d '\n\r')
-          bunx tauri signer sign -k "$KEY" -p "" "$BUNDLE"
+          # `--password=` stays one argument; bunx on Windows drops a separate empty "".
+          bunx tauri signer sign --private-key "$KEY" --password= "$BUNDLE"
 
           cp "$BUNDLE.sig" "Quarry_x64-setup.exe.sig"
           gh release upload "$TAG" "Quarry_x64-setup.exe.sig" --clobber

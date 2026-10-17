@@ -1,6 +1,8 @@
-# Quarry 0.2.0
+# Quarry 0.2.1
 
-Status: draft until the smoke test in [release.md](release.md) is recorded.
+The first published build of the 0.2 line. The `v0.2.0` tag built installers but its Windows
+updater signature failed, so it never reached the in-app updater; 0.2.1 is the same app with
+the release workflow fixed. Everything below is new since 0.1.9.
 
 ## Highlights
 

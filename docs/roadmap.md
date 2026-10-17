@@ -20,7 +20,7 @@ pipeline story.
 - **No new engines until the pipeline earns them.** Postgres and MongoDB are out of scope until
   real users ask for them and the pipeline is excellent on SQLite and MySQL.
 
-## Now — 0.2.0
+## Now — 0.2.1
 
 - [x] Native SQL layer (`sqlx`) replacing `tauri-plugin-sql`: exact types, real transactions,
       timeouts
@@ -28,8 +28,10 @@ pipeline story.
 - [x] One pipeline UI for SQLite and MySQL
 - [x] CI green and running everything the release runs
 - [x] Row-flow on every block: `1,204 → 312 rows`, plus the columns it added or dropped
-- [ ] Manual smoke test of a release build on macOS and Windows (see [release.md](release.md))
-- [ ] Tag and publish 0.2.0
+- [x] Smoke test of a release build on macOS: automated via the native bridge, plus a manual
+      check of the built app (see [release.md](release.md))
+- [ ] Smoke test of the Windows installer
+- [ ] Tag and publish 0.2.1
 
 ## Next — make the pipeline visual
 
