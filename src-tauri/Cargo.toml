@@ -21,7 +21,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "sqlite", "mysql", "chrono"] }
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "sqlite", "mysql", "chrono"] }
 tokio = { version = "1", features = ["time", "sync", "macros"] }
 futures-util = { version = "0.3", default-features = false }
 redis = { version = "1.5.0", default-features = false, features = ["json", "streams", "tls-rustls-webpki-roots"] }
